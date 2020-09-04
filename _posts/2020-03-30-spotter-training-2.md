@@ -2,7 +2,10 @@
 layout: post
 title:  "NWS Norman - Severe Weather Spotter Training Notes Session 2"
 date:   2020-03-30 00:06:30 -0500
+description: Quick notes on storm spotting training seminar with NWS Norman
 series: meteorology
+titleImage:
+    file: 'title.png'
 ---
 
 Notes on Advanced Severe Weather Spotter Training webinar #skywarn.

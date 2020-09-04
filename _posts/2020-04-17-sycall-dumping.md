@@ -2,7 +2,7 @@
 layout: post
 title:  "Dumping Syscall Numbers and Offsets"
 date:   2020-04-17 00:05:28 -0500
-dsecription: Iterating over NTDLL exports and pseudo-disassembling for syscall numbers
+description: Iterating over NTDLL exports and pseudo-disassembling for syscall numbers
 series: windows_internals
 titleImage:
     file: 'title.png'
