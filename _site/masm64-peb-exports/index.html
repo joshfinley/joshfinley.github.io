@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>MASM64 Peb Walking and Export resolution – Josh Finley - Notebook</title>
+
+        <meta charset="utf-8" />
+    <meta content='text/html; charset=utf-8' http-equiv='Content-Type'>
+    <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0'>
+
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:creator" content="@mattbierner">
+    <meta name="author" content="Josh Finley" />
+
+
+    <meta property="og:title" content="MASM64 Peb Walking and Export resolution" />
+    <meta property="twitter:title" content="MASM64 Peb Walking and Export resolution" />
+
+
+
+    <meta name="description" content="PEB Walking and export resolution in 64-bit assembler" />
+    <meta property="og:description" content="PEB Walking and export resolution in 64-bit assembler" />
+    <meta name="twitter:description" content="PEB Walking and export resolution in 64-bit assembler">
+
+
+
+    
+    <meta name="twitter:image" content="http://localhost:4000/content/2020-09-04-masm64-peb-exports/title.png">
+
+
+
+
+
+    <link rel="stylesheet" type="text/css" href="/style.css" />
+    <link type="application/atom+xml" rel="alternate" href="http://localhost:4000/feed.xml" title="Josh Finley - Notebook" />
+</head>
+
+<body>
+    <div class="toc-container">
+    <nav class="toc hidden">
+        <h1 class="toc-root"><a href="#">#</a></h1>
+        <div class="toc-content"></div>
+    </nav>
+</div>
+
+<header class="masthead">
+    <a href="/" class="site-avatar">
+        <img src="/images/site-default.jpg" alt="Clouds" />
+    </a>
+</header>
+
+<article role="main" class="main post container ">
+    <header class="post-header">
+        
+            <h1 class="post-title">MASM64 Peb Walking and Export resolution</h1> 
+        
+
+        <div class="post-meta">
+            <time datetime="2020-09-04T00:05:29-05:00">September  4, 2020</time>
+            
+                &mdash; <a class="channel-link" href="/series/windows_internals">windows internals</a>
+            
+        </div>
+    </header>
+
+    <p>Using the PEB to find exports in shellcode and malware is not new.
+As early as the late 90’s, malware authors have been accessing and using
+the PEB for a variety of purposes [1]. Additionally, using it to resolve
+exports from ntdll.dll, kernel32.dll, etc. has also been documented elsewhere many times [2]. Still, most of the existing examples are in 32-bit
+assembly, and there are fewer examples in 64-bit. Regardless of the similarities, the world has mostly moved on from x86, yet examples of 64-bit
+shellcode are still much less common. Am0nsec [3] demonstrates the most 
+readable and comprehensive approach to the technique for MASM64, but the
+approach is focused on population tables of function addresses and syscalls
+(the ‘Hells Gate’ tecnique).</p>
+
+<p>This article simply walks through an adaptation of part of [3] to be more general - almost all of the code is the exact same, but parts have been changed to make a general-purpose function for iterating over a module’s exports to find a target
+functions address.</p>
+
+<h2 id="1-getexport-prototype">1. GetExport prototype</h2>
+
+<p>We can declare the prototype for this function to be the following:</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// Given the djb2 hash of the target function name and its parent module base addres, resolve its virtual address</span>
+<span class="kr">__fastcall</span> <span class="n">uint64_ptr</span> <span class="nf">GetExport</span><span class="p">(</span><span class="kt">long</span> <span class="n">djb2_hash</span><span class="p">,</span> <span class="kt">long</span> <span class="n">lpModuleBase</span><span class="p">);</span>
+</code></pre></div></div>
+
+<h2 id="2-finding-export-directory-iterables">2. Finding export directory iterables</h2>
+
+<p>Inside the procedure body, the first thing that needs to be done is to find the following information:</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">IMAGE_EXPORT_DIRECTORY.AddressOfNames</code></li>
+  <li><code class="language-plaintext highlighter-rouge">IMAGE_EXPORT_DIRECTORY.AddressOfFunctions</code></li>
+  <li><code class="language-plaintext highlighter-rouge">IMAGE_EXPORT_DIRECTORY.AddressOfNameOrdinals</code></li>
+</ul>
+
+<p>The HellsGate implementation does all of this for us very nicely:</p>
+
+<pre><code class="language-asm">; in proc GetExport
+mov     r10d, ecx
+mov     rbx, rdx
+mov     r8, rdx
+cmp     [r8].IMAGE_DOS_HEADER.e_magic, 5A4Dh                          ; DOS Header --&gt; MZ
+jne     _getexport_failure
+
+mov     ebx, [r8].IMAGE_DOS_HEADER.e_lfanew                           ; RVA of IMAGE_NT_HEADERS64
+add     r8, rbx                                                       ;
+cmp     [r8].IMAGE_NT_HEADERS64.Signature, 00004550h                  ; NT Header --&gt; PE00
+jne     _getexport_failure
+
+mov     ebx, IMAGE_NT_HEADERS64.OptionalHeader                        ; RVA of IMAGE_OPTIONAL_HEADER64
+add     r8, rbx                                                       ;
+cmp     [r8].IMAGE_OPTIONAL_HEADER64.Magic, 20bh                      ; Optional header --&gt; 0x20b
+jne     _getexport_failure
+
+lea     r8, [r8].IMAGE_OPTIONAL_HEADER64.DataDirectory                ; First entry of the DataDirectory array
+mov     ebx, [r8].IMAGE_DATA_DIRECTORY.VirtualAddress                 ; RVA of IMAGE_EXPORT_DIRECTORY
+mov     r8, r9                                                        ; ImageBase
+add     r8, rbx                                                       ; Module + RVA
+
+mov     ebx, [r8].IMAGE_EXPORT_DIRECTORY.AddressOfNames               ; Address of the function name
+mov     r12, r9                                                       ; Function name RVA
+add     r12, rbx                                                      ; ImageBase + RVA
+
+mov     ebx, [r8].IMAGE_EXPORT_DIRECTORY.AddressOfFunctions           ; Address of function pointers
+mov     r13, r9                                                       ;
+add     r13, rbx                                                      ;
+
+mov     ebx, [r8].IMAGE_EXPORT_DIRECTORY.AddressOfNameOrdinals        ; Address of function ordinals
+mov     r14, r9                                                       ;
+add     r14, rbx                                                      ;
+
+mov     ecx, [r8].IMAGE_EXPORT_DIRECTORY.NumberOfNames                ; Total number of named functions
+
+</code></pre>
+
+<h2 id="3-search-loop">3. Search loop</h2>
+
+<p>The next part is where things differ slightly. Instead of identifying predetermined syscall functions and their respective syscall values, we loop over the export table and look for our target (passed in <code class="language-plaintext highlighter-rouge">ecx</code>). If we find its hashmatch, all we have to do is fixup its virtual address and return it in <code class="language-plaintext highlighter-rouge">rax</code>.</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>        xor     rax, rax                                                      ; Set counter to 0
+_function_address_search:
+        mov     rbx, 4h                                                       ; sizeof(DWORD)
+        imul    rbx, rax                                                      ; Get address of next entry
+        cmp     eax, ecx                                                      ; Check if rax is still in the range of the export ordinals
+        jg      _getexport_failure                                            ; If exceeded, the export could not be found
+        mov     esi, dword ptr [rbx + r12]                                    ; Set esi to the name RVA
+        add     rsi, r9                                                       ; Add it to the imagebase
+
+        push    rax                                                           ; Store the counter
+        mov     edx, r10d                                                     ; Load the target hash
+        call    _djb2_compare                                                 ; Check the hashes
+
+        mov     rdx, rax                                                      ; Store the result
+        pop     rax                                                           ; Restore the counter
+        inc     ax
+        test    dx, dx
+        jnz     _function_address_search                                      ; If the hashes match, resolve the function's address
+</code></pre></div></div>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>_get_function_address:
+        ;mov rcx, 2h                                                          ; sizeof(WORD)
+        ;imul rcx, rax                                                        ; RCX * sizeof(WORD)
+        ;mov ax, [r14 + rax]                                                  ; AX = function ordinal
+        dec     rax
+
+        imul    rax, 4                                                        ; sizeof(DWORD) * ordinal
+        mov     eax, [r13 + rax]                                              ; RVA of function
+        mov     rbx, r9                                                       ; RBX = ImageBase
+        add     rbx, rax                                                      ; RBX = address of function
+
+        mov     rax, rbx                                                      ; Set return value to function address
+        jmp     _getexport_epilog
+</code></pre></div></div>
+
+<p>Doing so requires a slight modification to the djb2 hashing implementation. We need it to take a target hash and a source string and determine if the latter’s hash is equivalent to the former. This can be done as such:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>;-----------------------------------------------------------------------------
+; djb2_compare(rcx=target_hash, rsi=source_string);
+;-----------------------------------------------------------------------------
+_djb2_compare:
+        push    r10
+        mov     rbp, rsp
+
+        mov     r10d, 5381h                                                   ; hash = 0x5381
+_djb2_loop:
+        mov     r11d, r10d                                                    ; Store original hash value for later
+        shl     r10d, 5                                                       ; hash &lt;&lt; 5
+        add     r10d, r11d                                                    ; (hash &lt;&lt; 5) + hash
+
+        xor     r11d, r11d                                                    ; Clean temporary hash value
+        mov     r11b, byte ptr [rsi]                                          ; Get ASCII char
+        add     r10d, r11d                                                    ; ((hash &lt;&lt; 5) + hash) + char
+
+        inc     rsi                                                           ; Next string char
+        cmp     byte ptr [rsi], 00h                                           ; End of string
+
+        jne     _djb2_loop
+        xor     r10d, edx                                                     ; Check if hashes match
+        jz      _djb2_match
+        mov     rax, 1
+        jmp     _djb2_epilog
+
+_djb2_match:
+        mov     rax, 0                                                        ; Set status to ERROR_SUCCESS
+_djb2_epilog:
+        mov     rsp, rbp
+        pop     r10
+        ret
+</code></pre></div></div>
+
+<p>The sum of these parts is a general-purpose function for finding functions from a module’s export directory, without string reliance. Of course, credit for nearly all of these implementation details goes to am0nsec.</p>
+
+<h1 id="references">References:</h1>
+<p>[1] https://modexp.wordpress.com/2017/01/15/shellcode-resolving-api-addresses/
+ [2] https://idafchev.github.io/exploit/2017/09/26/writing_windows_shellcode.html
+ [3] https://github.com/am0nsec/vx/blob/master/Injector.Win64.HellsGate/HELLSGATE.ASM</p>
+
+
+    <footer class="post-footer">
+        <nav class="post-nav clearfix">
+            <div class="prev">
+                 
+                <a href="/sycall-dumping/">&laquo; Dumping Syscall Numbers and Offsets</a> 
+                
+            </div>
+            <div class="next">
+                 
+            </div>
+        </nav>
+        <a class="edit-link" href="https://github.com/mattbierner/blog.mattbierner.com/issues/new">Leave a comment or share feedback on github</a>
+    </footer>
+</article>
+
+<nav class='post-pagination body-pagination'>
+     
+    <a title="Previous: Dumping Syscall Numbers and Offsets" href="/sycall-dumping/" class="post-pagination-link prev-post"></a>
+    
+     
+</nav>
+
+<script type="text/javascript" src="/scripts/jquery.js"></script>
+<script type="text/javascript" src="/scripts/jquery.toc.js"></script>
+<script type="text/javascript" src="/scripts/index.js"></script>
+
+    <div class="wrapper-footer">
+        <div class="container">
+            <footer class="footer page-footer">
+                <nav class="footer-links">
+                    <a href="https://github.com/joshfinley">Github</a>
+                </nav>
+                <div class="footer-post">
+                    <p>
+                        <a rel="license" href="https://creativecommons.org/licenses/by-nc/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-nc/4.0/80x15.png" />
+                        </a><br> Unless otherwise noted, all content is licensed under a <a rel="license" href="https://creativecommons.org/licenses/by-nc/4.0/">Creative Commons Attribution-NonCommercial 4.0 International License</a><br>
+                        share don't sell
+                    </p>
+                    <p id="copyright">&copy; 2020 Josh Finley. Blog style by Matt Bierner</p>
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    
+
+</body>
+
+</html>

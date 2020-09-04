@@ -2,7 +2,7 @@
 <html lang="en">
 
 <head>
-    <title>Dumping Syscall Numbers and Offsets – Notebook</title>
+    <title>Dumping Syscall Numbers and Offsets – Josh Finley - Notebook</title>
 
         <meta charset="utf-8" />
     <meta content='text/html; charset=utf-8' http-equiv='Content-Type'>
@@ -19,24 +19,21 @@
 
 
 
-    <meta name="description" content="Source code for this demonstration can be found here
-
-" />
-    <meta property="og:description" content="Source code for this demonstration can be found here
-
-" />
-    <meta name="twitter:description" content="Source code for this demonstration can be found here
-
-">
+    <meta name="description" content="Iterating over NTDLL exports and pseudo-disassembling for syscall numbers" />
+    <meta property="og:description" content="Iterating over NTDLL exports and pseudo-disassembling for syscall numbers" />
+    <meta name="twitter:description" content="Iterating over NTDLL exports and pseudo-disassembling for syscall numbers">
 
 
+
+    
+    <meta name="twitter:image" content="http://localhost:4000/content/2020-04-17-sycall-dumping/title.png">
 
 
 
 
 
     <link rel="stylesheet" type="text/css" href="/style.css" />
-    <link type="application/atom+xml" rel="alternate" href="http://localhost:4000/feed.xml" title="Notebook" />
+    <link type="application/atom+xml" rel="alternate" href="http://localhost:4000/feed.xml" title="Josh Finley - Notebook" />
 </head>
 
 <body>
@@ -75,7 +72,22 @@
 
 <p>The following image shows an example of the disassembly of an <code class="language-plaintext highlighter-rouge">ntdll.dll</code> system call export:</p>
 
-<p><img src="resources/ntdll_syscall_wrapper.png" alt="resourcse system call disasm" /></p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>.text:000000018009C870 ; Exported entry 478. NtQueryEvent
+.text:000000018009C870 ; Exported entry 2060. ZwQueryEvent
+.text:000000018009C870
+.text:000000018009C870 ; =============== S U B R O U T I N E =======================================
+.text:000000018009C870
+.text:000000018009C870
+.text:000000018009C870                 public NtQueryEvent
+.text:000000018009C870 NtQueryEvent    proc near               ; CODE XREF: PsspDumpObject_Event+25↓p
+.text:000000018009C870                                         ; DATA XREF: .rdata:000000018011F055↓o ...
+.text:000000018009C870                 mov     r10, rcx        ; NtQueryEvent
+.text:000000018009C873                 mov     eax, 56h ; 'V'
+.text:000000018009C878                 test    byte ptr ds:7FFE0308h, 1
+.text:000000018009C880                 jnz     short loc_18009C885
+.text:000000018009C882                 syscall                 ; Low latency system call
+.text:000000018009C884                 retn
+</code></pre></div></div>
 
 <p><code class="language-plaintext highlighter-rouge">ntdll.dll</code> itself exports over 2000 functions. On Windows 1909, 464 of these are these system call wrappers. The exports of a given executable can quickly be dumped using <code class="language-plaintext highlighter-rouge">dumpbin.exe</code> as follows:</p>
 
@@ -216,6 +228,8 @@ ordinal   RVA       code      name
             </div>
             <div class="next">
                  
+                <a href="/masm64-peb-exports/">MASM64 Peb Walking and Export resolution &raquo;</a> 
+                 
             </div>
         </nav>
         <a class="edit-link" href="https://github.com/mattbierner/blog.mattbierner.com/issues/new">Leave a comment or share feedback on github</a>
@@ -226,6 +240,8 @@ ordinal   RVA       code      name
      
     <a title="Previous: Windows DKOM Demo" href="/dkom-demo/" class="post-pagination-link prev-post"></a>
     
+     
+    <a title="Next: MASM64 Peb Walking and Export resolution" href="/masm64-peb-exports/" class="post-pagination-link next-post"></a>
      
 </nav>
 

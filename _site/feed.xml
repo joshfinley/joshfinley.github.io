@@ -1,4 +1,155 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="3.9.0">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2020-09-04T10:39:29-05:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">Notebook</title><subtitle>Sharing notes and resources</subtitle><author><name>Josh Finley</name></author><entry><title type="html">Dumping Syscall Numbers and Offsets</title><link href="http://localhost:4000/sycall-dumping/" rel="alternate" type="text/html" title="Dumping Syscall Numbers and Offsets" /><published>2020-04-17T00:05:28-05:00</published><updated>2020-04-17T00:05:28-05:00</updated><id>http://localhost:4000/sycall-dumping</id><content type="html" xml:base="http://localhost:4000/sycall-dumping/">&lt;p&gt;Source code for this demonstration can be found &lt;a href=&quot;https://github.com/joshfinley/SyscallDumper/tree/v1.0&quot;&gt;here&lt;/a&gt;&lt;/p&gt;
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="3.9.0">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2020-09-04T11:36:21-05:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">Josh Finley - Notebook</title><subtitle>Sharing notes and resources</subtitle><author><name>Josh Finley</name></author><entry><title type="html">MASM64 Peb Walking and Export resolution</title><link href="http://localhost:4000/masm64-peb-exports/" rel="alternate" type="text/html" title="MASM64 Peb Walking and Export resolution" /><published>2020-09-04T00:05:29-05:00</published><updated>2020-09-04T00:05:29-05:00</updated><id>http://localhost:4000/masm64-peb-exports</id><content type="html" xml:base="http://localhost:4000/masm64-peb-exports/">&lt;p&gt;Using the PEB to find exports in shellcode and malware is not new.
+As early as the late 90’s, malware authors have been accessing and using
+the PEB for a variety of purposes [1]. Additionally, using it to resolve
+exports from ntdll.dll, kernel32.dll, etc. has also been documented elsewhere many times [2]. Still, most of the existing examples are in 32-bit
+assembly, and there are fewer examples in 64-bit. Regardless of the similarities, the world has mostly moved on from x86, yet examples of 64-bit
+shellcode are still much less common. Am0nsec [3] demonstrates the most 
+readable and comprehensive approach to the technique for MASM64, but the
+approach is focused on population tables of function addresses and syscalls
+(the ‘Hells Gate’ tecnique).&lt;/p&gt;
+
+&lt;p&gt;This article simply walks through an adaptation of part of [3] to be more general - almost all of the code is the exact same, but parts have been changed to make a general-purpose function for iterating over a module’s exports to find a target
+functions address.&lt;/p&gt;
+
+&lt;h2 id=&quot;1-getexport-prototype&quot;&gt;1. GetExport prototype&lt;/h2&gt;
+
+&lt;p&gt;We can declare the prototype for this function to be the following:&lt;/p&gt;
+
+&lt;div class=&quot;language-c highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;// Given the djb2 hash of the target function name and its parent module base addres, resolve its virtual address&lt;/span&gt;
+&lt;span class=&quot;kr&quot;&gt;__fastcall&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;uint64_ptr&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;GetExport&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;long&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;djb2_hash&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;kt&quot;&gt;long&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;lpModuleBase&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h2 id=&quot;2-finding-export-directory-iterables&quot;&gt;2. Finding export directory iterables&lt;/h2&gt;
+
+&lt;p&gt;Inside the procedure body, the first thing that needs to be done is to find the following information:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;IMAGE_EXPORT_DIRECTORY.AddressOfNames&lt;/code&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;IMAGE_EXPORT_DIRECTORY.AddressOfFunctions&lt;/code&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;IMAGE_EXPORT_DIRECTORY.AddressOfNameOrdinals&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;The HellsGate implementation does all of this for us very nicely:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&quot;language-asm&quot;&gt;; in proc GetExport
+mov     r10d, ecx
+mov     rbx, rdx
+mov     r8, rdx
+cmp     [r8].IMAGE_DOS_HEADER.e_magic, 5A4Dh                          ; DOS Header --&amp;gt; MZ
+jne     _getexport_failure
+
+mov     ebx, [r8].IMAGE_DOS_HEADER.e_lfanew                           ; RVA of IMAGE_NT_HEADERS64
+add     r8, rbx                                                       ;
+cmp     [r8].IMAGE_NT_HEADERS64.Signature, 00004550h                  ; NT Header --&amp;gt; PE00
+jne     _getexport_failure
+
+mov     ebx, IMAGE_NT_HEADERS64.OptionalHeader                        ; RVA of IMAGE_OPTIONAL_HEADER64
+add     r8, rbx                                                       ;
+cmp     [r8].IMAGE_OPTIONAL_HEADER64.Magic, 20bh                      ; Optional header --&amp;gt; 0x20b
+jne     _getexport_failure
+
+lea     r8, [r8].IMAGE_OPTIONAL_HEADER64.DataDirectory                ; First entry of the DataDirectory array
+mov     ebx, [r8].IMAGE_DATA_DIRECTORY.VirtualAddress                 ; RVA of IMAGE_EXPORT_DIRECTORY
+mov     r8, r9                                                        ; ImageBase
+add     r8, rbx                                                       ; Module + RVA
+
+mov     ebx, [r8].IMAGE_EXPORT_DIRECTORY.AddressOfNames               ; Address of the function name
+mov     r12, r9                                                       ; Function name RVA
+add     r12, rbx                                                      ; ImageBase + RVA
+
+mov     ebx, [r8].IMAGE_EXPORT_DIRECTORY.AddressOfFunctions           ; Address of function pointers
+mov     r13, r9                                                       ;
+add     r13, rbx                                                      ;
+
+mov     ebx, [r8].IMAGE_EXPORT_DIRECTORY.AddressOfNameOrdinals        ; Address of function ordinals
+mov     r14, r9                                                       ;
+add     r14, rbx                                                      ;
+
+mov     ecx, [r8].IMAGE_EXPORT_DIRECTORY.NumberOfNames                ; Total number of named functions
+
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2 id=&quot;3-search-loop&quot;&gt;3. Search loop&lt;/h2&gt;
+
+&lt;p&gt;The next part is where things differ slightly. Instead of identifying predetermined syscall functions and their respective syscall values, we loop over the export table and look for our target (passed in &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ecx&lt;/code&gt;). If we find its hashmatch, all we have to do is fixup its virtual address and return it in &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;rax&lt;/code&gt;.&lt;/p&gt;
+
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;        xor     rax, rax                                                      ; Set counter to 0
+_function_address_search:
+        mov     rbx, 4h                                                       ; sizeof(DWORD)
+        imul    rbx, rax                                                      ; Get address of next entry
+        cmp     eax, ecx                                                      ; Check if rax is still in the range of the export ordinals
+        jg      _getexport_failure                                            ; If exceeded, the export could not be found
+        mov     esi, dword ptr [rbx + r12]                                    ; Set esi to the name RVA
+        add     rsi, r9                                                       ; Add it to the imagebase
+
+        push    rax                                                           ; Store the counter
+        mov     edx, r10d                                                     ; Load the target hash
+        call    _djb2_compare                                                 ; Check the hashes
+
+        mov     rdx, rax                                                      ; Store the result
+        pop     rax                                                           ; Restore the counter
+        inc     ax
+        test    dx, dx
+        jnz     _function_address_search                                      ; If the hashes match, resolve the function's address
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;_get_function_address:
+        ;mov rcx, 2h                                                          ; sizeof(WORD)
+        ;imul rcx, rax                                                        ; RCX * sizeof(WORD)
+        ;mov ax, [r14 + rax]                                                  ; AX = function ordinal
+        dec     rax
+
+        imul    rax, 4                                                        ; sizeof(DWORD) * ordinal
+        mov     eax, [r13 + rax]                                              ; RVA of function
+        mov     rbx, r9                                                       ; RBX = ImageBase
+        add     rbx, rax                                                      ; RBX = address of function
+
+        mov     rax, rbx                                                      ; Set return value to function address
+        jmp     _getexport_epilog
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Doing so requires a slight modification to the djb2 hashing implementation. We need it to take a target hash and a source string and determine if the latter’s hash is equivalent to the former. This can be done as such:&lt;/p&gt;
+
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;;-----------------------------------------------------------------------------
+; djb2_compare(rcx=target_hash, rsi=source_string);
+;-----------------------------------------------------------------------------
+_djb2_compare:
+        push    r10
+        mov     rbp, rsp
+
+        mov     r10d, 5381h                                                   ; hash = 0x5381
+_djb2_loop:
+        mov     r11d, r10d                                                    ; Store original hash value for later
+        shl     r10d, 5                                                       ; hash &amp;lt;&amp;lt; 5
+        add     r10d, r11d                                                    ; (hash &amp;lt;&amp;lt; 5) + hash
+
+        xor     r11d, r11d                                                    ; Clean temporary hash value
+        mov     r11b, byte ptr [rsi]                                          ; Get ASCII char
+        add     r10d, r11d                                                    ; ((hash &amp;lt;&amp;lt; 5) + hash) + char
+
+        inc     rsi                                                           ; Next string char
+        cmp     byte ptr [rsi], 00h                                           ; End of string
+
+        jne     _djb2_loop
+        xor     r10d, edx                                                     ; Check if hashes match
+        jz      _djb2_match
+        mov     rax, 1
+        jmp     _djb2_epilog
+
+_djb2_match:
+        mov     rax, 0                                                        ; Set status to ERROR_SUCCESS
+_djb2_epilog:
+        mov     rsp, rbp
+        pop     r10
+        ret
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;The sum of these parts is a general-purpose function for finding functions from a module’s export directory, without string reliance. Of course, credit for nearly all of these implementation details goes to am0nsec.&lt;/p&gt;
+
+&lt;h1 id=&quot;references&quot;&gt;References:&lt;/h1&gt;
+&lt;p&gt;[1] https://modexp.wordpress.com/2017/01/15/shellcode-resolving-api-addresses/
+ [2] https://idafchev.github.io/exploit/2017/09/26/writing_windows_shellcode.html
+ [3] https://github.com/am0nsec/vx/blob/master/Injector.Win64.HellsGate/HELLSGATE.ASM&lt;/p&gt;</content><author><name>Josh Finley</name></author><summary type="html">Using the PEB to find exports in shellcode and malware is not new. As early as the late 90’s, malware authors have been accessing and using the PEB for a variety of purposes [1]. Additionally, using it to resolve exports from ntdll.dll, kernel32.dll, etc. has also been documented elsewhere many times [2]. Still, most of the existing examples are in 32-bit assembly, and there are fewer examples in 64-bit. Regardless of the similarities, the world has mostly moved on from x86, yet examples of 64-bit shellcode are still much less common. Am0nsec [3] demonstrates the most readable and comprehensive approach to the technique for MASM64, but the approach is focused on population tables of function addresses and syscalls (the ‘Hells Gate’ tecnique).</summary></entry><entry><title type="html">Dumping Syscall Numbers and Offsets</title><link href="http://localhost:4000/sycall-dumping/" rel="alternate" type="text/html" title="Dumping Syscall Numbers and Offsets" /><published>2020-04-17T00:05:28-05:00</published><updated>2020-04-17T00:05:28-05:00</updated><id>http://localhost:4000/sycall-dumping</id><content type="html" xml:base="http://localhost:4000/sycall-dumping/">&lt;p&gt;Source code for this demonstration can be found &lt;a href=&quot;https://github.com/joshfinley/SyscallDumper/tree/v1.0&quot;&gt;here&lt;/a&gt;&lt;/p&gt;
 
 &lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ntdll.dll&lt;/code&gt; is the interface through which user-mode applications access the Windows kernel. &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ntdll.dll&lt;/code&gt; exports functions for every fundamental activity requring access to the domain of the kernel. Examples include interacting with the filesystem, virtual memory, physical devices, and more.&lt;/p&gt;
 
@@ -6,7 +157,22 @@
 
 &lt;p&gt;The following image shows an example of the disassembly of an &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ntdll.dll&lt;/code&gt; system call export:&lt;/p&gt;
 
-&lt;p&gt;&lt;img src=&quot;resources/ntdll_syscall_wrapper.png&quot; alt=&quot;resourcse system call disasm&quot; /&gt;&lt;/p&gt;
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;.text:000000018009C870 ; Exported entry 478. NtQueryEvent
+.text:000000018009C870 ; Exported entry 2060. ZwQueryEvent
+.text:000000018009C870
+.text:000000018009C870 ; =============== S U B R O U T I N E =======================================
+.text:000000018009C870
+.text:000000018009C870
+.text:000000018009C870                 public NtQueryEvent
+.text:000000018009C870 NtQueryEvent    proc near               ; CODE XREF: PsspDumpObject_Event+25↓p
+.text:000000018009C870                                         ; DATA XREF: .rdata:000000018011F055↓o ...
+.text:000000018009C870                 mov     r10, rcx        ; NtQueryEvent
+.text:000000018009C873                 mov     eax, 56h ; 'V'
+.text:000000018009C878                 test    byte ptr ds:7FFE0308h, 1
+.text:000000018009C880                 jnz     short loc_18009C885
+.text:000000018009C882                 syscall                 ; Low latency system call
+.text:000000018009C884                 retn
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
 &lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ntdll.dll&lt;/code&gt; itself exports over 2000 functions. On Windows 1909, 464 of these are these system call wrappers. The exports of a given executable can quickly be dumped using &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;dumpbin.exe&lt;/code&gt; as follows:&lt;/p&gt;
 
@@ -1799,7 +1965,7 @@ Being Safe and Informed&lt;/p&gt;
       &lt;td&gt;Structures are prefixed with &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;_&lt;/code&gt;&lt;/td&gt;
     &lt;/tr&gt;
   &lt;/tbody&gt;
-&lt;/table&gt;</content><author><name>Josh Finley</name></author><summary type="html">References</summary></entry><entry><title type="html">Dissecting a Barebones WDM Driver</title><link href="http://localhost:4000/dissecting-wdm-drivers/" rel="alternate" type="text/html" title="Dissecting a Barebones WDM Driver" /><published>2020-03-16T00:05:28-05:00</published><updated>2020-03-16T00:05:28-05:00</updated><id>http://localhost:4000/dissecting-wdm-drivers</id><content type="html" xml:base="http://localhost:4000/dissecting-wdm-drivers/">&lt;p&gt;Chapter 4 of &lt;em&gt;Kernel Programming for Windows&lt;/em&gt; walks through the process of developing a driver “from start to finish”. This post is for quick notes on the dissection of this example driver, taken for learning purposes.&lt;/p&gt;
+&lt;/table&gt;</content><author><name>Josh Finley</name></author><summary type="html">References</summary></entry><entry><title type="html">Dissecting a Simple WDM Driver</title><link href="http://localhost:4000/dissecting-wdm-drivers/" rel="alternate" type="text/html" title="Dissecting a Simple WDM Driver" /><published>2020-03-16T00:05:28-05:00</published><updated>2020-03-16T00:05:28-05:00</updated><id>http://localhost:4000/dissecting-wdm-drivers</id><content type="html" xml:base="http://localhost:4000/dissecting-wdm-drivers/">&lt;p&gt;Chapter 4 of &lt;em&gt;Kernel Programming for Windows&lt;/em&gt; walks through the process of developing a driver “from start to finish”. This post is for quick notes on the dissection of this example driver, taken for learning purposes.&lt;/p&gt;
 
 &lt;h4 id=&quot;source-code&quot;&gt;Source Code&lt;/h4&gt;
 
@@ -2330,26 +2496,4 @@ typedef struct _DEVICE_OBJECT *PDEVICE_OBJECT;
 &lt;ul&gt;
   &lt;li&gt;https://en.wikipedia.org/wiki/Object_Manager_(Windows)&lt;/li&gt;
   &lt;li&gt;https://docs.microsoft.com/en-us/windows/win32/secauthz/access-rights-and-access-masks&lt;/li&gt;
-&lt;/ul&gt;</content><author><name>Josh Finley</name></author><summary type="html">As I’ve been working my Pavel Yosifovich’s Kernel Programming for Windows, I’ve found that theres a few basic details of the Windows operating system that I have yet to commit to muscle-memory. This page is just some simple notes from the book to maybe help with retention. Items marked with a (?) are those that I feel the need to learn more about.</summary></entry><entry><title type="html">Fixing InfinityHook with ByePg</title><link href="http://localhost:4000/infinityhook-byepg/" rel="alternate" type="text/html" title="Fixing InfinityHook with ByePg" /><published>2020-01-22T00:00:00-06:00</published><updated>2020-01-22T00:00:00-06:00</updated><id>http://localhost:4000/infinityhook-byepg</id><content type="html" xml:base="http://localhost:4000/infinityhook-byepg/">&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;git clone https://github.com/everdox/infinityhook
-git clone https://github.com/can1357/ByePg.git
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-
-&lt;ul&gt;
-  &lt;li&gt;
-    &lt;p&gt;Open both in Visual Studio, build ByePg and the InfinityHookFix projects, and add the output and source directories from ByePg and the InfinityHook fix respectively to  &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Additional Include Directories&lt;/code&gt; under &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;libinfityhook-&amp;gt;properies-&amp;gt;C/C++-&amp;gt;General&lt;/code&gt; and add the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Output\InfinityHookFix.lib&lt;/code&gt; and &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Output\ByePgLib.lib&lt;/code&gt; to the linker dependencies for &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;kinfinityhook&lt;/code&gt;.&lt;/p&gt;
-  &lt;/li&gt;
-  &lt;li&gt;
-    &lt;p&gt;Add &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;#include &quot;IhFix.h&quot;&lt;/code&gt; to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;libinfinityhook\infinityhook.cpp&lt;/code&gt;: &lt;img src=&quot;/assets/IhFix-include.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
-  &lt;/li&gt;
-  &lt;li&gt;
-    &lt;p&gt;Call the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;FixInfinityHook&lt;/code&gt; function:&lt;/p&gt;
-  &lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;p&gt;&lt;img src=&quot;/assets/IhFix-IfhInitialize.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
-
-&lt;ul&gt;
-  &lt;li&gt;Build the solution and copy it to the target. Register and start the service: &lt;img src=&quot;/assets/osr-loader.png&quot; alt=&quot;&quot; /&gt;&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;p&gt;&lt;img src=&quot;/assets/infinityhook-loaded.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;</content><author><name>Josh Finley</name></author><summary type="html">git clone https://github.com/everdox/infinityhook git clone https://github.com/can1357/ByePg.git</summary></entry></feed>
+&lt;/ul&gt;</content><author><name>Josh Finley</name></author><summary type="html">As I’ve been working my Pavel Yosifovich’s Kernel Programming for Windows, I’ve found that theres a few basic details of the Windows operating system that I have yet to commit to muscle-memory. This page is just some simple notes from the book to maybe help with retention. Items marked with a (?) are those that I feel the need to learn more about.</summary></entry></feed>

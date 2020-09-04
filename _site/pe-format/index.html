@@ -2,7 +2,7 @@
 <html lang="en">
 
 <head>
-    <title>PE Format Notes – Notebook</title>
+    <title>PE Format Notes – Josh Finley - Notebook</title>
 
         <meta charset="utf-8" />
     <meta content='text/html; charset=utf-8' http-equiv='Content-Type'>
@@ -19,198 +19,21 @@
 
 
 
-    <meta name="description" content="struct DOS_Header
-{
-// short is 2 bytes, long is 4 bytes
-     char signature[2] = { 'M', 'Z' };
-     short lastsize;
-     short nblocks;
-     short nreloc;
-     short hdrsize;
-     short minalloc;
-     short maxalloc;
-     void *ss; // 2 byte value
-     void *sp; // 2 byte value
-     short checksum;
-     void *ip; // 2 byte value
-     void *cs; // 2 byte value
-     short relocpos;
-     short noverlay;
-     short reserved1[4];
-     short oem_id;
-     short oem_info;
-     short reserved2[10];
-     long  e_lfanew; // Offset to the 'PE\0\0' signature relative to the beginning of the file
-}
-
-Optional Header (misnomer - not actually optional)
-64 Bit
-typedef struct _IMAGE_OPTIONAL_HEADER64 {
-    WORD        Magic;
-    BYTE        MajorLinkerVersion;
-    BYTE        MinorLinkerVersion;
-    DWORD       SizeOfCode;
-    DWORD       SizeOfInitializedData;
-    DWORD       SizeOfUninitializedData;
-    DWORD       AddressOfEntryPoint;
-    DWORD       BaseOfCode;
-    ULONGLONG   ImageBase;
-    DWORD       SectionAlignment;
-    DWORD       FileAlignment;
-    WORD        MajorOperatingSystemVersion;
-    WORD        MinorOperatingSystemVersion;
-    WORD        MajorImageVersion;
-    WORD        MinorImageVersion;
-    WORD        MajorSubsystemVersion;
-    WORD        MinorSubsystemVersion;
-    DWORD       Win32VersionValue;
-    DWORD       SizeOfImage;
-    DWORD       SizeOfHeaders;
-    DWORD       CheckSum;
-    WORD        Subsystem;
-    WORD        DllCharacteristics;
-    ULONGLONG   SizeOfStackReserve;
-    ULONGLONG   SizeOfStackCommit;
-    ULONGLONG   SizeOfHeapReserve;
-    ULONGLONG   SizeOfHeapCommit;
-    DWORD       LoaderFlags;
-    DWORD       NumberOfRvaAndSizes;
-    IMAGE_DATA_DIRECTORY DataDirectory[IMAGE_NUMBEROF_DIRECTORY_ENTRIES];
-} IMAGE_OPTIONAL_HEADER64, *PIMAGE_OPTIONAL_HEADER64;
+    <meta name="description" content="Notes on the Portable Executable format" />
+    <meta property="og:description" content="Notes on the Portable Executable format" />
+    <meta name="twitter:description" content="Notes on the Portable Executable format">
 
 
-" />
-    <meta property="og:description" content="struct DOS_Header
-{
-// short is 2 bytes, long is 4 bytes
-     char signature[2] = { 'M', 'Z' };
-     short lastsize;
-     short nblocks;
-     short nreloc;
-     short hdrsize;
-     short minalloc;
-     short maxalloc;
-     void *ss; // 2 byte value
-     void *sp; // 2 byte value
-     short checksum;
-     void *ip; // 2 byte value
-     void *cs; // 2 byte value
-     short relocpos;
-     short noverlay;
-     short reserved1[4];
-     short oem_id;
-     short oem_info;
-     short reserved2[10];
-     long  e_lfanew; // Offset to the 'PE\0\0' signature relative to the beginning of the file
-}
 
-Optional Header (misnomer - not actually optional)
-64 Bit
-typedef struct _IMAGE_OPTIONAL_HEADER64 {
-    WORD        Magic;
-    BYTE        MajorLinkerVersion;
-    BYTE        MinorLinkerVersion;
-    DWORD       SizeOfCode;
-    DWORD       SizeOfInitializedData;
-    DWORD       SizeOfUninitializedData;
-    DWORD       AddressOfEntryPoint;
-    DWORD       BaseOfCode;
-    ULONGLONG   ImageBase;
-    DWORD       SectionAlignment;
-    DWORD       FileAlignment;
-    WORD        MajorOperatingSystemVersion;
-    WORD        MinorOperatingSystemVersion;
-    WORD        MajorImageVersion;
-    WORD        MinorImageVersion;
-    WORD        MajorSubsystemVersion;
-    WORD        MinorSubsystemVersion;
-    DWORD       Win32VersionValue;
-    DWORD       SizeOfImage;
-    DWORD       SizeOfHeaders;
-    DWORD       CheckSum;
-    WORD        Subsystem;
-    WORD        DllCharacteristics;
-    ULONGLONG   SizeOfStackReserve;
-    ULONGLONG   SizeOfStackCommit;
-    ULONGLONG   SizeOfHeapReserve;
-    ULONGLONG   SizeOfHeapCommit;
-    DWORD       LoaderFlags;
-    DWORD       NumberOfRvaAndSizes;
-    IMAGE_DATA_DIRECTORY DataDirectory[IMAGE_NUMBEROF_DIRECTORY_ENTRIES];
-} IMAGE_OPTIONAL_HEADER64, *PIMAGE_OPTIONAL_HEADER64;
-
-
-" />
-    <meta name="twitter:description" content="struct DOS_Header
-{
-// short is 2 bytes, long is 4 bytes
-     char signature[2] = { 'M', 'Z' };
-     short lastsize;
-     short nblocks;
-     short nreloc;
-     short hdrsize;
-     short minalloc;
-     short maxalloc;
-     void *ss; // 2 byte value
-     void *sp; // 2 byte value
-     short checksum;
-     void *ip; // 2 byte value
-     void *cs; // 2 byte value
-     short relocpos;
-     short noverlay;
-     short reserved1[4];
-     short oem_id;
-     short oem_info;
-     short reserved2[10];
-     long  e_lfanew; // Offset to the 'PE\0\0' signature relative to the beginning of the file
-}
-
-Optional Header (misnomer - not actually optional)
-64 Bit
-typedef struct _IMAGE_OPTIONAL_HEADER64 {
-    WORD        Magic;
-    BYTE        MajorLinkerVersion;
-    BYTE        MinorLinkerVersion;
-    DWORD       SizeOfCode;
-    DWORD       SizeOfInitializedData;
-    DWORD       SizeOfUninitializedData;
-    DWORD       AddressOfEntryPoint;
-    DWORD       BaseOfCode;
-    ULONGLONG   ImageBase;
-    DWORD       SectionAlignment;
-    DWORD       FileAlignment;
-    WORD        MajorOperatingSystemVersion;
-    WORD        MinorOperatingSystemVersion;
-    WORD        MajorImageVersion;
-    WORD        MinorImageVersion;
-    WORD        MajorSubsystemVersion;
-    WORD        MinorSubsystemVersion;
-    DWORD       Win32VersionValue;
-    DWORD       SizeOfImage;
-    DWORD       SizeOfHeaders;
-    DWORD       CheckSum;
-    WORD        Subsystem;
-    WORD        DllCharacteristics;
-    ULONGLONG   SizeOfStackReserve;
-    ULONGLONG   SizeOfStackCommit;
-    ULONGLONG   SizeOfHeapReserve;
-    ULONGLONG   SizeOfHeapCommit;
-    DWORD       LoaderFlags;
-    DWORD       NumberOfRvaAndSizes;
-    IMAGE_DATA_DIRECTORY DataDirectory[IMAGE_NUMBEROF_DIRECTORY_ENTRIES];
-} IMAGE_OPTIONAL_HEADER64, *PIMAGE_OPTIONAL_HEADER64;
-
-
-">
-
-
+    
+    <meta name="twitter:image" content="http://localhost:4000/content/2020-04-02-pe-format/title.png">
 
 
 
 
 
     <link rel="stylesheet" type="text/css" href="/style.css" />
-    <link type="application/atom+xml" rel="alternate" href="http://localhost:4000/feed.xml" title="Notebook" />
+    <link type="application/atom+xml" rel="alternate" href="http://localhost:4000/feed.xml" title="Josh Finley - Notebook" />
 </head>
 
 <body>
