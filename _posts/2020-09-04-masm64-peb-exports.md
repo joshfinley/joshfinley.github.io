@@ -21,7 +21,7 @@ __fastcall uint64_ptr GetExport(long djb2_hash, long lpModuleBase);
 
 ## 2. Finding export directory iterables
 
-Inside the procedure body, first we need to resolvethe following address:
+Inside the procedure body, first we need to resolve the following address:
 
 - `IMAGE_EXPORT_DIRECTORY.AddressOfNames`
 - `IMAGE_EXPORT_DIRECTORY.AddressOfFunctions`
@@ -152,7 +152,8 @@ _djb2_epilog:
 
 The sum of these parts is a general-purpose function for finding functions from a module's export directory, without string reliance. Of course, credit for nearly all of these implementation details goes to am0nsec.
 
-# References:
+# References
+
  [1] https://modexp.wordpress.com/2017/01/15/shellcode-resolving-api-addresses/
  [2] https://idafchev.github.io/exploit/2017/09/26/writing_windows_shellcode.html
  [3] https://github.com/am0nsec/vx/blob/master/Injector.Win64.HellsGate/HELLSGATE.ASM
