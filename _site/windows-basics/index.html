@@ -76,7 +76,7 @@
 
 <ul>
   <li>default 32 bit address space for processes is 2 GB</li>
-  <li>specifying the <code class="highlighter-rouge">LARGEADDRESSAWARE</code> flag in the PE header allows the address space size to be increased to a max of 3 GB. Binary must have been linked with LARGEADDRESSAWARE linker flag. This brings me back to the days of modding <em>Fallout: New Vegas</em> which was wonderful but limited severely by 32 bit memory requirements. There was a popular mod which I think did exactly this and was able to extend the AS to 4 GB.</li>
+  <li>specifying the <code class="language-plaintext highlighter-rouge">LARGEADDRESSAWARE</code> flag in the PE header allows the address space size to be increased to a max of 3 GB. Binary must have been linked with LARGEADDRESSAWARE linker flag. This brings me back to the days of modding <em>Fallout: New Vegas</em> which was wonderful but limited severely by 32 bit memory requirements. There was a popular mod which I think did exactly this and was able to extend the AS to 4 GB.</li>
 </ul>
 
 <h2 id="page-states">Page States</h2>
@@ -133,7 +133,7 @@
   <li>user mode thread stack:
     <ul>
       <li>starts with a small amount of memory committed, the remaining being reserved</li>
-      <li>the next page after the initially commited memory is marked with a special protection <code class="highlighter-rouge">PAGE_GAURD</code> and is called the Gaurd Page (?)(marked where?)</li>
+      <li>the next page after the initially commited memory is marked with a special protection <code class="language-plaintext highlighter-rouge">PAGE_GAURD</code> and is called the Gaurd Page (?)(marked where?)</li>
       <li>once the gaurd page is written to, an exception is thrown to be handled by the memory manager, who removes the gaurd and commits the memory</li>
     </ul>
   </li>
@@ -142,7 +142,7 @@
 <h2 id="system-services--system-calls">System Services \ System Calls</h2>
 
 <ul>
-  <li><code class="highlighter-rouge">ntdll.dll</code> is also known as the <code class="highlighter-rouge">Native API</code>. Didn’t know that.</li>
+  <li><code class="language-plaintext highlighter-rouge">ntdll.dll</code> is also known as the <code class="language-plaintext highlighter-rouge">Native API</code>. Didn’t know that.</li>
   <li>transition to kernel mode: 64 bit = syscall, 32 bit = sysenter</li>
   <li>following the transition, the dispatcher routine indexes into the SSDT to jump to the actual system call</li>
 </ul>
@@ -154,10 +154,10 @@
   <li>executive is the larger upper layer of ntoskrnl.exe, and the kernel itself is the lower layer.</li>
   <li>kernel layer implements thread scheduling, interrupt, and exception dispatching</li>
   <li>kernel layer implements kernel primitives (?)(what are some other ‘primitives’)</li>
-  <li><code class="highlighter-rouge">win32k.sys</code> is responsible for much of the graphics capabilities of the operating system (?)(was it always in the kernel?)</li>
-  <li><code class="highlighter-rouge">HAL</code> provides abstractions to make dealing with physical devices easier</li>
-  <li>System Processes include <code class="highlighter-rouge">smss.exe, lsass.exe, winlogon.exe, services.exe</code></li>
-  <li><code class="highlighter-rouge">csrss.exe</code> is a helper to the kernel for managing processes. One instance runs per session. Manager the windows subsystem</li>
+  <li><code class="language-plaintext highlighter-rouge">win32k.sys</code> is responsible for much of the graphics capabilities of the operating system (?)(was it always in the kernel?)</li>
+  <li><code class="language-plaintext highlighter-rouge">HAL</code> provides abstractions to make dealing with physical devices easier</li>
+  <li>System Processes include <code class="language-plaintext highlighter-rouge">smss.exe, lsass.exe, winlogon.exe, services.exe</code></li>
+  <li><code class="language-plaintext highlighter-rouge">csrss.exe</code> is a helper to the kernel for managing processes. One instance runs per session. Manager the windows subsystem</li>
   <li>VBS (virtualization based security) puts the actual machine in a Hyper-V virtual machine. Whoa.</li>
 </ul>
 
@@ -167,21 +167,21 @@
   <li>Objects, managed by the Object Manager, count their references and will not be allowed to be destroyed until all references are released</li>
   <li>Instances of these are data structures</li>
   <li>Objects reside in system space</li>
-  <li>User mode must access these indirectly through <code class="highlighter-rouge">handles</code>.</li>
+  <li>User mode must access these indirectly through <code class="language-plaintext highlighter-rouge">handles</code>.</li>
   <li>Handles are indexes into tables maintained by processes.</li>
   <li>the indexes point logically to the kernel object in system space</li>
-  <li>drivers turn handles into pointers using <code class="highlighter-rouge">ObReferenceObjectByHandle</code> function</li>
-  <li><code class="highlighter-rouge">0</code> is never a valid handle</li>
-  <li>handles are in increments of <code class="highlighter-rouge">4</code>.</li>
-  <li>resource leaks are prevented by calling <code class="highlighter-rouge">ObDereferenceObject</code></li>
+  <li>drivers turn handles into pointers using <code class="language-plaintext highlighter-rouge">ObReferenceObjectByHandle</code> function</li>
+  <li><code class="language-plaintext highlighter-rouge">0</code> is never a valid handle</li>
+  <li>handles are in increments of <code class="language-plaintext highlighter-rouge">4</code>.</li>
+  <li>resource leaks are prevented by calling <code class="language-plaintext highlighter-rouge">ObDereferenceObject</code></li>
   <li>the WinObj sysinternals program interfaces with the Object Manager</li>
   <li>each object points to an object type</li>
-  <li><code class="highlighter-rouge">Create</code> functions called with a name will either actually create the object or open an existing one if the name exists. This can be checked for by using <code class="highlighter-rouge">GetLastError</code>and seeing if it returns <code class="highlighter-rouge">ERROR_ALREADY_EXISTS</code></li>
+  <li><code class="language-plaintext highlighter-rouge">Create</code> functions called with a name will either actually create the object or open an existing one if the name exists. This can be checked for by using <code class="language-plaintext highlighter-rouge">GetLastError</code>and seeing if it returns <code class="language-plaintext highlighter-rouge">ERROR_ALREADY_EXISTS</code></li>
   <li>names for objects are prepended with various strings</li>
-  <li>object names are session-relative. to share across sessions, it can be created in session 0 by prepending the object name with <code class="highlighter-rouge">Global\</code></li>
+  <li>object names are session-relative. to share across sessions, it can be created in session 0 by prepending the object name with <code class="language-plaintext highlighter-rouge">Global\</code></li>
   <li>every process has a private handle table to kernel objects</li>
   <li>access masks define what operations are allowed to be performed on a handle. Access handles with the proper access mask</li>
-  <li>to get the true number of references to an object, use kd’s <code class="highlighter-rouge">trueref</code> command. E.g. <code class="highlighter-rouge">trueref &lt;objaddr&gt;</code></li>
+  <li>to get the true number of references to an object, use kd’s <code class="language-plaintext highlighter-rouge">trueref</code> command. E.g. <code class="language-plaintext highlighter-rouge">trueref &lt;objaddr&gt;</code></li>
 </ul>
 
 <h2 id="additional-reading">Additional Reading</h2>

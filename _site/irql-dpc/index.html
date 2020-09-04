@@ -83,11 +83,11 @@
   </li>
   <li>Important IRQLs:
     <ul>
-      <li><code class="highlighter-rouge">PASSIVE LEVEL</code>: normal IRQL. Thread scheduling normal</li>
-      <li><code class="highlighter-rouge">APC_LEVEL</code>: for specific kernel APCs. Thread scheduling normal</li>
-      <li><code class="highlighter-rouge">DISPATCH_LEVEL</code>: this CPU cannot be woken by thread scheduler, no access to page memory allowed, cannot wait on kernel objects</li>
-      <li>Device IRQL: Like <code class="highlighter-rouge">DISPATCH_LEVEL</code> but with range of levels (3-11 on x64).</li>
-      <li><code class="highlighter-rouge">HIGH_LEVEL</code>: Highest level, masks all other interrupts. value is 15 on x64</li>
+      <li><code class="language-plaintext highlighter-rouge">PASSIVE LEVEL</code>: normal IRQL. Thread scheduling normal</li>
+      <li><code class="language-plaintext highlighter-rouge">APC_LEVEL</code>: for specific kernel APCs. Thread scheduling normal</li>
+      <li><code class="language-plaintext highlighter-rouge">DISPATCH_LEVEL</code>: this CPU cannot be woken by thread scheduler, no access to page memory allowed, cannot wait on kernel objects</li>
+      <li>Device IRQL: Like <code class="language-plaintext highlighter-rouge">DISPATCH_LEVEL</code> but with range of levels (3-11 on x64).</li>
+      <li><code class="language-plaintext highlighter-rouge">HIGH_LEVEL</code>: Highest level, masks all other interrupts. value is 15 on x64</li>
     </ul>
   </li>
   <li>If IRQL 2 or higher:
@@ -97,7 +97,7 @@
     </ul>
   </li>
   <li>Thread scheduler runs at IRQL 2. Anything higher than that has no ability to switch contexts</li>
-  <li>IRQL can only be changed in kernel mode. Use <code class="highlighter-rouge">KeRaiseIrql</code> and <code class="highlighter-rouge">KeLowerIrql</code></li>
+  <li>IRQL can only be changed in kernel mode. Use <code class="language-plaintext highlighter-rouge">KeRaiseIrql</code> and <code class="language-plaintext highlighter-rouge">KeLowerIrql</code></li>
   <li>Always verify that the IRQL has been raised after attempting to raise it</li>
 </ul>
 

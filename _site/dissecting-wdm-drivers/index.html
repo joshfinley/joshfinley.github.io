@@ -103,7 +103,7 @@
 
 <p>Stack trace at driver entry:</p>
 
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>2: kd&gt; k
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>2: kd&gt; k
  # Child-SP          RetAddr           Call Site
 00 ffffbe84`b6db7898 fffff800`3b235020 PriorityBooster!DriverEntry [C:\Users\finle\source\repos\PriorityBooster\PriorityBooster\Source.cpp @ 12] 
 01 ffffbe84`b6db78a0 fffff800`3e510c06 PriorityBooster!GsDriverEntry+0x20 [minkernel\tools\gs_support\kmodefastfail\gs_driverentry.c @ 47] 
@@ -115,15 +115,15 @@
 </code></pre></div></div>
 
 <h3 id="gsdriverentry">GsDriverEntry</h3>
-<p>We can see that prior to the projects <code class="highlighter-rouge">DriverEntry</code> function being called, <code class="highlighter-rouge">GsDriverEntry</code> is invoked:</p>
+<p>We can see that prior to the projects <code class="language-plaintext highlighter-rouge">DriverEntry</code> function being called, <code class="language-plaintext highlighter-rouge">GsDriverEntry</code> is invoked:</p>
 
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>2: kd&gt; x PriorityBooster!GsDriverEntry
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>2: kd&gt; x PriorityBooster!GsDriverEntry
 fffff800`3b235000 PriorityBooster!GsDriverEntry (struct _DRIVER_OBJECT *, struct _UNICODE_STRING *)
 </code></pre></div></div>
 
 <p>And dissasembling this function shows:</p>
 
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>2: kd&gt; uf fffff800`3b235000
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>2: kd&gt; uf fffff800`3b235000
 PriorityBooster!GsDriverEntry [minkernel\tools\gs_support\kmodefastfail\gs_driverentry.c @ 43]:
    43 fffff800`3b235000 48895c2408      mov     qword ptr [rsp+8],rbx
    43 fffff800`3b235005 57              push    rdi
@@ -140,15 +140,15 @@ PriorityBooster!GsDriverEntry [minkernel\tools\gs_support\kmodefastfail\gs_drive
    47 fffff800`3b23502a c3              ret
 </code></pre></div></div>
 
-<p>We can see that this stub function <code class="highlighter-rouge">GsDriverEntry</code>:</p>
+<p>We can see that this stub function <code class="language-plaintext highlighter-rouge">GsDriverEntry</code>:</p>
 <ul>
   <li>accepts the same parameters as DriverEntry</li>
   <li>initializes the security cookie</li>
-  <li>calls the user-created <code class="highlighter-rouge">DriverEntry</code> function.</li>
+  <li>calls the user-created <code class="language-plaintext highlighter-rouge">DriverEntry</code> function.</li>
 </ul>
 
-<p>Quickly, lets look at <code class="highlighter-rouge">__security_init_cookie</code>:</p>
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>PriorityBooster!__security_init_cookie [minkernel\tools\gs_support\kmodefastfail\gs_support.c @ 37]:
+<p>Quickly, lets look at <code class="language-plaintext highlighter-rouge">__security_init_cookie</code>:</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>PriorityBooster!__security_init_cookie [minkernel\tools\gs_support\kmodefastfail\gs_support.c @ 37]:
 fffff800`3b23502c 488b05cddfffff  mov     rax,qword ptr [PriorityBooster!__security_cookie (fffff800`3b233000)]
 fffff800`3b235033 4885c0          test    rax,rax
 fffff800`3b235036 741a            je      PriorityBooster!__security_init_cookie+0x26 (fffff800`3b235052)
@@ -162,21 +162,21 @@ fffff800`3b23504a 488905b7dfffff  mov     qword ptr [PriorityBooster!__security_
 
 <h3 id="ntioploaddriver">nt!IopLoadDriver</h3>
 
-<p><code class="highlighter-rouge">IopLoadDriver</code> is an undocumented function in the family of Windows I/O Manager support functions.</p>
+<p><code class="language-plaintext highlighter-rouge">IopLoadDriver</code> is an undocumented function in the family of Windows I/O Manager support functions.</p>
 <ul>
   <li>A listing of these functions can be found here: <a href="https://gist.github.com/joshfinley/8a6a0cb09af32507f3c6157c16f8e30b">https://gist.github.com/joshfinley/8a6a0cb09af32507f3c6157c16f8e30b</a>.</li>
   <li>A listing of these prefixes can be found here: <a href="https://gist.github.com/joshfinley/bc54df3c092e224ad08140cfd619fa2d">https://gist.github.com/joshfinley/bc54df3c092e224ad08140cfd619fa2d</a>.</li>
-  <li>Finally, the fully dissasembly of <code class="highlighter-rouge">nt!IopLoadDriver</code> can be found here: <a href="https://gist.github.com/joshfinley/da2fd8039de1e97190f5ce2c9bd07bc4">https://gist.github.com/joshfinley/da2fd8039de1e97190f5ce2c9bd07bc4</a></li>
+  <li>Finally, the fully dissasembly of <code class="language-plaintext highlighter-rouge">nt!IopLoadDriver</code> can be found here: <a href="https://gist.github.com/joshfinley/da2fd8039de1e97190f5ce2c9bd07bc4">https://gist.github.com/joshfinley/da2fd8039de1e97190f5ce2c9bd07bc4</a></li>
 </ul>
 
-<p><code class="highlighter-rouge">IopLoadDriver</code> is used to call the driver entry function, as seen in the stack trace at the beginning of this post. It is used for <code class="highlighter-rouge">SERVICE_DEMAND</code> driver entry. The corresponding function for boot loading drivers is <code class="highlighter-rouge">nt!IopInitializeBuiltInDriver</code> (see <a href="https://reverseengineering.stackexchange.com/a/2638">https://reverseengineering.stackexchange.com/a/2638</a>).</p>
+<p><code class="language-plaintext highlighter-rouge">IopLoadDriver</code> is used to call the driver entry function, as seen in the stack trace at the beginning of this post. It is used for <code class="language-plaintext highlighter-rouge">SERVICE_DEMAND</code> driver entry. The corresponding function for boot loading drivers is <code class="language-plaintext highlighter-rouge">nt!IopInitializeBuiltInDriver</code> (see <a href="https://reverseengineering.stackexchange.com/a/2638">https://reverseengineering.stackexchange.com/a/2638</a>).</p>
 
 <p>From <em>Windows Internals</em>:</p>
 <blockquote>
   <p>When the I/O manager kernel subsystem loads device drivers that HKLM\SYSTEM\Current-ControlSet\Services specifies, the I/O manager executes the function IopLoadDriver.</p>
 </blockquote>
 
-<p>The function defintion for <code class="highlighter-rouge">IopLoadDriver</code> looks something like this:</p>
+<p>The function defintion for <code class="language-plaintext highlighter-rouge">IopLoadDriver</code> looks something like this:</p>
 <div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">NTSTATUS</span>
 <span class="n">IopLoadDriver</span><span class="p">(</span>
     <span class="n">IN</span>  <span class="n">HANDLE</span>      <span class="n">KeyHandle</span><span class="p">,</span>
@@ -190,34 +190,34 @@ fffff800`3b23504a 488905b7dfffff  mov     qword ptr [PriorityBooster!__security_
   <li>see <a href="https://github.com/joshfinley/ntoskrnl/blob/master/Io/iomgr/internal.c">https://github.com/joshfinley/ntoskrnl/blob/master/Io/iomgr/internal.c</a> (forked from the <a href="https://github.com/Zer0Mem0ry/ntoskrnl/">Windows Research Kernel</a>)</li>
 </ul>
 
-<p>In this case, the call to <code class="highlighter-rouge">IopLoadDriver</code> comes from <code class="highlighter-rouge">IopLoadUnloadDriver</code>. Here’s the source code from the React OS function: <a href="https://doxygen.reactos.org/d9/d9f/ntoskrnl_2io_2iomgr_2driver_8c_source.html">https://doxygen.reactos.org/d9/d9f/ntoskrnl_2io_2iomgr_2driver_8c_source.html</a>.</p>
+<p>In this case, the call to <code class="language-plaintext highlighter-rouge">IopLoadDriver</code> comes from <code class="language-plaintext highlighter-rouge">IopLoadUnloadDriver</code>. Here’s the source code from the React OS function: <a href="https://doxygen.reactos.org/d9/d9f/ntoskrnl_2io_2iomgr_2driver_8c_source.html">https://doxygen.reactos.org/d9/d9f/ntoskrnl_2io_2iomgr_2driver_8c_source.html</a>.</p>
 
 <h2 id="2-driverobject">2. DriverObject</h2>
 
-<p><code class="highlighter-rouge">DriverObject</code> is defined in <code class="highlighter-rouge">wdm.h</code> as follows:</p>
+<p><code class="language-plaintext highlighter-rouge">DriverObject</code> is defined in <code class="language-plaintext highlighter-rouge">wdm.h</code> as follows:</p>
 
-<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">typedef</span> <span class="k">struct</span> <span class="n">_DRIVER_OBJECT</span> <span class="p">{</span>
+<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">typedef</span> <span class="k">struct</span> <span class="nc">_DRIVER_OBJECT</span> <span class="p">{</span>
   <span class="n">CSHORT</span>             <span class="n">Type</span><span class="p">;</span>
   <span class="n">CSHORT</span>             <span class="n">Size</span><span class="p">;</span>
-  <span class="n">PDEVICE_OBJECT</span>     <span class="n">DeviceObject</span><span class="p">;</span>          <span class="c1">// pointer to device objects created by the driver
-</span>  <span class="n">ULONG</span>              <span class="n">Flags</span><span class="p">;</span>                 
+  <span class="n">PDEVICE_OBJECT</span>     <span class="n">DeviceObject</span><span class="p">;</span>          <span class="c1">// pointer to device objects created by the driver</span>
+  <span class="n">ULONG</span>              <span class="n">Flags</span><span class="p">;</span>                 
   <span class="n">PVOID</span>              <span class="n">DriverStart</span><span class="p">;</span>           
   <span class="n">ULONG</span>              <span class="n">DriverSize</span><span class="p">;</span>            
   <span class="n">PVOID</span>              <span class="n">DriverSection</span><span class="p">;</span>         
-  <span class="n">PDRIVER_EXTENSION</span>  <span class="n">DriverExtension</span><span class="p">;</span>       <span class="c1">// pointer to driver extension
-</span>  <span class="n">UNICODE_STRING</span>     <span class="n">DriverName</span><span class="p">;</span>             
-  <span class="n">PUNICODE_STRING</span>    <span class="n">HardwareDatabase</span><span class="p">;</span>      <span class="c1">// pointer to the \Registry\Machine\Hardware path to the configuration information in the registry
-</span>  <span class="n">PFAST_IO_DISPATCH</span>  <span class="n">FastIoDispatch</span><span class="p">;</span>        
-  <span class="n">PDRIVER_INITIALIZE</span> <span class="n">DriverInit</span><span class="p">;</span>            <span class="c1">// entry point for DriverEntry, setup by I/O manager
-</span>  <span class="n">PDRIVER_STARTIO</span>    <span class="n">DriverStartIo</span><span class="p">;</span>         
-  <span class="n">PDRIVER_UNLOAD</span>     <span class="n">DriverUnload</span><span class="p">;</span>          <span class="c1">// entry point for DriverUnload set by DriverEntry
-</span>  <span class="n">PDRIVER_DISPATCH</span>   <span class="n">MajorFunction</span><span class="p">[</span><span class="n">IRP_MJ_MAXIMUM_FUNCTION</span> <span class="o">+</span> <span class="mi">1</span><span class="p">];</span>    <span class="c1">// dispatch table consisting of an array of entry points for the drivers DispatchXxx routines
-</span><span class="p">}</span> <span class="n">DRIVER_OBJECT</span><span class="p">,</span> <span class="o">*</span><span class="n">PDRIVER_OBJECT</span><span class="p">;</span>
+  <span class="n">PDRIVER_EXTENSION</span>  <span class="n">DriverExtension</span><span class="p">;</span>       <span class="c1">// pointer to driver extension</span>
+  <span class="n">UNICODE_STRING</span>     <span class="n">DriverName</span><span class="p">;</span>             
+  <span class="n">PUNICODE_STRING</span>    <span class="n">HardwareDatabase</span><span class="p">;</span>      <span class="c1">// pointer to the \Registry\Machine\Hardware path to the configuration information in the registry</span>
+  <span class="n">PFAST_IO_DISPATCH</span>  <span class="n">FastIoDispatch</span><span class="p">;</span>        
+  <span class="n">PDRIVER_INITIALIZE</span> <span class="n">DriverInit</span><span class="p">;</span>            <span class="c1">// entry point for DriverEntry, setup by I/O manager</span>
+  <span class="n">PDRIVER_STARTIO</span>    <span class="n">DriverStartIo</span><span class="p">;</span>         
+  <span class="n">PDRIVER_UNLOAD</span>     <span class="n">DriverUnload</span><span class="p">;</span>          <span class="c1">// entry point for DriverUnload set by DriverEntry</span>
+  <span class="n">PDRIVER_DISPATCH</span>   <span class="n">MajorFunction</span><span class="p">[</span><span class="n">IRP_MJ_MAXIMUM_FUNCTION</span> <span class="o">+</span> <span class="mi">1</span><span class="p">];</span>    <span class="c1">// dispatch table consisting of an array of entry points for the drivers DispatchXxx routines</span>
+<span class="p">}</span> <span class="n">DRIVER_OBJECT</span><span class="p">,</span> <span class="o">*</span><span class="n">PDRIVER_OBJECT</span><span class="p">;</span>
 </code></pre></div></div>
 
 <p>Examination of some of these types:</p>
 
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>2: kd&gt; dt _DRIVER_OBJECT
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>2: kd&gt; dt _DRIVER_OBJECT
 PriorityBooser!_DRIVER_OBJECT
    +0x000 Type             : Int2B
    +0x002 Size             : Int2B
@@ -236,7 +236,7 @@ PriorityBooser!_DRIVER_OBJECT
    +0x070 MajorFunction    : [28] Ptr64     long 
 </code></pre></div></div>
 
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>2: kd&gt; dt PDEVICE_OBJECT
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>2: kd&gt; dt PDEVICE_OBJECT
 PriorityBooster!PDEVICE_OBJECT
 Ptr64    +0x000 Type             : Int2B
    +0x002 Size             : Uint2B
@@ -328,18 +328,18 @@ Ptr64  long (
 
 <p>The most relevant structures of these to the study at hand are:</p>
 <ul>
-  <li><code class="highlighter-rouge">PDEVICE_OBJECT DeviceObject</code></li>
-  <li><code class="highlighter-rouge">PDRIVER_DISPATCH MajorFunction</code></li>
+  <li><code class="language-plaintext highlighter-rouge">PDEVICE_OBJECT DeviceObject</code></li>
+  <li><code class="language-plaintext highlighter-rouge">PDRIVER_DISPATCH MajorFunction</code></li>
 </ul>
 
-<p>First, lets look at <code class="highlighter-rouge">PDRIVER_DISPATCH MajorFunction</code>:</p>
-<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// In PriorityBooster DriverEntry
-</span>	<span class="n">DriverObject</span><span class="o">-&gt;</span><span class="n">DriverUnload</span> <span class="o">=</span> <span class="n">PriorityBoosterUnload</span><span class="p">;</span>
+<p>First, lets look at <code class="language-plaintext highlighter-rouge">PDRIVER_DISPATCH MajorFunction</code>:</p>
+<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// In PriorityBooster DriverEntry</span>
+	<span class="n">DriverObject</span><span class="o">-&gt;</span><span class="n">DriverUnload</span> <span class="o">=</span> <span class="n">PriorityBoosterUnload</span><span class="p">;</span>
 	<span class="n">DriverObject</span><span class="o">-&gt;</span><span class="n">MajorFunction</span><span class="p">[</span><span class="n">IRP_MJ_CREATE</span><span class="p">]</span> <span class="o">=</span> <span class="n">PriorityBoosterCreateClose</span><span class="p">;</span>
 	<span class="n">DriverObject</span><span class="o">-&gt;</span><span class="n">MajorFunction</span><span class="p">[</span><span class="n">IRP_MJ_CLOSE</span><span class="p">]</span> <span class="o">=</span> <span class="n">PriorityBoosterCreateClose</span><span class="p">;</span>
 	<span class="n">DriverObject</span><span class="o">-&gt;</span><span class="n">MajorFunction</span><span class="p">[</span><span class="n">IRP_MJ_DEVICE_CONTROL</span><span class="p">]</span> <span class="o">=</span> <span class="n">PriorityBoosterDeviceControl</span><span class="p">;</span>
 </code></pre></div></div>
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>2: kd&gt; dt DriverObject MajorFunction
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>2: kd&gt; dt DriverObject MajorFunction
 Local var @ 0xffffbe84b6db7918 Type _DRIVER_OBJECT*
 0xfffff800`3de3c7bd 
    +0x070 MajorFunction : [28] 0x61b8818b`48000000     long  +61b8818b48000000
@@ -375,7 +375,7 @@ Local var @ 0xffffbe84b6db7918 Type _DRIVER_OBJECT*
     [27]             : 0xc483480000009024 [Type: long (__cdecl*)(_DEVICE_OBJECT *,_IRP *)]
 </code></pre></div></div>
 
-<p>Each index, of course corresponds to an <code class="highlighter-rouge">IRP_MJ_</code> code</p>
+<p>Each index, of course corresponds to an <code class="language-plaintext highlighter-rouge">IRP_MJ_</code> code</p>
 
 <h2 id="3-deviceobject">3. DeviceObject</h2>
 
@@ -445,13 +445,13 @@ typedef struct _DEVICE_OBJECT *PDEVICE_OBJECT;
   <li>Filter DO (Filder DO) - repesents a device to a filter driver</li>
 </ol>
 
-<p>One of the most important members of the <code class="highlighter-rouge">_DEVICE_OBJECT</code> structure is the <code class="highlighter-rouge">Device Extension</code>. It is driver defined and maintains the state of the driver, and stores important data, including resources allocated by the kernel and data for the drivers I/O operations.</p>
+<p>One of the most important members of the <code class="language-plaintext highlighter-rouge">_DEVICE_OBJECT</code> structure is the <code class="language-plaintext highlighter-rouge">Device Extension</code>. It is driver defined and maintains the state of the driver, and stores important data, including resources allocated by the kernel and data for the drivers I/O operations.</p>
 
-<p>Memory allocation for this structure and the <code class="highlighter-rouge">Device Object</code> itself are handled by the I/O manager. The memory resides in the nonpaged pool.</p>
+<p>Memory allocation for this structure and the <code class="language-plaintext highlighter-rouge">Device Object</code> itself are handled by the I/O manager. The memory resides in the nonpaged pool.</p>
 
 <p>The KDPC memebr of DeviceObject is officially undocumented, but the structure definition can be found in the Windows Reserach Kernel. It looks like this:</p>
 
-<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">typedef</span> <span class="k">struct</span> <span class="n">_KDPC</span> <span class="p">{</span>
+<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">typedef</span> <span class="k">struct</span> <span class="nc">_KDPC</span> <span class="p">{</span>
     <span class="n">UCHAR</span> <span class="n">Type</span><span class="p">;</span>
     <span class="n">UCHAR</span> <span class="n">Importance</span><span class="p">;</span>
     <span class="n">UCHAR</span> <span class="n">Number</span><span class="p">;</span>
@@ -470,12 +470,12 @@ typedef struct _DEVICE_OBJECT *PDEVICE_OBJECT;
 <div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code>	<span class="n">PDEVICE_OBJECT</span> <span class="n">DeviceObject</span><span class="p">;</span>
 	<span class="n">NTSTATUS</span> <span class="n">status</span> <span class="o">=</span> <span class="n">IoCreateDevice</span><span class="p">(</span>
 		<span class="n">DriverObject</span><span class="p">,</span>
-		<span class="mi">0</span><span class="p">,</span>                      <span class="c1">// Automatically set by I/O manager
-</span>		<span class="o">&amp;</span><span class="n">devName</span><span class="p">,</span>               
-		<span class="n">FILE_DEVICE_UNKNOWN</span><span class="p">,</span>    <span class="c1">// 0x00000022
-</span>		<span class="mi">0</span><span class="p">,</span>                      <span class="c1">// Characteristics, to be set by I/O manager
-</span>		<span class="n">FALSE</span><span class="p">,</span>                  <span class="c1">// Not exclusive
-</span>		<span class="o">&amp;</span><span class="n">DeviceObject</span>
+		<span class="mi">0</span><span class="p">,</span>                      <span class="c1">// Automatically set by I/O manager</span>
+		<span class="o">&amp;</span><span class="n">devName</span><span class="p">,</span>               
+		<span class="n">FILE_DEVICE_UNKNOWN</span><span class="p">,</span>    <span class="c1">// 0x00000022</span>
+		<span class="mi">0</span><span class="p">,</span>                      <span class="c1">// Characteristics, to be set by I/O manager</span>
+		<span class="n">FALSE</span><span class="p">,</span>                  <span class="c1">// Not exclusive</span>
+		<span class="o">&amp;</span><span class="n">DeviceObject</span>
 	<span class="p">);</span>
 </code></pre></div></div>
 

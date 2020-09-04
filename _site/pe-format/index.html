@@ -303,10 +303,10 @@ typedef struct _IMAGE_OPTIONAL_HEADER64 {
 
 <h5 id="32-bit">32 Bit</h5>
 <div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">typedef</span> <span class="k">struct</span> <span class="n">_IMAGE_OPTIONAL_HEADER</span> <span class="p">{</span>
-    <span class="c1">//
-</span>    <span class="c1">// Standard fields.
-</span>    <span class="c1">//
-</span>
+    <span class="c1">//</span>
+    <span class="c1">// Standard fields.</span>
+    <span class="c1">//</span>
+
     <span class="n">WORD</span>    <span class="n">Magic</span><span class="p">;</span>
     <span class="n">BYTE</span>    <span class="n">MajorLinkerVersion</span><span class="p">;</span>
     <span class="n">BYTE</span>    <span class="n">MinorLinkerVersion</span><span class="p">;</span>
@@ -317,10 +317,10 @@ typedef struct _IMAGE_OPTIONAL_HEADER64 {
     <span class="n">DWORD</span>   <span class="n">BaseOfCode</span><span class="p">;</span>
     <span class="n">DWORD</span>   <span class="n">BaseOfData</span><span class="p">;</span>
 
-    <span class="c1">//
-</span>    <span class="c1">// NT additional fields.
-</span>    <span class="c1">//
-</span>
+    <span class="c1">//</span>
+    <span class="c1">// NT additional fields.</span>
+    <span class="c1">//</span>
+
     <span class="n">DWORD</span>   <span class="n">ImageBase</span><span class="p">;</span>
     <span class="n">DWORD</span>   <span class="n">SectionAlignment</span><span class="p">;</span>
     <span class="n">DWORD</span>   <span class="n">FileAlignment</span><span class="p">;</span>

@@ -69,17 +69,17 @@
 
     <p>Source code for this demonstration can be found <a href="https://github.com/joshfinley/SyscallDumper/tree/v1.0">here</a></p>
 
-<p><code class="highlighter-rouge">ntdll.dll</code> is the interface through which user-mode applications access the Windows kernel. <code class="highlighter-rouge">ntdll.dll</code> exports functions for every fundamental activity requring access to the domain of the kernel. Examples include interacting with the filesystem, virtual memory, physical devices, and more.</p>
+<p><code class="language-plaintext highlighter-rouge">ntdll.dll</code> is the interface through which user-mode applications access the Windows kernel. <code class="language-plaintext highlighter-rouge">ntdll.dll</code> exports functions for every fundamental activity requring access to the domain of the kernel. Examples include interacting with the filesystem, virtual memory, physical devices, and more.</p>
 
-<p>These functions are are esentially thin wrappers for passing information to the kernel for execution. With each syscall, <code class="highlighter-rouge">ntddl.dll</code> sets up the information that the kernel needs, including placing the relevant <em>number</em> of the system call into register <code class="highlighter-rouge">eax</code>. Following this, control is diverted to the kernel using the <code class="highlighter-rouge">syscall</code> instruction. A more complete description of this instruction can be found <a href="https://www.felixcloutier.com/x86/syscall">here</a>.</p>
+<p>These functions are are esentially thin wrappers for passing information to the kernel for execution. With each syscall, <code class="language-plaintext highlighter-rouge">ntddl.dll</code> sets up the information that the kernel needs, including placing the relevant <em>number</em> of the system call into register <code class="language-plaintext highlighter-rouge">eax</code>. Following this, control is diverted to the kernel using the <code class="language-plaintext highlighter-rouge">syscall</code> instruction. A more complete description of this instruction can be found <a href="https://www.felixcloutier.com/x86/syscall">here</a>.</p>
 
-<p>The following image shows an example of the disassembly of an <code class="highlighter-rouge">ntdll.dll</code> system call export:</p>
+<p>The following image shows an example of the disassembly of an <code class="language-plaintext highlighter-rouge">ntdll.dll</code> system call export:</p>
 
 <p><img src="resources/ntdll_syscall_wrapper.png" alt="resourcse system call disasm" /></p>
 
-<p><code class="highlighter-rouge">ntdll.dll</code> itself exports over 2000 functions. On Windows 1909, 464 of these are these system call wrappers. The exports of a given executable can quickly be dumped using <code class="highlighter-rouge">dumpbin.exe</code> as follows:</p>
+<p><code class="language-plaintext highlighter-rouge">ntdll.dll</code> itself exports over 2000 functions. On Windows 1909, 464 of these are these system call wrappers. The exports of a given executable can quickly be dumped using <code class="language-plaintext highlighter-rouge">dumpbin.exe</code> as follows:</p>
 
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>C:\&gt;dumpbin /exports C:\Windows\System32\ntdll.dll
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>C:\&gt;dumpbin /exports C:\Windows\System32\ntdll.dll
 Microsoft (R) COFF/PE Dumper Version 14.24.28316.0
 Copyright (C) Microsoft Corporation.  All rights reserved.
 
@@ -117,14 +117,14 @@ File Type: DLL
         1000 RT
 </code></pre></div></div>
 
-<p>For almost any legitimate, day-to-day activities, a programmer will not interact with <code class="highlighter-rouge">ntdll.dll</code> directly, but instead will interact with other layers of wrappers around these fundamental system call functions as defined in libraries and subsystem APIs. But for research, malware, and anti-malware purposes, more precise details about the system call numbers are sometimes needed.</p>
+<p>For almost any legitimate, day-to-day activities, a programmer will not interact with <code class="language-plaintext highlighter-rouge">ntdll.dll</code> directly, but instead will interact with other layers of wrappers around these fundamental system call functions as defined in libraries and subsystem APIs. But for research, malware, and anti-malware purposes, more precise details about the system call numbers are sometimes needed.</p>
 
-<h2 id="extracting-system-call-numbers-from-ntdlldl">Extracting System Call Numbers From <code class="highlighter-rouge">ntdll.dl</code></h2>
+<h2 id="extracting-system-call-numbers-from-ntdlldl">Extracting System Call Numbers From <code class="language-plaintext highlighter-rouge">ntdll.dl</code></h2>
 
-<p>Extracting the system calls from <code class="highlighter-rouge">ntdll.dll</code> is more an exercise in manual mapping than anything else. First, <code class="highlighter-rouge">ntdll.dll</code> is loaded with the <code class="highlighter-rouge">LOAD_LIBRARY_AS_DATAFILE</code> flag:</p>
+<p>Extracting the system calls from <code class="language-plaintext highlighter-rouge">ntdll.dll</code> is more an exercise in manual mapping than anything else. First, <code class="language-plaintext highlighter-rouge">ntdll.dll</code> is loaded with the <code class="language-plaintext highlighter-rouge">LOAD_LIBRARY_AS_DATAFILE</code> flag:</p>
 
-<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// load ntdll
-</span><span class="n">HMODULE</span> <span class="n">ntdll</span> <span class="o">=</span> <span class="n">LoadLibraryEx</span><span class="p">(</span><span class="s">L"C:</span><span class="se">\\</span><span class="s">Windows</span><span class="se">\\</span><span class="s">System32</span><span class="se">\\</span><span class="s">ntdll.dll"</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">LOAD_LIBRARY_AS_DATAFILE</span><span class="p">);</span>
+<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// load ntdll</span>
+<span class="n">HMODULE</span> <span class="n">ntdll</span> <span class="o">=</span> <span class="n">LoadLibraryEx</span><span class="p">(</span><span class="s">L"C:</span><span class="se">\\</span><span class="s">Windows</span><span class="se">\\</span><span class="s">System32</span><span class="se">\\</span><span class="s">ntdll.dll"</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="n">LOAD_LIBRARY_AS_DATAFILE</span><span class="p">);</span>
 <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">ntdll</span><span class="p">)</span> <span class="p">{</span>
     <span class="n">status</span> <span class="o">=</span> <span class="n">GetLastError</span><span class="p">();</span>
     <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Error: "</span> <span class="o">&lt;&lt;</span> <span class="n">status</span><span class="p">;</span>
@@ -132,22 +132,22 @@ File Type: DLL
 <span class="p">}</span>
 </code></pre></div></div>
 
-<p>Without the<code class="highlighter-rouge">LOAD_LIBRARY_AS_DATAFILE</code> flag, <code class="highlighter-rouge">DllMain</code> would be called upon loading. In this situation, this needs to be avoided, and by using this flag, the library to simply be loaded as raw data.</p>
+<p>Without the<code class="language-plaintext highlighter-rouge">LOAD_LIBRARY_AS_DATAFILE</code> flag, <code class="language-plaintext highlighter-rouge">DllMain</code> would be called upon loading. In this situation, this needs to be avoided, and by using this flag, the library to simply be loaded as raw data.</p>
 
-<p>With the raw data of <code class="highlighter-rouge">ntdll.dll</code> available, it can be parsed for exports:</p>
+<p>With the raw data of <code class="language-plaintext highlighter-rouge">ntdll.dll</code> available, it can be parsed for exports:</p>
 
-<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// extract the dos header
-</span><span class="k">auto</span> <span class="n">dosHeader</span> <span class="o">=</span> <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">PIMAGE_DOS_HEADER</span><span class="o">&gt;</span><span class="p">(</span><span class="n">ntdll</span><span class="p">);</span>
+<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// extract the dos header</span>
+<span class="k">auto</span> <span class="n">dosHeader</span> <span class="o">=</span> <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">PIMAGE_DOS_HEADER</span><span class="o">&gt;</span><span class="p">(</span><span class="n">ntdll</span><span class="p">);</span>
 
-<span class="c1">// extract the nt header
-</span><span class="k">auto</span> <span class="n">ntHeader</span> <span class="o">=</span> <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">PIMAGE_NT_HEADERS</span><span class="o">&gt;</span><span class="p">(</span>
+<span class="c1">// extract the nt header</span>
+<span class="k">auto</span> <span class="n">ntHeader</span> <span class="o">=</span> <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">PIMAGE_NT_HEADERS</span><span class="o">&gt;</span><span class="p">(</span>
     <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">BYTE</span><span class="o">*&gt;</span><span class="p">(</span><span class="n">ntdll</span><span class="p">)</span> <span class="o">+</span> <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">PIMAGE_DOS_HEADER</span><span class="o">&gt;</span><span class="p">(</span><span class="n">ntdll</span><span class="p">)</span><span class="o">-&gt;</span><span class="n">e_lfanew</span><span class="p">);</span>
 
-<span class="c1">// extract the export directory
-</span><span class="k">auto</span> <span class="n">exports</span> <span class="o">=</span> <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">PIMAGE_EXPORT_DIRECTORY</span><span class="o">&gt;</span><span class="p">((</span><span class="n">BYTE</span><span class="o">*</span><span class="p">)</span><span class="n">ntdll</span> <span class="o">+</span> <span class="n">ntHeader</span><span class="o">-&gt;</span><span class="n">OptionalHeader</span><span class="p">.</span><span class="n">DataDirectory</span><span class="p">[</span><span class="n">IMAGE_DIRECTORY_ENTRY_EXPORT</span><span class="p">].</span><span class="n">VirtualAddress</span><span class="p">);</span>
+<span class="c1">// extract the export directory</span>
+<span class="k">auto</span> <span class="n">exports</span> <span class="o">=</span> <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">PIMAGE_EXPORT_DIRECTORY</span><span class="o">&gt;</span><span class="p">((</span><span class="n">BYTE</span><span class="o">*</span><span class="p">)</span><span class="n">ntdll</span> <span class="o">+</span> <span class="n">ntHeader</span><span class="o">-&gt;</span><span class="n">OptionalHeader</span><span class="p">.</span><span class="n">DataDirectory</span><span class="p">[</span><span class="n">IMAGE_DIRECTORY_ENTRY_EXPORT</span><span class="p">].</span><span class="n">VirtualAddress</span><span class="p">);</span>
 
-<span class="c1">// set variables for export directory members
-</span><span class="k">auto</span> <span class="n">addr</span> <span class="o">=</span> <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">PDWORD</span><span class="o">&gt;</span><span class="p">((</span><span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">LPBYTE</span><span class="o">&gt;</span><span class="p">(</span><span class="n">ntdll</span><span class="p">)</span> <span class="o">+</span> <span class="n">exports</span><span class="o">-&gt;</span><span class="n">AddressOfFunctions</span><span class="p">));</span>
+<span class="c1">// set variables for export directory members</span>
+<span class="k">auto</span> <span class="n">addr</span> <span class="o">=</span> <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">PDWORD</span><span class="o">&gt;</span><span class="p">((</span><span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">LPBYTE</span><span class="o">&gt;</span><span class="p">(</span><span class="n">ntdll</span><span class="p">)</span> <span class="o">+</span> <span class="n">exports</span><span class="o">-&gt;</span><span class="n">AddressOfFunctions</span><span class="p">));</span>
 <span class="k">auto</span> <span class="n">name</span> <span class="o">=</span> <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">PDWORD</span><span class="o">&gt;</span><span class="p">((</span><span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">LPBYTE</span><span class="o">&gt;</span><span class="p">(</span><span class="n">ntdll</span><span class="p">)</span> <span class="o">+</span> <span class="n">exports</span><span class="o">-&gt;</span><span class="n">AddressOfNames</span><span class="p">));</span>
 <span class="k">auto</span> <span class="n">ord</span> <span class="o">=</span> <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">PWORD</span><span class="o">&gt;</span><span class="p">((</span><span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">LPBYTE</span><span class="o">&gt;</span><span class="p">(</span><span class="n">ntdll</span><span class="p">)</span> <span class="o">+</span> <span class="n">exports</span><span class="o">-&gt;</span><span class="n">AddressOfNameOrdinals</span><span class="p">));</span>
 </code></pre></div></div>
@@ -158,27 +158,27 @@ File Type: DLL
   <li>extract the system call number:</li>
 </ul>
 
-<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// loop over exports
-</span><span class="k">for</span> <span class="p">(</span><span class="kt">uint64_t</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">exports</span><span class="o">-&gt;</span><span class="n">AddressOfFunctions</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// loop over exports</span>
+<span class="k">for</span> <span class="p">(</span><span class="kt">uint64_t</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">exports</span><span class="o">-&gt;</span><span class="n">AddressOfFunctions</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
     <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">funcname</span> <span class="o">=</span> <span class="p">(</span><span class="kt">char</span><span class="o">*</span><span class="p">)</span><span class="n">ntdll</span> <span class="o">+</span> <span class="n">name</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
 
-    <span class="c1">// identify "Nt" family functions
-</span>    <span class="k">if</span> <span class="p">(</span><span class="n">funcname</span><span class="p">.</span><span class="n">rfind</span><span class="p">(</span><span class="s">"Nt"</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c1">// identify "Nt" family functions</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">funcname</span><span class="p">.</span><span class="n">rfind</span><span class="p">(</span><span class="s">"Nt"</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
         <span class="k">try</span> <span class="p">{</span>
-            <span class="c1">// get the pointer to the function and calculate its RVA
-</span>            <span class="n">PVOID</span> <span class="n">funcaddr</span> <span class="o">=</span> <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">PVOID</span><span class="o">&gt;</span><span class="p">(</span>
+            <span class="c1">// get the pointer to the function and calculate its RVA</span>
+            <span class="n">PVOID</span> <span class="n">funcaddr</span> <span class="o">=</span> <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">PVOID</span><span class="o">&gt;</span><span class="p">(</span>
                 <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="n">LPBYTE</span><span class="o">&gt;</span><span class="p">(</span><span class="n">ntdll</span><span class="p">)</span> <span class="o">+</span> <span class="n">addr</span><span class="p">[</span><span class="n">ord</span><span class="p">[</span><span class="n">i</span><span class="p">]]);</span>
             <span class="k">auto</span> <span class="n">rva</span> <span class="o">=</span> <span class="p">(</span><span class="kt">uint64_t</span><span class="p">)</span><span class="n">funcaddr</span> <span class="o">-</span> <span class="n">ntHeader</span><span class="o">-&gt;</span><span class="n">OptionalHeader</span><span class="p">.</span><span class="n">ImageBase</span><span class="p">;</span>
 
             <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">isSyscall</span><span class="p">(</span><span class="n">funcname</span><span class="p">))</span>
                 <span class="k">continue</span><span class="p">;</span>
 
-            <span class="c1">// retrieve the syscall code number from the address
-</span>            <span class="k">auto</span> <span class="n">objectcode</span> <span class="o">=</span> <span class="o">*</span><span class="p">(</span><span class="kt">uintptr_t</span><span class="o">*</span><span class="p">)</span><span class="n">funcaddr</span><span class="p">;</span>
+            <span class="c1">// retrieve the syscall code number from the address</span>
+            <span class="k">auto</span> <span class="n">objectcode</span> <span class="o">=</span> <span class="o">*</span><span class="p">(</span><span class="kt">uintptr_t</span><span class="o">*</span><span class="p">)</span><span class="n">funcaddr</span><span class="p">;</span>
             <span class="k">auto</span> <span class="n">syscallcode</span> <span class="o">=</span> <span class="p">(</span><span class="n">objectcode</span> <span class="o">&gt;&gt;</span> <span class="mi">8</span> <span class="o">*</span> <span class="mi">4</span><span class="p">)</span> <span class="o">&amp;</span> <span class="mh">0xfff</span><span class="p">;</span>
                             
-            <span class="c1">// print the function's information
-</span>            <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">left</span>
+            <span class="c1">// print the function's information</span>
+            <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">left</span>
                 <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">setw</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">dec</span> <span class="o">&lt;&lt;</span> <span class="n">i</span>
                 <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">setw</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">hex</span> <span class="o">&lt;&lt;</span> <span class="n">rva</span>
                 <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">setw</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">hex</span> <span class="o">&lt;&lt;</span> <span class="n">syscallcode</span>
@@ -192,9 +192,9 @@ File Type: DLL
 <span class="p">}</span>
 </code></pre></div></div>
 
-<p>The result is a program which will enumerate the system calls of <code class="highlighter-rouge">ntdll.dll</code></p>
+<p>The result is a program which will enumerate the system calls of <code class="language-plaintext highlighter-rouge">ntdll.dll</code></p>
 
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>C:\&gt;SyscallDumper.exe
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>C:\&gt;SyscallDumper.exe
 ordinal   RVA       code      name
 
 190       9c0a0     2         NtAcceptConnectPort

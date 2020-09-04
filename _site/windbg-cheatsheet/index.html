@@ -88,87 +88,87 @@
   </thead>
   <tbody>
     <tr>
-      <td><code class="highlighter-rouge">~</code></td>
+      <td><code class="language-plaintext highlighter-rouge">~</code></td>
       <td>Show threads for process</td>
     </tr>
     <tr>
-      <td><code class="highlighter-rouge">k</code></td>
+      <td><code class="language-plaintext highlighter-rouge">k</code></td>
       <td>Show stack trace of current thread</td>
     </tr>
     <tr>
-      <td><code class="highlighter-rouge">~ns</code></td>
-      <td>Switch thread, eg. <code class="highlighter-rouge">~0s</code></td>
+      <td><code class="language-plaintext highlighter-rouge">~ns</code></td>
+      <td>Switch thread, eg. <code class="language-plaintext highlighter-rouge">~0s</code></td>
     </tr>
     <tr>
-      <td><code class="highlighter-rouge">~nk</code></td>
-      <td>Get call stack of thread without switching, e.g. <code class="highlighter-rouge">~1k</code></td>
+      <td><code class="language-plaintext highlighter-rouge">~nk</code></td>
+      <td>Get call stack of thread without switching, e.g. <code class="language-plaintext highlighter-rouge">~1k</code></td>
     </tr>
     <tr>
-      <td><code class="highlighter-rouge">? &lt;Hex&gt;</code></td>
+      <td><code class="language-plaintext highlighter-rouge">? &lt;Hex&gt;</code></td>
       <td>Convert hex number to decimal</td>
     </tr>
     <tr>
-      <td><code class="highlighter-rouge">? &lt;0nDec&gt;</code></td>
+      <td><code class="language-plaintext highlighter-rouge">? &lt;0nDec&gt;</code></td>
       <td>Covnert dec number to hex</td>
     </tr>
     <tr>
-      <td><code class="highlighter-rouge">!teb &lt;addr&gt;</code></td>
+      <td><code class="language-plaintext highlighter-rouge">!teb &lt;addr&gt;</code></td>
       <td>Examine TEB of a thread. Addr gets current thread</td>
     </tr>
     <tr>
-      <td><code class="highlighter-rouge">!peb</code></td>
+      <td><code class="language-plaintext highlighter-rouge">!peb</code></td>
       <td>View the PEB</td>
     </tr>
     <tr>
-      <td><code class="highlighter-rouge">dt &lt;structure&gt;</code></td>
-      <td>Dump the structure info, e.g. <code class="highlighter-rouge">dt ntdll!_teb</code></td>
+      <td><code class="language-plaintext highlighter-rouge">dt &lt;structure&gt;</code></td>
+      <td>Dump the structure info, e.g. <code class="language-plaintext highlighter-rouge">dt ntdll!_teb</code></td>
     </tr>
     <tr>
-      <td><code class="highlighter-rouge">bp &lt;function/loc&gt;</code></td>
+      <td><code class="language-plaintext highlighter-rouge">bp &lt;function/loc&gt;</code></td>
       <td>Set breakpoint at location</td>
     </tr>
     <tr>
-      <td><code class="highlighter-rouge">bl</code></td>
+      <td><code class="language-plaintext highlighter-rouge">bl</code></td>
       <td>List breakpoints</td>
     </tr>
     <tr>
-      <td><code class="highlighter-rouge">r &lt;register&gt;</code></td>
-      <td>Display register contents, e.g. <code class="highlighter-rouge">r</code> displays all registers</td>
+      <td><code class="language-plaintext highlighter-rouge">r &lt;register&gt;</code></td>
+      <td>Display register contents, e.g. <code class="language-plaintext highlighter-rouge">r</code> displays all registers</td>
     </tr>
     <tr>
-      <td><code class="highlighter-rouge">db &lt;addr</code></td>
+      <td><code class="language-plaintext highlighter-rouge">db &lt;addr</code></td>
       <td>display bytes of memory</td>
     </tr>
     <tr>
-      <td><code class="highlighter-rouge">u</code></td>
+      <td><code class="language-plaintext highlighter-rouge">u</code></td>
       <td>List the next 8 instructions to be executed</td>
     </tr>
     <tr>
-      <td><code class="highlighter-rouge">p</code></td>
+      <td><code class="language-plaintext highlighter-rouge">p</code></td>
       <td>Step over</td>
     </tr>
     <tr>
-      <td><code class="highlighter-rouge">t</code></td>
+      <td><code class="language-plaintext highlighter-rouge">t</code></td>
       <td>Step into</td>
     </tr>
     <tr>
-      <td><code class="highlighter-rouge">!Process 0 0</code></td>
+      <td><code class="language-plaintext highlighter-rouge">!Process 0 0</code></td>
       <td>Display basic information for all processes on system</td>
     </tr>
     <tr>
-      <td><code class="highlighter-rouge">!Process 0 0 &lt;exe&gt;</code></td>
+      <td><code class="language-plaintext highlighter-rouge">!Process 0 0 &lt;exe&gt;</code></td>
       <td>List all process running an executable</td>
     </tr>
     <tr>
-      <td><code class="highlighter-rouge">!process &lt;address&gt; !</code></td>
+      <td><code class="language-plaintext highlighter-rouge">!process &lt;address&gt; !</code></td>
       <td>Get detailed info about a process</td>
     </tr>
     <tr>
-      <td><code class="highlighter-rouge">ctrl+break</code></td>
+      <td><code class="language-plaintext highlighter-rouge">ctrl+break</code></td>
       <td>Stop long running WinDbg command</td>
     </tr>
     <tr>
-      <td><code class="highlighter-rouge">sxe ld somethin.dll</code></td>
+      <td><code class="language-plaintext highlighter-rouge">sxe ld somethin.dll</code></td>
       <td>Break on module load</td>
     </tr>
   </tbody>
@@ -186,16 +186,16 @@
   </thead>
   <tbody>
     <tr>
-      <td><code class="highlighter-rouge">.</code> before thread data</td>
+      <td><code class="language-plaintext highlighter-rouge">.</code> before thread data</td>
       <td>Current thread</td>
     </tr>
     <tr>
-      <td><code class="highlighter-rouge">#</code> before thread data</td>
+      <td><code class="language-plaintext highlighter-rouge">#</code> before thread data</td>
       <td>Indicates that this thread caused the last breakpoing</td>
     </tr>
     <tr>
-      <td><code class="highlighter-rouge">_structurename</code></td>
-      <td>Structures are prefixed with <code class="highlighter-rouge">_</code></td>
+      <td><code class="language-plaintext highlighter-rouge">_structurename</code></td>
+      <td>Structures are prefixed with <code class="language-plaintext highlighter-rouge">_</code></td>
     </tr>
   </tbody>
 </table>

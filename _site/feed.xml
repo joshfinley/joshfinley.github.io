@@ -1,16 +1,16 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="3.7.4">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2020-09-04T10:37:34-05:00</updated><id>http://localhost:4000/</id><title type="html">Notebook</title><subtitle>Sharing notes and resources</subtitle><author><name>Josh Finley</name></author><entry><title type="html">Dumping Syscall Numbers and Offsets</title><link href="http://localhost:4000/sycall-dumping/" rel="alternate" type="text/html" title="Dumping Syscall Numbers and Offsets" /><published>2020-04-17T00:05:28-05:00</published><updated>2020-04-17T00:05:28-05:00</updated><id>http://localhost:4000/sycall-dumping</id><content type="html" xml:base="http://localhost:4000/sycall-dumping/">&lt;p&gt;Source code for this demonstration can be found &lt;a href=&quot;https://github.com/joshfinley/SyscallDumper/tree/v1.0&quot;&gt;here&lt;/a&gt;&lt;/p&gt;
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="3.9.0">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2020-09-04T10:39:29-05:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">Notebook</title><subtitle>Sharing notes and resources</subtitle><author><name>Josh Finley</name></author><entry><title type="html">Dumping Syscall Numbers and Offsets</title><link href="http://localhost:4000/sycall-dumping/" rel="alternate" type="text/html" title="Dumping Syscall Numbers and Offsets" /><published>2020-04-17T00:05:28-05:00</published><updated>2020-04-17T00:05:28-05:00</updated><id>http://localhost:4000/sycall-dumping</id><content type="html" xml:base="http://localhost:4000/sycall-dumping/">&lt;p&gt;Source code for this demonstration can be found &lt;a href=&quot;https://github.com/joshfinley/SyscallDumper/tree/v1.0&quot;&gt;here&lt;/a&gt;&lt;/p&gt;
 
-&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;ntdll.dll&lt;/code&gt; is the interface through which user-mode applications access the Windows kernel. &lt;code class=&quot;highlighter-rouge&quot;&gt;ntdll.dll&lt;/code&gt; exports functions for every fundamental activity requring access to the domain of the kernel. Examples include interacting with the filesystem, virtual memory, physical devices, and more.&lt;/p&gt;
+&lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ntdll.dll&lt;/code&gt; is the interface through which user-mode applications access the Windows kernel. &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ntdll.dll&lt;/code&gt; exports functions for every fundamental activity requring access to the domain of the kernel. Examples include interacting with the filesystem, virtual memory, physical devices, and more.&lt;/p&gt;
 
-&lt;p&gt;These functions are are esentially thin wrappers for passing information to the kernel for execution. With each syscall, &lt;code class=&quot;highlighter-rouge&quot;&gt;ntddl.dll&lt;/code&gt; sets up the information that the kernel needs, including placing the relevant &lt;em&gt;number&lt;/em&gt; of the system call into register &lt;code class=&quot;highlighter-rouge&quot;&gt;eax&lt;/code&gt;. Following this, control is diverted to the kernel using the &lt;code class=&quot;highlighter-rouge&quot;&gt;syscall&lt;/code&gt; instruction. A more complete description of this instruction can be found &lt;a href=&quot;https://www.felixcloutier.com/x86/syscall&quot;&gt;here&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;These functions are are esentially thin wrappers for passing information to the kernel for execution. With each syscall, &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ntddl.dll&lt;/code&gt; sets up the information that the kernel needs, including placing the relevant &lt;em&gt;number&lt;/em&gt; of the system call into register &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;eax&lt;/code&gt;. Following this, control is diverted to the kernel using the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;syscall&lt;/code&gt; instruction. A more complete description of this instruction can be found &lt;a href=&quot;https://www.felixcloutier.com/x86/syscall&quot;&gt;here&lt;/a&gt;.&lt;/p&gt;
 
-&lt;p&gt;The following image shows an example of the disassembly of an &lt;code class=&quot;highlighter-rouge&quot;&gt;ntdll.dll&lt;/code&gt; system call export:&lt;/p&gt;
+&lt;p&gt;The following image shows an example of the disassembly of an &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ntdll.dll&lt;/code&gt; system call export:&lt;/p&gt;
 
 &lt;p&gt;&lt;img src=&quot;resources/ntdll_syscall_wrapper.png&quot; alt=&quot;resourcse system call disasm&quot; /&gt;&lt;/p&gt;
 
-&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;ntdll.dll&lt;/code&gt; itself exports over 2000 functions. On Windows 1909, 464 of these are these system call wrappers. The exports of a given executable can quickly be dumped using &lt;code class=&quot;highlighter-rouge&quot;&gt;dumpbin.exe&lt;/code&gt; as follows:&lt;/p&gt;
+&lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ntdll.dll&lt;/code&gt; itself exports over 2000 functions. On Windows 1909, 464 of these are these system call wrappers. The exports of a given executable can quickly be dumped using &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;dumpbin.exe&lt;/code&gt; as follows:&lt;/p&gt;
 
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;C:\&amp;gt;dumpbin /exports C:\Windows\System32\ntdll.dll
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;C:\&amp;gt;dumpbin /exports C:\Windows\System32\ntdll.dll
 Microsoft (R) COFF/PE Dumper Version 14.24.28316.0
 Copyright (C) Microsoft Corporation.  All rights reserved.
 
@@ -48,14 +48,14 @@ File Type: DLL
         1000 RT
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-&lt;p&gt;For almost any legitimate, day-to-day activities, a programmer will not interact with &lt;code class=&quot;highlighter-rouge&quot;&gt;ntdll.dll&lt;/code&gt; directly, but instead will interact with other layers of wrappers around these fundamental system call functions as defined in libraries and subsystem APIs. But for research, malware, and anti-malware purposes, more precise details about the system call numbers are sometimes needed.&lt;/p&gt;
+&lt;p&gt;For almost any legitimate, day-to-day activities, a programmer will not interact with &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ntdll.dll&lt;/code&gt; directly, but instead will interact with other layers of wrappers around these fundamental system call functions as defined in libraries and subsystem APIs. But for research, malware, and anti-malware purposes, more precise details about the system call numbers are sometimes needed.&lt;/p&gt;
 
-&lt;h2 id=&quot;extracting-system-call-numbers-from-ntdlldl&quot;&gt;Extracting System Call Numbers From &lt;code class=&quot;highlighter-rouge&quot;&gt;ntdll.dl&lt;/code&gt;&lt;/h2&gt;
+&lt;h2 id=&quot;extracting-system-call-numbers-from-ntdlldl&quot;&gt;Extracting System Call Numbers From &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ntdll.dl&lt;/code&gt;&lt;/h2&gt;
 
-&lt;p&gt;Extracting the system calls from &lt;code class=&quot;highlighter-rouge&quot;&gt;ntdll.dll&lt;/code&gt; is more an exercise in manual mapping than anything else. First, &lt;code class=&quot;highlighter-rouge&quot;&gt;ntdll.dll&lt;/code&gt; is loaded with the &lt;code class=&quot;highlighter-rouge&quot;&gt;LOAD_LIBRARY_AS_DATAFILE&lt;/code&gt; flag:&lt;/p&gt;
+&lt;p&gt;Extracting the system calls from &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ntdll.dll&lt;/code&gt; is more an exercise in manual mapping than anything else. First, &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ntdll.dll&lt;/code&gt; is loaded with the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;LOAD_LIBRARY_AS_DATAFILE&lt;/code&gt; flag:&lt;/p&gt;
 
-&lt;div class=&quot;language-c++ highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;// load ntdll
-&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;HMODULE&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ntdll&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;LoadLibraryEx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;L&quot;C:&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\\&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;Windows&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\\&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;System32&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\\&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;ntdll.dll&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;NULL&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;LOAD_LIBRARY_AS_DATAFILE&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;div class=&quot;language-c++ highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;// load ntdll&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;HMODULE&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ntdll&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;LoadLibraryEx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;L&quot;C:&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\\&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;Windows&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\\&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;System32&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\\&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;ntdll.dll&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;NULL&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;LOAD_LIBRARY_AS_DATAFILE&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
 &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;!&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ntdll&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
     &lt;span class=&quot;n&quot;&gt;status&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;GetLastError&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;();&lt;/span&gt;
     &lt;span class=&quot;n&quot;&gt;std&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;cout&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;Error: &quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;status&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
@@ -63,22 +63,22 @@ File Type: DLL
 &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-&lt;p&gt;Without the&lt;code class=&quot;highlighter-rouge&quot;&gt;LOAD_LIBRARY_AS_DATAFILE&lt;/code&gt; flag, &lt;code class=&quot;highlighter-rouge&quot;&gt;DllMain&lt;/code&gt; would be called upon loading. In this situation, this needs to be avoided, and by using this flag, the library to simply be loaded as raw data.&lt;/p&gt;
+&lt;p&gt;Without the&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;LOAD_LIBRARY_AS_DATAFILE&lt;/code&gt; flag, &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;DllMain&lt;/code&gt; would be called upon loading. In this situation, this needs to be avoided, and by using this flag, the library to simply be loaded as raw data.&lt;/p&gt;
 
-&lt;p&gt;With the raw data of &lt;code class=&quot;highlighter-rouge&quot;&gt;ntdll.dll&lt;/code&gt; available, it can be parsed for exports:&lt;/p&gt;
+&lt;p&gt;With the raw data of &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ntdll.dll&lt;/code&gt; available, it can be parsed for exports:&lt;/p&gt;
 
-&lt;div class=&quot;language-c++ highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;// extract the dos header
-&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;auto&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;dosHeader&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;reinterpret_cast&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PIMAGE_DOS_HEADER&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ntdll&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;div class=&quot;language-c++ highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;// extract the dos header&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;auto&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;dosHeader&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;reinterpret_cast&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PIMAGE_DOS_HEADER&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ntdll&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
 
-&lt;span class=&quot;c1&quot;&gt;// extract the nt header
-&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;auto&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ntHeader&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;reinterpret_cast&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PIMAGE_NT_HEADERS&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// extract the nt header&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;auto&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ntHeader&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;reinterpret_cast&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PIMAGE_NT_HEADERS&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;
     &lt;span class=&quot;k&quot;&gt;reinterpret_cast&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;BYTE&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&amp;gt;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ntdll&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;reinterpret_cast&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PIMAGE_DOS_HEADER&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ntdll&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;e_lfanew&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
 
-&lt;span class=&quot;c1&quot;&gt;// extract the export directory
-&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;auto&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;exports&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;reinterpret_cast&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PIMAGE_EXPORT_DIRECTORY&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;((&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;BYTE&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ntdll&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ntHeader&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;OptionalHeader&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;DataDirectory&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;IMAGE_DIRECTORY_ENTRY_EXPORT&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;].&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;VirtualAddress&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// extract the export directory&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;auto&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;exports&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;reinterpret_cast&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PIMAGE_EXPORT_DIRECTORY&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;((&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;BYTE&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ntdll&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ntHeader&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;OptionalHeader&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;DataDirectory&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;IMAGE_DIRECTORY_ENTRY_EXPORT&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;].&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;VirtualAddress&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
 
-&lt;span class=&quot;c1&quot;&gt;// set variables for export directory members
-&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;auto&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;addr&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;reinterpret_cast&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PDWORD&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;((&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;reinterpret_cast&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;LPBYTE&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ntdll&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;exports&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;AddressOfFunctions&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;));&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// set variables for export directory members&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;auto&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;addr&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;reinterpret_cast&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PDWORD&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;((&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;reinterpret_cast&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;LPBYTE&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ntdll&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;exports&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;AddressOfFunctions&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;));&lt;/span&gt;
 &lt;span class=&quot;k&quot;&gt;auto&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;name&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;reinterpret_cast&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PDWORD&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;((&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;reinterpret_cast&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;LPBYTE&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ntdll&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;exports&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;AddressOfNames&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;));&lt;/span&gt;
 &lt;span class=&quot;k&quot;&gt;auto&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ord&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;reinterpret_cast&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PWORD&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;((&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;reinterpret_cast&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;LPBYTE&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ntdll&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;exports&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;AddressOfNameOrdinals&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;));&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
@@ -89,27 +89,27 @@ File Type: DLL
   &lt;li&gt;extract the system call number:&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;div class=&quot;language-c++ highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;// loop over exports
-&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;uint64_t&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;i&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;i&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;exports&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;AddressOfFunctions&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;++&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+&lt;div class=&quot;language-c++ highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;// loop over exports&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;uint64_t&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;i&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;i&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;exports&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;AddressOfFunctions&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;++&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
     &lt;span class=&quot;n&quot;&gt;std&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;string&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;funcname&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;char&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ntdll&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
 
-    &lt;span class=&quot;c1&quot;&gt;// identify &quot;Nt&quot; family functions
-&lt;/span&gt;    &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;funcname&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;rfind&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;Nt&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// identify &quot;Nt&quot; family functions&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;funcname&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;rfind&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;Nt&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
         &lt;span class=&quot;k&quot;&gt;try&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-            &lt;span class=&quot;c1&quot;&gt;// get the pointer to the function and calculate its RVA
-&lt;/span&gt;            &lt;span class=&quot;n&quot;&gt;PVOID&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;funcaddr&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;reinterpret_cast&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PVOID&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;
+            &lt;span class=&quot;c1&quot;&gt;// get the pointer to the function and calculate its RVA&lt;/span&gt;
+            &lt;span class=&quot;n&quot;&gt;PVOID&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;funcaddr&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;reinterpret_cast&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PVOID&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;
                 &lt;span class=&quot;k&quot;&gt;reinterpret_cast&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;LPBYTE&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ntdll&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;addr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ord&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]]);&lt;/span&gt;
             &lt;span class=&quot;k&quot;&gt;auto&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;rva&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;uint64_t&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;funcaddr&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ntHeader&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;OptionalHeader&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ImageBase&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
 
             &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;!&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;isSyscall&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;funcname&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;
                 &lt;span class=&quot;k&quot;&gt;continue&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
 
-            &lt;span class=&quot;c1&quot;&gt;// retrieve the syscall code number from the address
-&lt;/span&gt;            &lt;span class=&quot;k&quot;&gt;auto&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;objectcode&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;uintptr_t&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;funcaddr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+            &lt;span class=&quot;c1&quot;&gt;// retrieve the syscall code number from the address&lt;/span&gt;
+            &lt;span class=&quot;k&quot;&gt;auto&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;objectcode&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;uintptr_t&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;funcaddr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
             &lt;span class=&quot;k&quot;&gt;auto&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;syscallcode&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;objectcode&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;8&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;4&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;amp;&lt;/span&gt; &lt;span class=&quot;mh&quot;&gt;0xfff&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
                             
-            &lt;span class=&quot;c1&quot;&gt;// print the function's information
-&lt;/span&gt;            &lt;span class=&quot;n&quot;&gt;std&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;cout&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;std&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;left&lt;/span&gt;
+            &lt;span class=&quot;c1&quot;&gt;// print the function's information&lt;/span&gt;
+            &lt;span class=&quot;n&quot;&gt;std&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;cout&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;std&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;left&lt;/span&gt;
                 &lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;std&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;setw&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;10&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;std&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;dec&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;i&lt;/span&gt;
                 &lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;std&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;setw&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;10&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;std&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;hex&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;rva&lt;/span&gt;
                 &lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;std&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;setw&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;10&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;std&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;hex&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;syscallcode&lt;/span&gt;
@@ -123,9 +123,9 @@ File Type: DLL
 &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-&lt;p&gt;The result is a program which will enumerate the system calls of &lt;code class=&quot;highlighter-rouge&quot;&gt;ntdll.dll&lt;/code&gt;&lt;/p&gt;
+&lt;p&gt;The result is a program which will enumerate the system calls of &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ntdll.dll&lt;/code&gt;&lt;/p&gt;
 
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;C:\&amp;gt;SyscallDumper.exe
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;C:\&amp;gt;SyscallDumper.exe
 ordinal   RVA       code      name
 
 190       9c0a0     2         NtAcceptConnectPort
@@ -135,13 +135,13 @@ ordinal   RVA       code      name
 653       9cb40     57        NtWriteRequestData
 654       9c7a0     3a        NtWriteVirtualMemory
 655       9c920     46        NtYieldExecution
-&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;</content><author><name>Josh Finley</name></author><summary type="html">Source code for this demonstration can be found here</summary></entry><entry><title type="html">Windows DKOM Demo</title><link href="http://localhost:4000/dkom-demo/" rel="alternate" type="text/html" title="Windows DKOM Demo" /><published>2020-04-02T00:05:29-05:00</published><updated>2020-04-02T00:05:29-05:00</updated><id>http://localhost:4000/dkom-demo</id><content type="html" xml:base="http://localhost:4000/dkom-demo/">&lt;p&gt;This is an implementation of a simple driver which modifies kernel data structures to remove itself from the &lt;code class=&quot;highlighter-rouge&quot;&gt;PsLoadedModuleList&lt;/code&gt; structure. Disclaimer: PG protects against this. Weaponizanble by chaining with a PG bypass.&lt;/p&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;</content><author><name>Josh Finley</name></author><summary type="html">Source code for this demonstration can be found here</summary></entry><entry><title type="html">Windows DKOM Demo</title><link href="http://localhost:4000/dkom-demo/" rel="alternate" type="text/html" title="Windows DKOM Demo" /><published>2020-04-02T00:05:29-05:00</published><updated>2020-04-02T00:05:29-05:00</updated><id>http://localhost:4000/dkom-demo</id><content type="html" xml:base="http://localhost:4000/dkom-demo/">&lt;p&gt;This is an implementation of a simple driver which modifies kernel data structures to remove itself from the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;PsLoadedModuleList&lt;/code&gt; structure. Disclaimer: PG protects against this. Weaponizanble by chaining with a PG bypass.&lt;/p&gt;
 
 &lt;hr /&gt;
 
-&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;PsLoadedModuleList&lt;/code&gt;  is a global kernel object of type &lt;code class=&quot;highlighter-rouge&quot;&gt;_KLDR_DATA_TABLE_ENTRY&lt;/code&gt;. It is the list head of a circular linked-list containing the loaded modules on the system. Example:&lt;/p&gt;
+&lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;PsLoadedModuleList&lt;/code&gt;  is a global kernel object of type &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;_KLDR_DATA_TABLE_ENTRY&lt;/code&gt;. It is the list head of a circular linked-list containing the loaded modules on the system. Example:&lt;/p&gt;
 
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;2: kd&amp;gt; ?PsLoadedModuleList
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;2: kd&amp;gt; ?PsLoadedModuleList
 Evaluate expression: -8773737086640 = fffff805`34848150
 2: kd&amp;gt; dt poi(fffff805`34848150) _KLDR_DATA_TABLE_ENTRY
 DKOM_Demo!_KLDR_DATA_TABLE_ENTRY
@@ -164,17 +164,17 @@ DKOM_Demo!_KLDR_DATA_TABLE_ENTRY
    +0x088 PatchInformation : 0x00000000`00000001 Void
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-&lt;p&gt;We can see that at information about the entry is offset to the actual &lt;code class=&quot;highlighter-rouge&quot;&gt;LIST_ENTRY&lt;/code&gt; structure, which holds the addresses of the next and previous &lt;code class=&quot;highlighter-rouge&quot;&gt;_KLDR_DATA_TABLE_ENTRY&lt;/code&gt; structures. If you’re not familiar, &lt;code class=&quot;highlighter-rouge&quot;&gt;LIST_ENTRY&lt;/code&gt; looks like this:&lt;/p&gt;
+&lt;p&gt;We can see that at information about the entry is offset to the actual &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;LIST_ENTRY&lt;/code&gt; structure, which holds the addresses of the next and previous &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;_KLDR_DATA_TABLE_ENTRY&lt;/code&gt; structures. If you’re not familiar, &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;LIST_ENTRY&lt;/code&gt; looks like this:&lt;/p&gt;
 
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;2: kd&amp;gt; dt _List_entry
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;2: kd&amp;gt; dt _List_entry
 ntdll!_LIST_ENTRY
    +0x000 Flink            : Ptr64 _LIST_ENTRY
    +0x008 Blink            : Ptr64 _LIST_ENTRY
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-&lt;p&gt;As it turns out, each driver has access to it’s &lt;code class=&quot;highlighter-rouge&quot;&gt;KLDR_DATA_TABLE_ENTRY&lt;/code&gt; structure by its &lt;code class=&quot;highlighter-rouge&quot;&gt;DriverObject-&amp;gt;DriverSection&lt;/code&gt; member at offset &lt;code class=&quot;highlighter-rouge&quot;&gt;0x28&lt;/code&gt;. Just for completeness’ sake, the &lt;code class=&quot;highlighter-rouge&quot;&gt;DRIVER_OBJECT&lt;/code&gt; structure looks like this:&lt;/p&gt;
+&lt;p&gt;As it turns out, each driver has access to it’s &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;KLDR_DATA_TABLE_ENTRY&lt;/code&gt; structure by its &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;DriverObject-&amp;gt;DriverSection&lt;/code&gt; member at offset &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;0x28&lt;/code&gt;. Just for completeness’ sake, the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;DRIVER_OBJECT&lt;/code&gt; structure looks like this:&lt;/p&gt;
 
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;2: kd&amp;gt; dt PDRIVER_OBJECT
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;2: kd&amp;gt; dt PDRIVER_OBJECT
 DKOM_Demo!PDRIVER_OBJECT
 Ptr64    +0x000 Type             : Int2B
    +0x002 Size             : Int2B
@@ -193,63 +193,63 @@ Ptr64    +0x000 Type             : Int2B
    +0x070 MajorFunction    : [28] Ptr64     long 
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-&lt;p&gt;As such, one can simply access and traverse &lt;code class=&quot;highlighter-rouge&quot;&gt;PsLoadedModuleList&lt;/code&gt; using this member of &lt;code class=&quot;highlighter-rouge&quot;&gt;DRIVER_OBJECT&lt;/code&gt;. Additionally, directly hiding a module from the list is as simple as relinking the &lt;code class=&quot;highlighter-rouge&quot;&gt;LIST_ENTRY&lt;/code&gt; structures surrounding the driver’s:&lt;/p&gt;
+&lt;p&gt;As such, one can simply access and traverse &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;PsLoadedModuleList&lt;/code&gt; using this member of &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;DRIVER_OBJECT&lt;/code&gt;. Additionally, directly hiding a module from the list is as simple as relinking the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;LIST_ENTRY&lt;/code&gt; structures surrounding the driver’s:&lt;/p&gt;
 
 &lt;div class=&quot;language-c++ highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;n&quot;&gt;PLIST_ENTRY&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;PrevModule&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ThisModule&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Blink&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
 &lt;span class=&quot;n&quot;&gt;PLIST_ENTRY&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;NextModule&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ThisModule&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Flink&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
 
-&lt;span class=&quot;c1&quot;&gt;// Replace PrevModule Flink with NextModule's address;
-&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PrevModule&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Flink&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;NextModule&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-&lt;span class=&quot;c1&quot;&gt;// Replace NextModule Blink with PrevModule's address
-&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;NextModule&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Blink&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;PrevModule&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// Replace PrevModule Flink with NextModule's address;&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;PrevModule&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Flink&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;NextModule&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// Replace NextModule Blink with PrevModule's address&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;NextModule&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Blink&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;PrevModule&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
 
-&lt;span class=&quot;c1&quot;&gt;// point target process to itself
-&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ThisModule&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Flink&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ThisModule&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// point target process to itself&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;ThisModule&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Flink&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ThisModule&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
 &lt;span class=&quot;n&quot;&gt;ThisModule&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Blink&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ThisModule&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-&lt;p&gt;And since you have access to the driver &lt;code class=&quot;highlighter-rouge&quot;&gt;KLDR_DATA_TABLE_ENTRY&lt;/code&gt;, you can check your work:&lt;/p&gt;
+&lt;p&gt;And since you have access to the driver &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;KLDR_DATA_TABLE_ENTRY&lt;/code&gt;, you can check your work:&lt;/p&gt;
 
 &lt;div class=&quot;language-c++ highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;n&quot;&gt;NTSTATUS&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;FindKernelModule&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;_In_&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;PDRIVER_OBJECT&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;DriverObject&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;_In_&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;PUNICODE_STRING&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;DriverName&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-	&lt;span class=&quot;c1&quot;&gt;// Logic can be similarly used for finding the PsLoadedModuleList head. ntoskrnl.exe is always the head
-&lt;/span&gt;	&lt;span class=&quot;n&quot;&gt;PKLDR_DATA_TABLE_ENTRY&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;pThisModule&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PKLDR_DATA_TABLE_ENTRY&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;DriverObject&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;DriverSection&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+	&lt;span class=&quot;c1&quot;&gt;// Logic can be similarly used for finding the PsLoadedModuleList head. ntoskrnl.exe is always the head&lt;/span&gt;
+	&lt;span class=&quot;n&quot;&gt;PKLDR_DATA_TABLE_ENTRY&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;pThisModule&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PKLDR_DATA_TABLE_ENTRY&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;DriverObject&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;DriverSection&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
 	&lt;span class=&quot;n&quot;&gt;PLIST_ENTRY&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;KModEntry&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;nullptr&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
 	&lt;span class=&quot;n&quot;&gt;PLIST_ENTRY&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;FirstEntry&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;pThisModule&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;InLoadOrderLinks&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Flink&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
 
-	&lt;span class=&quot;c1&quot;&gt;// https://m0uk4.gitbook.io/notebooks/mouka/windowsinternal/find-kernel-module-address-todo
-&lt;/span&gt;	&lt;span class=&quot;c1&quot;&gt;// Loop over the circular linked-list
-&lt;/span&gt;	&lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PLIST_ENTRY&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;pListEntry&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;pThisModule&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;InLoadOrderLinks&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Flink&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+	&lt;span class=&quot;c1&quot;&gt;// https://m0uk4.gitbook.io/notebooks/mouka/windowsinternal/find-kernel-module-address-todo&lt;/span&gt;
+	&lt;span class=&quot;c1&quot;&gt;// Loop over the circular linked-list&lt;/span&gt;
+	&lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PLIST_ENTRY&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;pListEntry&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;pThisModule&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;InLoadOrderLinks&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Flink&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
 		&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;pListEntry&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;!=&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;amp;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;pThisModule&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;InLoadOrderLinks&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;amp;&lt;/span&gt;
 		&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;pThisModule&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;InLoadOrderLinks&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Flink&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;!=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;FirstEntry&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
 		&lt;span class=&quot;n&quot;&gt;pListEntry&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;pListEntry&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Flink&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
 	&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-		&lt;span class=&quot;c1&quot;&gt;// Search for the driver you're trying to hide
-&lt;/span&gt;		&lt;span class=&quot;n&quot;&gt;PKLDR_DATA_TABLE_ENTRY&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;pEntry&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;CONTAINING_RECORD&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;
+		&lt;span class=&quot;c1&quot;&gt;// Search for the driver you're trying to hide&lt;/span&gt;
+		&lt;span class=&quot;n&quot;&gt;PKLDR_DATA_TABLE_ENTRY&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;pEntry&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;CONTAINING_RECORD&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;
 			&lt;span class=&quot;n&quot;&gt;pListEntry&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;KLDR_DATA_TABLE_ENTRY&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;InLoadOrderLinks&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
 
 		&lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;RtlEqualUnicodeString&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;DriverName&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;amp;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;pEntry&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;BaseDllName&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-			&lt;span class=&quot;c1&quot;&gt;// oops, you found it. 
-&lt;/span&gt;			&lt;span class=&quot;n&quot;&gt;KModEntry&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;pListEntry&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+			&lt;span class=&quot;c1&quot;&gt;// oops, you found it. &lt;/span&gt;
+			&lt;span class=&quot;n&quot;&gt;KModEntry&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;pListEntry&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
 			&lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;STATUS_SUCCESS&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
 		&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
 	&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
 
-    &lt;span class=&quot;c1&quot;&gt;// module was unlinked successfully
-&lt;/span&gt;	&lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;STATUS_UNSUCCESSFUL&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// module was unlinked successfully&lt;/span&gt;
+	&lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;STATUS_UNSUCCESSFUL&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
 &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-&lt;p&gt;This same type of unlinking behavior can be used to hide a process. In kernel mode, a process can be looked up by its ID using &lt;code class=&quot;highlighter-rouge&quot;&gt;PsLookupProcessByProcessId&lt;/code&gt;:&lt;/p&gt;
+&lt;p&gt;This same type of unlinking behavior can be used to hide a process. In kernel mode, a process can be looked up by its ID using &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;PsLookupProcessByProcessId&lt;/code&gt;:&lt;/p&gt;
 
-&lt;div class=&quot;language-c++ highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;// turn the PID into an EPROCESS pointer
-&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PEPROCESS&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Process&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;div class=&quot;language-c++ highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;// turn the PID into an EPROCESS pointer&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;PEPROCESS&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Process&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
 &lt;span class=&quot;n&quot;&gt;status&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;PsLookupProcessByProcessId&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;((&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;HANDLE&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;pid&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;amp;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Process&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
 &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;!&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;NT_SUCCESS&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;status&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;
 	&lt;span class=&quot;k&quot;&gt;break&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
 &lt;p&gt;Where PEPROCESS represent a pointer to an EPROCESS structure like this:&lt;/p&gt;
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;2: kd&amp;gt; dt _EPROCESS
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;2: kd&amp;gt; dt _EPROCESS
 ntdll!_EPROCESS
    +0x000 Pcb              : _KPROCESS
    +0x2e0 ProcessLock      : _EX_PUSH_LOCK
@@ -260,23 +260,23 @@ ntdll!_EPROCESS
 ... (truncated
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-&lt;p&gt;With a pointer to the target process’s EPROCESS structure in hand, it can be scanned for the &lt;code class=&quot;highlighter-rouge&quot;&gt;ActiveProcessLinks&lt;/code&gt; member. Once this member is found, hiding the process is the exact same for hiding a driver process:&lt;/p&gt;
+&lt;p&gt;With a pointer to the target process’s EPROCESS structure in hand, it can be scanned for the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ActiveProcessLinks&lt;/code&gt; member. Once this member is found, hiding the process is the exact same for hiding a driver process:&lt;/p&gt;
 
-&lt;div class=&quot;language-c++ highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;// get the ActiveProcesLinks address
-&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;auto&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;CurrentListEntry&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PLIST_ENTRY&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)((&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PUCHAR&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Process&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;offset&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;div class=&quot;language-c++ highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;// get the ActiveProcesLinks address&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;auto&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;CurrentListEntry&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PLIST_ENTRY&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)((&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PUCHAR&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Process&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;offset&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
 
 &lt;span class=&quot;k&quot;&gt;auto&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;PrevListEntry&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;CurrentListEntry&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Blink&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
 &lt;span class=&quot;k&quot;&gt;auto&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;NextListEntry&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;CurrentListEntry&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Flink&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
 
-&lt;span class=&quot;c1&quot;&gt;// unlink the target process
-&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PrevListEntry&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Flink&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;NextListEntry&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// unlink the target process&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;PrevListEntry&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Flink&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;NextListEntry&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
 &lt;span class=&quot;n&quot;&gt;NextListEntry&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Blink&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;PrevListEntry&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
 
-&lt;span class=&quot;c1&quot;&gt;// point target process to itself
-&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;CurrentListEntry&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Flink&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;CurrentListEntry&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// point target process to itself&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;CurrentListEntry&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Flink&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;CurrentListEntry&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
 &lt;span class=&quot;n&quot;&gt;CurrentListEntry&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Blink&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;CurrentListEntry&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-&lt;p&gt;On Windows 10 1901 build 18363, the &lt;code class=&quot;highlighter-rouge&quot;&gt;ActiveProcessLinks&lt;/code&gt; member is located at offset 0x2f0. This offset changes between builds.&lt;/p&gt;
+&lt;p&gt;On Windows 10 1901 build 18363, the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ActiveProcessLinks&lt;/code&gt; member is located at offset 0x2f0. This offset changes between builds.&lt;/p&gt;
 
 &lt;p&gt;The full source for an example driver can be found &lt;a href=&quot;https://github.com/joshfinley/DKOM_Demo&quot;&gt;here&lt;/a&gt;.&lt;/p&gt;
 
@@ -350,10 +350,10 @@ ntdll!_EPROCESS
 
 &lt;h5 id=&quot;32-bit&quot;&gt;32 Bit&lt;/h5&gt;
 &lt;div class=&quot;language-c highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;typedef&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;_IMAGE_OPTIONAL_HEADER&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
-    &lt;span class=&quot;c1&quot;&gt;//
-&lt;/span&gt;    &lt;span class=&quot;c1&quot;&gt;// Standard fields.
-&lt;/span&gt;    &lt;span class=&quot;c1&quot;&gt;//
-&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;//&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// Standard fields.&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;//&lt;/span&gt;
+
     &lt;span class=&quot;n&quot;&gt;WORD&lt;/span&gt;    &lt;span class=&quot;n&quot;&gt;Magic&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
     &lt;span class=&quot;n&quot;&gt;BYTE&lt;/span&gt;    &lt;span class=&quot;n&quot;&gt;MajorLinkerVersion&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
     &lt;span class=&quot;n&quot;&gt;BYTE&lt;/span&gt;    &lt;span class=&quot;n&quot;&gt;MinorLinkerVersion&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
@@ -364,10 +364,10 @@ ntdll!_EPROCESS
     &lt;span class=&quot;n&quot;&gt;DWORD&lt;/span&gt;   &lt;span class=&quot;n&quot;&gt;BaseOfCode&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
     &lt;span class=&quot;n&quot;&gt;DWORD&lt;/span&gt;   &lt;span class=&quot;n&quot;&gt;BaseOfData&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
 
-    &lt;span class=&quot;c1&quot;&gt;//
-&lt;/span&gt;    &lt;span class=&quot;c1&quot;&gt;// NT additional fields.
-&lt;/span&gt;    &lt;span class=&quot;c1&quot;&gt;//
-&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;//&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;// NT additional fields.&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;//&lt;/span&gt;
+
     &lt;span class=&quot;n&quot;&gt;DWORD&lt;/span&gt;   &lt;span class=&quot;n&quot;&gt;ImageBase&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
     &lt;span class=&quot;n&quot;&gt;DWORD&lt;/span&gt;   &lt;span class=&quot;n&quot;&gt;SectionAlignment&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
     &lt;span class=&quot;n&quot;&gt;DWORD&lt;/span&gt;   &lt;span class=&quot;n&quot;&gt;FileAlignment&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
@@ -1618,7 +1618,188 @@ Being Safe and Informed&lt;/p&gt;
 &lt;/ul&gt;
 
 &lt;h3 id=&quot;resources&quot;&gt;Resources&lt;/h3&gt;
-&lt;p&gt;www.weather.gov/oun/spotter-referencematerials&lt;/p&gt;</content><author><name>Josh Finley</name></author><summary type="html">Notes on Severe Weather Spotter Training on 3-24-2020</summary></entry><entry><title type="html">Dissecting a Barebones WDM Driver</title><link href="http://localhost:4000/dissecting-wdm-drivers/" rel="alternate" type="text/html" title="Dissecting a Barebones WDM Driver" /><published>2020-03-16T00:05:28-05:00</published><updated>2020-03-16T00:05:28-05:00</updated><id>http://localhost:4000/dissecting-wdm-drivers</id><content type="html" xml:base="http://localhost:4000/dissecting-wdm-drivers/">&lt;p&gt;Chapter 4 of &lt;em&gt;Kernel Programming for Windows&lt;/em&gt; walks through the process of developing a driver “from start to finish”. This post is for quick notes on the dissection of this example driver, taken for learning purposes.&lt;/p&gt;
+&lt;p&gt;www.weather.gov/oun/spotter-referencematerials&lt;/p&gt;</content><author><name>Josh Finley</name></author><summary type="html">Notes on Severe Weather Spotter Training on 3-24-2020</summary></entry><entry><title type="html">Notes on IRQL and Deferred Procedure Calls</title><link href="http://localhost:4000/irql-dpc/" rel="alternate" type="text/html" title="Notes on IRQL and Deferred Procedure Calls" /><published>2020-03-16T00:05:28-05:00</published><updated>2020-03-16T00:05:28-05:00</updated><id>http://localhost:4000/irql-dpc</id><content type="html" xml:base="http://localhost:4000/irql-dpc/">&lt;h2 id=&quot;interrupt-request-level&quot;&gt;Interrupt Request Level&lt;/h2&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;every hardware interrupt is associated with a priority: &lt;em&gt;Interrupt Request Level (IRQL)&lt;/em&gt;&lt;/li&gt;
+  &lt;li&gt;The HAL determines a hardware interrupts IRQL&lt;/li&gt;
+  &lt;li&gt;Code with highest IRQL gets executed first&lt;/li&gt;
+  &lt;li&gt;Process:
+    &lt;ul&gt;
+      &lt;li&gt;IRQL triggers CPU to save its context in the current threads kernel stack and raise its IRQL to that of the request, and then executes the corresponding Interrupt Service Routine&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;Important IRQLs:
+    &lt;ul&gt;
+      &lt;li&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;PASSIVE LEVEL&lt;/code&gt;: normal IRQL. Thread scheduling normal&lt;/li&gt;
+      &lt;li&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;APC_LEVEL&lt;/code&gt;: for specific kernel APCs. Thread scheduling normal&lt;/li&gt;
+      &lt;li&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;DISPATCH_LEVEL&lt;/code&gt;: this CPU cannot be woken by thread scheduler, no access to page memory allowed, cannot wait on kernel objects&lt;/li&gt;
+      &lt;li&gt;Device IRQL: Like &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;DISPATCH_LEVEL&lt;/code&gt; but with range of levels (3-11 on x64).&lt;/li&gt;
+      &lt;li&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;HIGH_LEVEL&lt;/code&gt;: Highest level, masks all other interrupts. value is 15 on x64&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;If IRQL 2 or higher:
+    &lt;ul&gt;
+      &lt;li&gt;Must access non-paged pool. Access to paged or user-supplied buffers is unsafe&lt;/li&gt;
+      &lt;li&gt;Crash occurs if a dispatcher kernel object is awaited (unless timeout is 0)&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;Thread scheduler runs at IRQL 2. Anything higher than that has no ability to switch contexts&lt;/li&gt;
+  &lt;li&gt;IRQL can only be changed in kernel mode. Use &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;KeRaiseIrql&lt;/code&gt; and &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;KeLowerIrql&lt;/code&gt;&lt;/li&gt;
+  &lt;li&gt;Always verify that the IRQL has been raised after attempting to raise it&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&quot;deferred-procedure-calls&quot;&gt;Deferred Procedure Calls&lt;/h2&gt;
+&lt;ul&gt;
+  &lt;li&gt;Cause a PC to wait while it is servicing a request for data from a peripheral device.&lt;/li&gt;
+  &lt;li&gt;Steps:
+    &lt;ul&gt;
+      &lt;li&gt;Data from hardware device is requested by the OS&lt;/li&gt;
+      &lt;li&gt;Interrupt Service Routine (ISR) issued&lt;/li&gt;
+      &lt;li&gt;If device cannot immediately service the request, DPC is issued&lt;/li&gt;
+      &lt;li&gt;Everything else wiats while the request for data is fulfilled.&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;DPCs are associated with a system-defined DPC object&lt;/li&gt;
+  &lt;li&gt;One DPC object is supplied for each device object&lt;/li&gt;
+  &lt;li&gt;Drivers can have more than one DPC object&lt;/li&gt;
+  &lt;li&gt;DPC structure is undocumented. &lt;a href=&quot;https://github.com/joshfinley/ntoskrnl/blob/master/Include/ntosdef.h&quot;&gt;see the definition for KDPC&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&quot;references&quot;&gt;References&lt;/h2&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;https://leanpub.com/windowskernelprogramming&lt;/li&gt;
+  &lt;li&gt;https://helpdesk.flexradio.com/hc/en-us/articles/202118398-What-are-DPCs-and-why-do-they-matter-&lt;/li&gt;
+&lt;/ul&gt;</content><author><name>Josh Finley</name></author><summary type="html">Interrupt Request Level</summary></entry><entry><title type="html">WinDbg Cheatsheet</title><link href="http://localhost:4000/windbg-cheatsheet/" rel="alternate" type="text/html" title="WinDbg Cheatsheet" /><published>2020-03-16T00:05:28-05:00</published><updated>2020-03-16T00:05:28-05:00</updated><id>http://localhost:4000/windbg-cheatsheet</id><content type="html" xml:base="http://localhost:4000/windbg-cheatsheet/">&lt;h2 id=&quot;references&quot;&gt;References&lt;/h2&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;https://docs.microsoft.com/en-us/windows-hardware/drivers/debugger/d–da–db–dc–dd–dd–df–dp–dq–du–dw–dw–dyb–dyd–display-memor&lt;/li&gt;
+  &lt;li&gt;https://leanpub.com/windowskernelprogramming&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&quot;commands&quot;&gt;Commands&lt;/h2&gt;
+
+&lt;table&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;
+      &lt;th&gt;Command&lt;/th&gt;
+      &lt;th&gt;Action&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;~&lt;/code&gt;&lt;/td&gt;
+      &lt;td&gt;Show threads for process&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;k&lt;/code&gt;&lt;/td&gt;
+      &lt;td&gt;Show stack trace of current thread&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;~ns&lt;/code&gt;&lt;/td&gt;
+      &lt;td&gt;Switch thread, eg. &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;~0s&lt;/code&gt;&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;~nk&lt;/code&gt;&lt;/td&gt;
+      &lt;td&gt;Get call stack of thread without switching, e.g. &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;~1k&lt;/code&gt;&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;? &amp;lt;Hex&amp;gt;&lt;/code&gt;&lt;/td&gt;
+      &lt;td&gt;Convert hex number to decimal&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;? &amp;lt;0nDec&amp;gt;&lt;/code&gt;&lt;/td&gt;
+      &lt;td&gt;Covnert dec number to hex&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;!teb &amp;lt;addr&amp;gt;&lt;/code&gt;&lt;/td&gt;
+      &lt;td&gt;Examine TEB of a thread. Addr gets current thread&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;!peb&lt;/code&gt;&lt;/td&gt;
+      &lt;td&gt;View the PEB&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;dt &amp;lt;structure&amp;gt;&lt;/code&gt;&lt;/td&gt;
+      &lt;td&gt;Dump the structure info, e.g. &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;dt ntdll!_teb&lt;/code&gt;&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;bp &amp;lt;function/loc&amp;gt;&lt;/code&gt;&lt;/td&gt;
+      &lt;td&gt;Set breakpoint at location&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;bl&lt;/code&gt;&lt;/td&gt;
+      &lt;td&gt;List breakpoints&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;r &amp;lt;register&amp;gt;&lt;/code&gt;&lt;/td&gt;
+      &lt;td&gt;Display register contents, e.g. &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;r&lt;/code&gt; displays all registers&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;db &amp;lt;addr&lt;/code&gt;&lt;/td&gt;
+      &lt;td&gt;display bytes of memory&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;u&lt;/code&gt;&lt;/td&gt;
+      &lt;td&gt;List the next 8 instructions to be executed&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;p&lt;/code&gt;&lt;/td&gt;
+      &lt;td&gt;Step over&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;t&lt;/code&gt;&lt;/td&gt;
+      &lt;td&gt;Step into&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;!Process 0 0&lt;/code&gt;&lt;/td&gt;
+      &lt;td&gt;Display basic information for all processes on system&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;!Process 0 0 &amp;lt;exe&amp;gt;&lt;/code&gt;&lt;/td&gt;
+      &lt;td&gt;List all process running an executable&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;!process &amp;lt;address&amp;gt; !&lt;/code&gt;&lt;/td&gt;
+      &lt;td&gt;Get detailed info about a process&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ctrl+break&lt;/code&gt;&lt;/td&gt;
+      &lt;td&gt;Stop long running WinDbg command&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;sxe ld somethin.dll&lt;/code&gt;&lt;/td&gt;
+      &lt;td&gt;Break on module load&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;h2 id=&quot;reading-output&quot;&gt;Reading Output&lt;/h2&gt;
+&lt;h3 id=&quot;threads&quot;&gt;Threads&lt;/h3&gt;
+
+&lt;table&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;
+      &lt;th&gt;Output Item&lt;/th&gt;
+      &lt;th&gt;Meaning&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;.&lt;/code&gt; before thread data&lt;/td&gt;
+      &lt;td&gt;Current thread&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;#&lt;/code&gt; before thread data&lt;/td&gt;
+      &lt;td&gt;Indicates that this thread caused the last breakpoing&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;_structurename&lt;/code&gt;&lt;/td&gt;
+      &lt;td&gt;Structures are prefixed with &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;_&lt;/code&gt;&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;</content><author><name>Josh Finley</name></author><summary type="html">References</summary></entry><entry><title type="html">Dissecting a Barebones WDM Driver</title><link href="http://localhost:4000/dissecting-wdm-drivers/" rel="alternate" type="text/html" title="Dissecting a Barebones WDM Driver" /><published>2020-03-16T00:05:28-05:00</published><updated>2020-03-16T00:05:28-05:00</updated><id>http://localhost:4000/dissecting-wdm-drivers</id><content type="html" xml:base="http://localhost:4000/dissecting-wdm-drivers/">&lt;p&gt;Chapter 4 of &lt;em&gt;Kernel Programming for Windows&lt;/em&gt; walks through the process of developing a driver “from start to finish”. This post is for quick notes on the dissection of this example driver, taken for learning purposes.&lt;/p&gt;
 
 &lt;h4 id=&quot;source-code&quot;&gt;Source Code&lt;/h4&gt;
 
@@ -1653,7 +1834,7 @@ Being Safe and Informed&lt;/p&gt;
 
 &lt;p&gt;Stack trace at driver entry:&lt;/p&gt;
 
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;2: kd&amp;gt; k
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;2: kd&amp;gt; k
  # Child-SP          RetAddr           Call Site
 00 ffffbe84`b6db7898 fffff800`3b235020 PriorityBooster!DriverEntry [C:\Users\finle\source\repos\PriorityBooster\PriorityBooster\Source.cpp @ 12] 
 01 ffffbe84`b6db78a0 fffff800`3e510c06 PriorityBooster!GsDriverEntry+0x20 [minkernel\tools\gs_support\kmodefastfail\gs_driverentry.c @ 47] 
@@ -1665,15 +1846,15 @@ Being Safe and Informed&lt;/p&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
 &lt;h3 id=&quot;gsdriverentry&quot;&gt;GsDriverEntry&lt;/h3&gt;
-&lt;p&gt;We can see that prior to the projects &lt;code class=&quot;highlighter-rouge&quot;&gt;DriverEntry&lt;/code&gt; function being called, &lt;code class=&quot;highlighter-rouge&quot;&gt;GsDriverEntry&lt;/code&gt; is invoked:&lt;/p&gt;
+&lt;p&gt;We can see that prior to the projects &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;DriverEntry&lt;/code&gt; function being called, &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;GsDriverEntry&lt;/code&gt; is invoked:&lt;/p&gt;
 
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;2: kd&amp;gt; x PriorityBooster!GsDriverEntry
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;2: kd&amp;gt; x PriorityBooster!GsDriverEntry
 fffff800`3b235000 PriorityBooster!GsDriverEntry (struct _DRIVER_OBJECT *, struct _UNICODE_STRING *)
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
 &lt;p&gt;And dissasembling this function shows:&lt;/p&gt;
 
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;2: kd&amp;gt; uf fffff800`3b235000
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;2: kd&amp;gt; uf fffff800`3b235000
 PriorityBooster!GsDriverEntry [minkernel\tools\gs_support\kmodefastfail\gs_driverentry.c @ 43]:
    43 fffff800`3b235000 48895c2408      mov     qword ptr [rsp+8],rbx
    43 fffff800`3b235005 57              push    rdi
@@ -1690,15 +1871,15 @@ PriorityBooster!GsDriverEntry [minkernel\tools\gs_support\kmodefastfail\gs_drive
    47 fffff800`3b23502a c3              ret
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-&lt;p&gt;We can see that this stub function &lt;code class=&quot;highlighter-rouge&quot;&gt;GsDriverEntry&lt;/code&gt;:&lt;/p&gt;
+&lt;p&gt;We can see that this stub function &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;GsDriverEntry&lt;/code&gt;:&lt;/p&gt;
 &lt;ul&gt;
   &lt;li&gt;accepts the same parameters as DriverEntry&lt;/li&gt;
   &lt;li&gt;initializes the security cookie&lt;/li&gt;
-  &lt;li&gt;calls the user-created &lt;code class=&quot;highlighter-rouge&quot;&gt;DriverEntry&lt;/code&gt; function.&lt;/li&gt;
+  &lt;li&gt;calls the user-created &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;DriverEntry&lt;/code&gt; function.&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;p&gt;Quickly, lets look at &lt;code class=&quot;highlighter-rouge&quot;&gt;__security_init_cookie&lt;/code&gt;:&lt;/p&gt;
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;PriorityBooster!__security_init_cookie [minkernel\tools\gs_support\kmodefastfail\gs_support.c @ 37]:
+&lt;p&gt;Quickly, lets look at &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;__security_init_cookie&lt;/code&gt;:&lt;/p&gt;
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;PriorityBooster!__security_init_cookie [minkernel\tools\gs_support\kmodefastfail\gs_support.c @ 37]:
 fffff800`3b23502c 488b05cddfffff  mov     rax,qword ptr [PriorityBooster!__security_cookie (fffff800`3b233000)]
 fffff800`3b235033 4885c0          test    rax,rax
 fffff800`3b235036 741a            je      PriorityBooster!__security_init_cookie+0x26 (fffff800`3b235052)
@@ -1712,21 +1893,21 @@ fffff800`3b23504a 488905b7dfffff  mov     qword ptr [PriorityBooster!__security_
 
 &lt;h3 id=&quot;ntioploaddriver&quot;&gt;nt!IopLoadDriver&lt;/h3&gt;
 
-&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;IopLoadDriver&lt;/code&gt; is an undocumented function in the family of Windows I/O Manager support functions.&lt;/p&gt;
+&lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;IopLoadDriver&lt;/code&gt; is an undocumented function in the family of Windows I/O Manager support functions.&lt;/p&gt;
 &lt;ul&gt;
   &lt;li&gt;A listing of these functions can be found here: &lt;a href=&quot;https://gist.github.com/joshfinley/8a6a0cb09af32507f3c6157c16f8e30b&quot;&gt;https://gist.github.com/joshfinley/8a6a0cb09af32507f3c6157c16f8e30b&lt;/a&gt;.&lt;/li&gt;
   &lt;li&gt;A listing of these prefixes can be found here: &lt;a href=&quot;https://gist.github.com/joshfinley/bc54df3c092e224ad08140cfd619fa2d&quot;&gt;https://gist.github.com/joshfinley/bc54df3c092e224ad08140cfd619fa2d&lt;/a&gt;.&lt;/li&gt;
-  &lt;li&gt;Finally, the fully dissasembly of &lt;code class=&quot;highlighter-rouge&quot;&gt;nt!IopLoadDriver&lt;/code&gt; can be found here: &lt;a href=&quot;https://gist.github.com/joshfinley/da2fd8039de1e97190f5ce2c9bd07bc4&quot;&gt;https://gist.github.com/joshfinley/da2fd8039de1e97190f5ce2c9bd07bc4&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;Finally, the fully dissasembly of &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;nt!IopLoadDriver&lt;/code&gt; can be found here: &lt;a href=&quot;https://gist.github.com/joshfinley/da2fd8039de1e97190f5ce2c9bd07bc4&quot;&gt;https://gist.github.com/joshfinley/da2fd8039de1e97190f5ce2c9bd07bc4&lt;/a&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;IopLoadDriver&lt;/code&gt; is used to call the driver entry function, as seen in the stack trace at the beginning of this post. It is used for &lt;code class=&quot;highlighter-rouge&quot;&gt;SERVICE_DEMAND&lt;/code&gt; driver entry. The corresponding function for boot loading drivers is &lt;code class=&quot;highlighter-rouge&quot;&gt;nt!IopInitializeBuiltInDriver&lt;/code&gt; (see &lt;a href=&quot;https://reverseengineering.stackexchange.com/a/2638&quot;&gt;https://reverseengineering.stackexchange.com/a/2638&lt;/a&gt;).&lt;/p&gt;
+&lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;IopLoadDriver&lt;/code&gt; is used to call the driver entry function, as seen in the stack trace at the beginning of this post. It is used for &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;SERVICE_DEMAND&lt;/code&gt; driver entry. The corresponding function for boot loading drivers is &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;nt!IopInitializeBuiltInDriver&lt;/code&gt; (see &lt;a href=&quot;https://reverseengineering.stackexchange.com/a/2638&quot;&gt;https://reverseengineering.stackexchange.com/a/2638&lt;/a&gt;).&lt;/p&gt;
 
 &lt;p&gt;From &lt;em&gt;Windows Internals&lt;/em&gt;:&lt;/p&gt;
 &lt;blockquote&gt;
   &lt;p&gt;When the I/O manager kernel subsystem loads device drivers that HKLM\SYSTEM\Current-ControlSet\Services specifies, the I/O manager executes the function IopLoadDriver.&lt;/p&gt;
 &lt;/blockquote&gt;
 
-&lt;p&gt;The function defintion for &lt;code class=&quot;highlighter-rouge&quot;&gt;IopLoadDriver&lt;/code&gt; looks something like this:&lt;/p&gt;
+&lt;p&gt;The function defintion for &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;IopLoadDriver&lt;/code&gt; looks something like this:&lt;/p&gt;
 &lt;div class=&quot;language-c++ highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;n&quot;&gt;NTSTATUS&lt;/span&gt;
 &lt;span class=&quot;n&quot;&gt;IopLoadDriver&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;
     &lt;span class=&quot;n&quot;&gt;IN&lt;/span&gt;  &lt;span class=&quot;n&quot;&gt;HANDLE&lt;/span&gt;      &lt;span class=&quot;n&quot;&gt;KeyHandle&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
@@ -1740,34 +1921,34 @@ fffff800`3b23504a 488905b7dfffff  mov     qword ptr [PriorityBooster!__security_
   &lt;li&gt;see &lt;a href=&quot;https://github.com/joshfinley/ntoskrnl/blob/master/Io/iomgr/internal.c&quot;&gt;https://github.com/joshfinley/ntoskrnl/blob/master/Io/iomgr/internal.c&lt;/a&gt; (forked from the &lt;a href=&quot;https://github.com/Zer0Mem0ry/ntoskrnl/&quot;&gt;Windows Research Kernel&lt;/a&gt;)&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;p&gt;In this case, the call to &lt;code class=&quot;highlighter-rouge&quot;&gt;IopLoadDriver&lt;/code&gt; comes from &lt;code class=&quot;highlighter-rouge&quot;&gt;IopLoadUnloadDriver&lt;/code&gt;. Here’s the source code from the React OS function: &lt;a href=&quot;https://doxygen.reactos.org/d9/d9f/ntoskrnl_2io_2iomgr_2driver_8c_source.html&quot;&gt;https://doxygen.reactos.org/d9/d9f/ntoskrnl_2io_2iomgr_2driver_8c_source.html&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;In this case, the call to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;IopLoadDriver&lt;/code&gt; comes from &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;IopLoadUnloadDriver&lt;/code&gt;. Here’s the source code from the React OS function: &lt;a href=&quot;https://doxygen.reactos.org/d9/d9f/ntoskrnl_2io_2iomgr_2driver_8c_source.html&quot;&gt;https://doxygen.reactos.org/d9/d9f/ntoskrnl_2io_2iomgr_2driver_8c_source.html&lt;/a&gt;.&lt;/p&gt;
 
 &lt;h2 id=&quot;2-driverobject&quot;&gt;2. DriverObject&lt;/h2&gt;
 
-&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;DriverObject&lt;/code&gt; is defined in &lt;code class=&quot;highlighter-rouge&quot;&gt;wdm.h&lt;/code&gt; as follows:&lt;/p&gt;
+&lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;DriverObject&lt;/code&gt; is defined in &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;wdm.h&lt;/code&gt; as follows:&lt;/p&gt;
 
-&lt;div class=&quot;language-c++ highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;typedef&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;_DRIVER_OBJECT&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+&lt;div class=&quot;language-c++ highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;typedef&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;_DRIVER_OBJECT&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
   &lt;span class=&quot;n&quot;&gt;CSHORT&lt;/span&gt;             &lt;span class=&quot;n&quot;&gt;Type&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
   &lt;span class=&quot;n&quot;&gt;CSHORT&lt;/span&gt;             &lt;span class=&quot;n&quot;&gt;Size&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
-  &lt;span class=&quot;n&quot;&gt;PDEVICE_OBJECT&lt;/span&gt;     &lt;span class=&quot;n&quot;&gt;DeviceObject&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;          &lt;span class=&quot;c1&quot;&gt;// pointer to device objects created by the driver
-&lt;/span&gt;  &lt;span class=&quot;n&quot;&gt;ULONG&lt;/span&gt;              &lt;span class=&quot;n&quot;&gt;Flags&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;                 
+  &lt;span class=&quot;n&quot;&gt;PDEVICE_OBJECT&lt;/span&gt;     &lt;span class=&quot;n&quot;&gt;DeviceObject&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;          &lt;span class=&quot;c1&quot;&gt;// pointer to device objects created by the driver&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;ULONG&lt;/span&gt;              &lt;span class=&quot;n&quot;&gt;Flags&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;                 
   &lt;span class=&quot;n&quot;&gt;PVOID&lt;/span&gt;              &lt;span class=&quot;n&quot;&gt;DriverStart&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;           
   &lt;span class=&quot;n&quot;&gt;ULONG&lt;/span&gt;              &lt;span class=&quot;n&quot;&gt;DriverSize&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;            
   &lt;span class=&quot;n&quot;&gt;PVOID&lt;/span&gt;              &lt;span class=&quot;n&quot;&gt;DriverSection&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;         
-  &lt;span class=&quot;n&quot;&gt;PDRIVER_EXTENSION&lt;/span&gt;  &lt;span class=&quot;n&quot;&gt;DriverExtension&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;       &lt;span class=&quot;c1&quot;&gt;// pointer to driver extension
-&lt;/span&gt;  &lt;span class=&quot;n&quot;&gt;UNICODE_STRING&lt;/span&gt;     &lt;span class=&quot;n&quot;&gt;DriverName&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;             
-  &lt;span class=&quot;n&quot;&gt;PUNICODE_STRING&lt;/span&gt;    &lt;span class=&quot;n&quot;&gt;HardwareDatabase&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;      &lt;span class=&quot;c1&quot;&gt;// pointer to the \Registry\Machine\Hardware path to the configuration information in the registry
-&lt;/span&gt;  &lt;span class=&quot;n&quot;&gt;PFAST_IO_DISPATCH&lt;/span&gt;  &lt;span class=&quot;n&quot;&gt;FastIoDispatch&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;        
-  &lt;span class=&quot;n&quot;&gt;PDRIVER_INITIALIZE&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;DriverInit&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;            &lt;span class=&quot;c1&quot;&gt;// entry point for DriverEntry, setup by I/O manager
-&lt;/span&gt;  &lt;span class=&quot;n&quot;&gt;PDRIVER_STARTIO&lt;/span&gt;    &lt;span class=&quot;n&quot;&gt;DriverStartIo&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;         
-  &lt;span class=&quot;n&quot;&gt;PDRIVER_UNLOAD&lt;/span&gt;     &lt;span class=&quot;n&quot;&gt;DriverUnload&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;          &lt;span class=&quot;c1&quot;&gt;// entry point for DriverUnload set by DriverEntry
-&lt;/span&gt;  &lt;span class=&quot;n&quot;&gt;PDRIVER_DISPATCH&lt;/span&gt;   &lt;span class=&quot;n&quot;&gt;MajorFunction&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;IRP_MJ_MAXIMUM_FUNCTION&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;    &lt;span class=&quot;c1&quot;&gt;// dispatch table consisting of an array of entry points for the drivers DispatchXxx routines
-&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;DRIVER_OBJECT&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PDRIVER_OBJECT&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;PDRIVER_EXTENSION&lt;/span&gt;  &lt;span class=&quot;n&quot;&gt;DriverExtension&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;       &lt;span class=&quot;c1&quot;&gt;// pointer to driver extension&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;UNICODE_STRING&lt;/span&gt;     &lt;span class=&quot;n&quot;&gt;DriverName&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;             
+  &lt;span class=&quot;n&quot;&gt;PUNICODE_STRING&lt;/span&gt;    &lt;span class=&quot;n&quot;&gt;HardwareDatabase&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;      &lt;span class=&quot;c1&quot;&gt;// pointer to the \Registry\Machine\Hardware path to the configuration information in the registry&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;PFAST_IO_DISPATCH&lt;/span&gt;  &lt;span class=&quot;n&quot;&gt;FastIoDispatch&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;        
+  &lt;span class=&quot;n&quot;&gt;PDRIVER_INITIALIZE&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;DriverInit&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;            &lt;span class=&quot;c1&quot;&gt;// entry point for DriverEntry, setup by I/O manager&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;PDRIVER_STARTIO&lt;/span&gt;    &lt;span class=&quot;n&quot;&gt;DriverStartIo&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;         
+  &lt;span class=&quot;n&quot;&gt;PDRIVER_UNLOAD&lt;/span&gt;     &lt;span class=&quot;n&quot;&gt;DriverUnload&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;          &lt;span class=&quot;c1&quot;&gt;// entry point for DriverUnload set by DriverEntry&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;PDRIVER_DISPATCH&lt;/span&gt;   &lt;span class=&quot;n&quot;&gt;MajorFunction&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;IRP_MJ_MAXIMUM_FUNCTION&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;    &lt;span class=&quot;c1&quot;&gt;// dispatch table consisting of an array of entry points for the drivers DispatchXxx routines&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;DRIVER_OBJECT&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PDRIVER_OBJECT&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
 &lt;p&gt;Examination of some of these types:&lt;/p&gt;
 
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;2: kd&amp;gt; dt _DRIVER_OBJECT
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;2: kd&amp;gt; dt _DRIVER_OBJECT
 PriorityBooser!_DRIVER_OBJECT
    +0x000 Type             : Int2B
    +0x002 Size             : Int2B
@@ -1786,7 +1967,7 @@ PriorityBooser!_DRIVER_OBJECT
    +0x070 MajorFunction    : [28] Ptr64     long 
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;2: kd&amp;gt; dt PDEVICE_OBJECT
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;2: kd&amp;gt; dt PDEVICE_OBJECT
 PriorityBooster!PDEVICE_OBJECT
 Ptr64    +0x000 Type             : Int2B
    +0x002 Size             : Uint2B
@@ -1878,18 +2059,18 @@ Ptr64  long (
 
 &lt;p&gt;The most relevant structures of these to the study at hand are:&lt;/p&gt;
 &lt;ul&gt;
-  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;PDEVICE_OBJECT DeviceObject&lt;/code&gt;&lt;/li&gt;
-  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;PDRIVER_DISPATCH MajorFunction&lt;/code&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;PDEVICE_OBJECT DeviceObject&lt;/code&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;PDRIVER_DISPATCH MajorFunction&lt;/code&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
-&lt;p&gt;First, lets look at &lt;code class=&quot;highlighter-rouge&quot;&gt;PDRIVER_DISPATCH MajorFunction&lt;/code&gt;:&lt;/p&gt;
-&lt;div class=&quot;language-c++ highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;// In PriorityBooster DriverEntry
-&lt;/span&gt;	&lt;span class=&quot;n&quot;&gt;DriverObject&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;DriverUnload&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;PriorityBoosterUnload&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;p&gt;First, lets look at &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;PDRIVER_DISPATCH MajorFunction&lt;/code&gt;:&lt;/p&gt;
+&lt;div class=&quot;language-c++ highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;// In PriorityBooster DriverEntry&lt;/span&gt;
+	&lt;span class=&quot;n&quot;&gt;DriverObject&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;DriverUnload&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;PriorityBoosterUnload&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
 	&lt;span class=&quot;n&quot;&gt;DriverObject&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;MajorFunction&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;IRP_MJ_CREATE&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;PriorityBoosterCreateClose&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
 	&lt;span class=&quot;n&quot;&gt;DriverObject&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;MajorFunction&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;IRP_MJ_CLOSE&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;PriorityBoosterCreateClose&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
 	&lt;span class=&quot;n&quot;&gt;DriverObject&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;MajorFunction&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;IRP_MJ_DEVICE_CONTROL&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;PriorityBoosterDeviceControl&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
-&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;2: kd&amp;gt; dt DriverObject MajorFunction
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;2: kd&amp;gt; dt DriverObject MajorFunction
 Local var @ 0xffffbe84b6db7918 Type _DRIVER_OBJECT*
 0xfffff800`3de3c7bd 
    +0x070 MajorFunction : [28] 0x61b8818b`48000000     long  +61b8818b48000000
@@ -1925,7 +2106,7 @@ Local var @ 0xffffbe84b6db7918 Type _DRIVER_OBJECT*
     [27]             : 0xc483480000009024 [Type: long (__cdecl*)(_DEVICE_OBJECT *,_IRP *)]
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
-&lt;p&gt;Each index, of course corresponds to an &lt;code class=&quot;highlighter-rouge&quot;&gt;IRP_MJ_&lt;/code&gt; code&lt;/p&gt;
+&lt;p&gt;Each index, of course corresponds to an &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;IRP_MJ_&lt;/code&gt; code&lt;/p&gt;
 
 &lt;h2 id=&quot;3-deviceobject&quot;&gt;3. DeviceObject&lt;/h2&gt;
 
@@ -1995,13 +2176,13 @@ typedef struct _DEVICE_OBJECT *PDEVICE_OBJECT;
   &lt;li&gt;Filter DO (Filder DO) - repesents a device to a filter driver&lt;/li&gt;
 &lt;/ol&gt;
 
-&lt;p&gt;One of the most important members of the &lt;code class=&quot;highlighter-rouge&quot;&gt;_DEVICE_OBJECT&lt;/code&gt; structure is the &lt;code class=&quot;highlighter-rouge&quot;&gt;Device Extension&lt;/code&gt;. It is driver defined and maintains the state of the driver, and stores important data, including resources allocated by the kernel and data for the drivers I/O operations.&lt;/p&gt;
+&lt;p&gt;One of the most important members of the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;_DEVICE_OBJECT&lt;/code&gt; structure is the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Device Extension&lt;/code&gt;. It is driver defined and maintains the state of the driver, and stores important data, including resources allocated by the kernel and data for the drivers I/O operations.&lt;/p&gt;
 
-&lt;p&gt;Memory allocation for this structure and the &lt;code class=&quot;highlighter-rouge&quot;&gt;Device Object&lt;/code&gt; itself are handled by the I/O manager. The memory resides in the nonpaged pool.&lt;/p&gt;
+&lt;p&gt;Memory allocation for this structure and the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Device Object&lt;/code&gt; itself are handled by the I/O manager. The memory resides in the nonpaged pool.&lt;/p&gt;
 
 &lt;p&gt;The KDPC memebr of DeviceObject is officially undocumented, but the structure definition can be found in the Windows Reserach Kernel. It looks like this:&lt;/p&gt;
 
-&lt;div class=&quot;language-c++ highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;typedef&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;_KDPC&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+&lt;div class=&quot;language-c++ highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;typedef&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;_KDPC&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
     &lt;span class=&quot;n&quot;&gt;UCHAR&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Type&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
     &lt;span class=&quot;n&quot;&gt;UCHAR&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Importance&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
     &lt;span class=&quot;n&quot;&gt;UCHAR&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Number&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
@@ -2020,204 +2201,23 @@ typedef struct _DEVICE_OBJECT *PDEVICE_OBJECT;
 &lt;div class=&quot;language-c++ highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;	&lt;span class=&quot;n&quot;&gt;PDEVICE_OBJECT&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;DeviceObject&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
 	&lt;span class=&quot;n&quot;&gt;NTSTATUS&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;status&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;IoCreateDevice&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;
 		&lt;span class=&quot;n&quot;&gt;DriverObject&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
-		&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;                      &lt;span class=&quot;c1&quot;&gt;// Automatically set by I/O manager
-&lt;/span&gt;		&lt;span class=&quot;o&quot;&gt;&amp;amp;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;devName&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;               
-		&lt;span class=&quot;n&quot;&gt;FILE_DEVICE_UNKNOWN&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;    &lt;span class=&quot;c1&quot;&gt;// 0x00000022
-&lt;/span&gt;		&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;                      &lt;span class=&quot;c1&quot;&gt;// Characteristics, to be set by I/O manager
-&lt;/span&gt;		&lt;span class=&quot;n&quot;&gt;FALSE&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;                  &lt;span class=&quot;c1&quot;&gt;// Not exclusive
-&lt;/span&gt;		&lt;span class=&quot;o&quot;&gt;&amp;amp;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;DeviceObject&lt;/span&gt;
+		&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;                      &lt;span class=&quot;c1&quot;&gt;// Automatically set by I/O manager&lt;/span&gt;
+		&lt;span class=&quot;o&quot;&gt;&amp;amp;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;devName&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;               
+		&lt;span class=&quot;n&quot;&gt;FILE_DEVICE_UNKNOWN&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;    &lt;span class=&quot;c1&quot;&gt;// 0x00000022&lt;/span&gt;
+		&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;                      &lt;span class=&quot;c1&quot;&gt;// Characteristics, to be set by I/O manager&lt;/span&gt;
+		&lt;span class=&quot;n&quot;&gt;FALSE&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;                  &lt;span class=&quot;c1&quot;&gt;// Not exclusive&lt;/span&gt;
+		&lt;span class=&quot;o&quot;&gt;&amp;amp;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;DeviceObject&lt;/span&gt;
 	&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
 &lt;h2 id=&quot;references&quot;&gt;References&lt;/h2&gt;
-&lt;p&gt;[1] &lt;a href=&quot;https://leanpub.com/windowskernelprogramming&quot;&gt;https://leanpub.com/windowskernelprogramming&lt;/a&gt;&lt;/p&gt;</content><author><name>Josh Finley</name></author><summary type="html">Chapter 4 of Kernel Programming for Windows walks through the process of developing a driver “from start to finish”. This post is for quick notes on the dissection of this example driver, taken for learning purposes.</summary></entry><entry><title type="html">WinDbg Cheatsheet</title><link href="http://localhost:4000/windbg-cheatsheet/" rel="alternate" type="text/html" title="WinDbg Cheatsheet" /><published>2020-03-16T00:05:28-05:00</published><updated>2020-03-16T00:05:28-05:00</updated><id>http://localhost:4000/windbg-cheatsheet</id><content type="html" xml:base="http://localhost:4000/windbg-cheatsheet/">&lt;h2 id=&quot;references&quot;&gt;References&lt;/h2&gt;
-
-&lt;ul&gt;
-  &lt;li&gt;https://docs.microsoft.com/en-us/windows-hardware/drivers/debugger/d–da–db–dc–dd–dd–df–dp–dq–du–dw–dw–dyb–dyd–display-memor&lt;/li&gt;
-  &lt;li&gt;https://leanpub.com/windowskernelprogramming&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;h2 id=&quot;commands&quot;&gt;Commands&lt;/h2&gt;
-
-&lt;table&gt;
-  &lt;thead&gt;
-    &lt;tr&gt;
-      &lt;th&gt;Command&lt;/th&gt;
-      &lt;th&gt;Action&lt;/th&gt;
-    &lt;/tr&gt;
-  &lt;/thead&gt;
-  &lt;tbody&gt;
-    &lt;tr&gt;
-      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;~&lt;/code&gt;&lt;/td&gt;
-      &lt;td&gt;Show threads for process&lt;/td&gt;
-    &lt;/tr&gt;
-    &lt;tr&gt;
-      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;k&lt;/code&gt;&lt;/td&gt;
-      &lt;td&gt;Show stack trace of current thread&lt;/td&gt;
-    &lt;/tr&gt;
-    &lt;tr&gt;
-      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;~ns&lt;/code&gt;&lt;/td&gt;
-      &lt;td&gt;Switch thread, eg. &lt;code class=&quot;highlighter-rouge&quot;&gt;~0s&lt;/code&gt;&lt;/td&gt;
-    &lt;/tr&gt;
-    &lt;tr&gt;
-      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;~nk&lt;/code&gt;&lt;/td&gt;
-      &lt;td&gt;Get call stack of thread without switching, e.g. &lt;code class=&quot;highlighter-rouge&quot;&gt;~1k&lt;/code&gt;&lt;/td&gt;
-    &lt;/tr&gt;
-    &lt;tr&gt;
-      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;? &amp;lt;Hex&amp;gt;&lt;/code&gt;&lt;/td&gt;
-      &lt;td&gt;Convert hex number to decimal&lt;/td&gt;
-    &lt;/tr&gt;
-    &lt;tr&gt;
-      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;? &amp;lt;0nDec&amp;gt;&lt;/code&gt;&lt;/td&gt;
-      &lt;td&gt;Covnert dec number to hex&lt;/td&gt;
-    &lt;/tr&gt;
-    &lt;tr&gt;
-      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;!teb &amp;lt;addr&amp;gt;&lt;/code&gt;&lt;/td&gt;
-      &lt;td&gt;Examine TEB of a thread. Addr gets current thread&lt;/td&gt;
-    &lt;/tr&gt;
-    &lt;tr&gt;
-      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;!peb&lt;/code&gt;&lt;/td&gt;
-      &lt;td&gt;View the PEB&lt;/td&gt;
-    &lt;/tr&gt;
-    &lt;tr&gt;
-      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;dt &amp;lt;structure&amp;gt;&lt;/code&gt;&lt;/td&gt;
-      &lt;td&gt;Dump the structure info, e.g. &lt;code class=&quot;highlighter-rouge&quot;&gt;dt ntdll!_teb&lt;/code&gt;&lt;/td&gt;
-    &lt;/tr&gt;
-    &lt;tr&gt;
-      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;bp &amp;lt;function/loc&amp;gt;&lt;/code&gt;&lt;/td&gt;
-      &lt;td&gt;Set breakpoint at location&lt;/td&gt;
-    &lt;/tr&gt;
-    &lt;tr&gt;
-      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;bl&lt;/code&gt;&lt;/td&gt;
-      &lt;td&gt;List breakpoints&lt;/td&gt;
-    &lt;/tr&gt;
-    &lt;tr&gt;
-      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;r &amp;lt;register&amp;gt;&lt;/code&gt;&lt;/td&gt;
-      &lt;td&gt;Display register contents, e.g. &lt;code class=&quot;highlighter-rouge&quot;&gt;r&lt;/code&gt; displays all registers&lt;/td&gt;
-    &lt;/tr&gt;
-    &lt;tr&gt;
-      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;db &amp;lt;addr&lt;/code&gt;&lt;/td&gt;
-      &lt;td&gt;display bytes of memory&lt;/td&gt;
-    &lt;/tr&gt;
-    &lt;tr&gt;
-      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;u&lt;/code&gt;&lt;/td&gt;
-      &lt;td&gt;List the next 8 instructions to be executed&lt;/td&gt;
-    &lt;/tr&gt;
-    &lt;tr&gt;
-      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;p&lt;/code&gt;&lt;/td&gt;
-      &lt;td&gt;Step over&lt;/td&gt;
-    &lt;/tr&gt;
-    &lt;tr&gt;
-      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;t&lt;/code&gt;&lt;/td&gt;
-      &lt;td&gt;Step into&lt;/td&gt;
-    &lt;/tr&gt;
-    &lt;tr&gt;
-      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;!Process 0 0&lt;/code&gt;&lt;/td&gt;
-      &lt;td&gt;Display basic information for all processes on system&lt;/td&gt;
-    &lt;/tr&gt;
-    &lt;tr&gt;
-      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;!Process 0 0 &amp;lt;exe&amp;gt;&lt;/code&gt;&lt;/td&gt;
-      &lt;td&gt;List all process running an executable&lt;/td&gt;
-    &lt;/tr&gt;
-    &lt;tr&gt;
-      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;!process &amp;lt;address&amp;gt; !&lt;/code&gt;&lt;/td&gt;
-      &lt;td&gt;Get detailed info about a process&lt;/td&gt;
-    &lt;/tr&gt;
-    &lt;tr&gt;
-      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;ctrl+break&lt;/code&gt;&lt;/td&gt;
-      &lt;td&gt;Stop long running WinDbg command&lt;/td&gt;
-    &lt;/tr&gt;
-    &lt;tr&gt;
-      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;sxe ld somethin.dll&lt;/code&gt;&lt;/td&gt;
-      &lt;td&gt;Break on module load&lt;/td&gt;
-    &lt;/tr&gt;
-  &lt;/tbody&gt;
-&lt;/table&gt;
-
-&lt;h2 id=&quot;reading-output&quot;&gt;Reading Output&lt;/h2&gt;
-&lt;h3 id=&quot;threads&quot;&gt;Threads&lt;/h3&gt;
-
-&lt;table&gt;
-  &lt;thead&gt;
-    &lt;tr&gt;
-      &lt;th&gt;Output Item&lt;/th&gt;
-      &lt;th&gt;Meaning&lt;/th&gt;
-    &lt;/tr&gt;
-  &lt;/thead&gt;
-  &lt;tbody&gt;
-    &lt;tr&gt;
-      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;.&lt;/code&gt; before thread data&lt;/td&gt;
-      &lt;td&gt;Current thread&lt;/td&gt;
-    &lt;/tr&gt;
-    &lt;tr&gt;
-      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;#&lt;/code&gt; before thread data&lt;/td&gt;
-      &lt;td&gt;Indicates that this thread caused the last breakpoing&lt;/td&gt;
-    &lt;/tr&gt;
-    &lt;tr&gt;
-      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;_structurename&lt;/code&gt;&lt;/td&gt;
-      &lt;td&gt;Structures are prefixed with &lt;code class=&quot;highlighter-rouge&quot;&gt;_&lt;/code&gt;&lt;/td&gt;
-    &lt;/tr&gt;
-  &lt;/tbody&gt;
-&lt;/table&gt;</content><author><name>Josh Finley</name></author><summary type="html">References</summary></entry><entry><title type="html">Notes on IRQL and Deferred Procedure Calls</title><link href="http://localhost:4000/irql-dpc/" rel="alternate" type="text/html" title="Notes on IRQL and Deferred Procedure Calls" /><published>2020-03-16T00:05:28-05:00</published><updated>2020-03-16T00:05:28-05:00</updated><id>http://localhost:4000/irql-dpc</id><content type="html" xml:base="http://localhost:4000/irql-dpc/">&lt;h2 id=&quot;interrupt-request-level&quot;&gt;Interrupt Request Level&lt;/h2&gt;
-
-&lt;ul&gt;
-  &lt;li&gt;every hardware interrupt is associated with a priority: &lt;em&gt;Interrupt Request Level (IRQL)&lt;/em&gt;&lt;/li&gt;
-  &lt;li&gt;The HAL determines a hardware interrupts IRQL&lt;/li&gt;
-  &lt;li&gt;Code with highest IRQL gets executed first&lt;/li&gt;
-  &lt;li&gt;Process:
-    &lt;ul&gt;
-      &lt;li&gt;IRQL triggers CPU to save its context in the current threads kernel stack and raise its IRQL to that of the request, and then executes the corresponding Interrupt Service Routine&lt;/li&gt;
-    &lt;/ul&gt;
-  &lt;/li&gt;
-  &lt;li&gt;Important IRQLs:
-    &lt;ul&gt;
-      &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;PASSIVE LEVEL&lt;/code&gt;: normal IRQL. Thread scheduling normal&lt;/li&gt;
-      &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;APC_LEVEL&lt;/code&gt;: for specific kernel APCs. Thread scheduling normal&lt;/li&gt;
-      &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;DISPATCH_LEVEL&lt;/code&gt;: this CPU cannot be woken by thread scheduler, no access to page memory allowed, cannot wait on kernel objects&lt;/li&gt;
-      &lt;li&gt;Device IRQL: Like &lt;code class=&quot;highlighter-rouge&quot;&gt;DISPATCH_LEVEL&lt;/code&gt; but with range of levels (3-11 on x64).&lt;/li&gt;
-      &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;HIGH_LEVEL&lt;/code&gt;: Highest level, masks all other interrupts. value is 15 on x64&lt;/li&gt;
-    &lt;/ul&gt;
-  &lt;/li&gt;
-  &lt;li&gt;If IRQL 2 or higher:
-    &lt;ul&gt;
-      &lt;li&gt;Must access non-paged pool. Access to paged or user-supplied buffers is unsafe&lt;/li&gt;
-      &lt;li&gt;Crash occurs if a dispatcher kernel object is awaited (unless timeout is 0)&lt;/li&gt;
-    &lt;/ul&gt;
-  &lt;/li&gt;
-  &lt;li&gt;Thread scheduler runs at IRQL 2. Anything higher than that has no ability to switch contexts&lt;/li&gt;
-  &lt;li&gt;IRQL can only be changed in kernel mode. Use &lt;code class=&quot;highlighter-rouge&quot;&gt;KeRaiseIrql&lt;/code&gt; and &lt;code class=&quot;highlighter-rouge&quot;&gt;KeLowerIrql&lt;/code&gt;&lt;/li&gt;
-  &lt;li&gt;Always verify that the IRQL has been raised after attempting to raise it&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;h2 id=&quot;deferred-procedure-calls&quot;&gt;Deferred Procedure Calls&lt;/h2&gt;
-&lt;ul&gt;
-  &lt;li&gt;Cause a PC to wait while it is servicing a request for data from a peripheral device.&lt;/li&gt;
-  &lt;li&gt;Steps:
-    &lt;ul&gt;
-      &lt;li&gt;Data from hardware device is requested by the OS&lt;/li&gt;
-      &lt;li&gt;Interrupt Service Routine (ISR) issued&lt;/li&gt;
-      &lt;li&gt;If device cannot immediately service the request, DPC is issued&lt;/li&gt;
-      &lt;li&gt;Everything else wiats while the request for data is fulfilled.&lt;/li&gt;
-    &lt;/ul&gt;
-  &lt;/li&gt;
-  &lt;li&gt;DPCs are associated with a system-defined DPC object&lt;/li&gt;
-  &lt;li&gt;One DPC object is supplied for each device object&lt;/li&gt;
-  &lt;li&gt;Drivers can have more than one DPC object&lt;/li&gt;
-  &lt;li&gt;DPC structure is undocumented. &lt;a href=&quot;https://github.com/joshfinley/ntoskrnl/blob/master/Include/ntosdef.h&quot;&gt;see the definition for KDPC&lt;/a&gt;&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;h2 id=&quot;references&quot;&gt;References&lt;/h2&gt;
-
-&lt;ul&gt;
-  &lt;li&gt;https://leanpub.com/windowskernelprogramming&lt;/li&gt;
-  &lt;li&gt;https://helpdesk.flexradio.com/hc/en-us/articles/202118398-What-are-DPCs-and-why-do-they-matter-&lt;/li&gt;
-&lt;/ul&gt;</content><author><name>Josh Finley</name></author><summary type="html">Interrupt Request Level</summary></entry><entry><title type="html">Memorizing Basic Windows Details</title><link href="http://localhost:4000/windows-basics/" rel="alternate" type="text/html" title="Memorizing Basic Windows Details" /><published>2020-03-13T00:05:28-05:00</published><updated>2020-03-13T00:05:28-05:00</updated><id>http://localhost:4000/windows-basics</id><content type="html" xml:base="http://localhost:4000/windows-basics/">&lt;p&gt;As I’ve been working my Pavel Yosifovich’s &lt;em&gt;Kernel Programming for Windows&lt;/em&gt;, I’ve found that theres a few basic details of the Windows operating system that I have yet to commit to muscle-memory. This page is just some simple notes from the book to maybe help with retention. Items marked with a (?) are those that I feel the need to learn more about.&lt;/p&gt;
+&lt;p&gt;[1] &lt;a href=&quot;https://leanpub.com/windowskernelprogramming&quot;&gt;https://leanpub.com/windowskernelprogramming&lt;/a&gt;&lt;/p&gt;</content><author><name>Josh Finley</name></author><summary type="html">Chapter 4 of Kernel Programming for Windows walks through the process of developing a driver “from start to finish”. This post is for quick notes on the dissection of this example driver, taken for learning purposes.</summary></entry><entry><title type="html">Memorizing Basic Windows Details</title><link href="http://localhost:4000/windows-basics/" rel="alternate" type="text/html" title="Memorizing Basic Windows Details" /><published>2020-03-13T00:05:28-05:00</published><updated>2020-03-13T00:05:28-05:00</updated><id>http://localhost:4000/windows-basics</id><content type="html" xml:base="http://localhost:4000/windows-basics/">&lt;p&gt;As I’ve been working my Pavel Yosifovich’s &lt;em&gt;Kernel Programming for Windows&lt;/em&gt;, I’ve found that theres a few basic details of the Windows operating system that I have yet to commit to muscle-memory. This page is just some simple notes from the book to maybe help with retention. Items marked with a (?) are those that I feel the need to learn more about.&lt;/p&gt;
 
 &lt;h2 id=&quot;virtual-memory&quot;&gt;Virtual Memory&lt;/h2&gt;
 
 &lt;ul&gt;
   &lt;li&gt;default 32 bit address space for processes is 2 GB&lt;/li&gt;
-  &lt;li&gt;specifying the &lt;code class=&quot;highlighter-rouge&quot;&gt;LARGEADDRESSAWARE&lt;/code&gt; flag in the PE header allows the address space size to be increased to a max of 3 GB. Binary must have been linked with LARGEADDRESSAWARE linker flag. This brings me back to the days of modding &lt;em&gt;Fallout: New Vegas&lt;/em&gt; which was wonderful but limited severely by 32 bit memory requirements. There was a popular mod which I think did exactly this and was able to extend the AS to 4 GB.&lt;/li&gt;
+  &lt;li&gt;specifying the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;LARGEADDRESSAWARE&lt;/code&gt; flag in the PE header allows the address space size to be increased to a max of 3 GB. Binary must have been linked with LARGEADDRESSAWARE linker flag. This brings me back to the days of modding &lt;em&gt;Fallout: New Vegas&lt;/em&gt; which was wonderful but limited severely by 32 bit memory requirements. There was a popular mod which I think did exactly this and was able to extend the AS to 4 GB.&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;h2 id=&quot;page-states&quot;&gt;Page States&lt;/h2&gt;
@@ -2274,7 +2274,7 @@ typedef struct _DEVICE_OBJECT *PDEVICE_OBJECT;
   &lt;li&gt;user mode thread stack:
     &lt;ul&gt;
       &lt;li&gt;starts with a small amount of memory committed, the remaining being reserved&lt;/li&gt;
-      &lt;li&gt;the next page after the initially commited memory is marked with a special protection &lt;code class=&quot;highlighter-rouge&quot;&gt;PAGE_GAURD&lt;/code&gt; and is called the Gaurd Page (?)(marked where?)&lt;/li&gt;
+      &lt;li&gt;the next page after the initially commited memory is marked with a special protection &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;PAGE_GAURD&lt;/code&gt; and is called the Gaurd Page (?)(marked where?)&lt;/li&gt;
       &lt;li&gt;once the gaurd page is written to, an exception is thrown to be handled by the memory manager, who removes the gaurd and commits the memory&lt;/li&gt;
     &lt;/ul&gt;
   &lt;/li&gt;
@@ -2283,7 +2283,7 @@ typedef struct _DEVICE_OBJECT *PDEVICE_OBJECT;
 &lt;h2 id=&quot;system-services--system-calls&quot;&gt;System Services \ System Calls&lt;/h2&gt;
 
 &lt;ul&gt;
-  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;ntdll.dll&lt;/code&gt; is also known as the &lt;code class=&quot;highlighter-rouge&quot;&gt;Native API&lt;/code&gt;. Didn’t know that.&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ntdll.dll&lt;/code&gt; is also known as the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Native API&lt;/code&gt;. Didn’t know that.&lt;/li&gt;
   &lt;li&gt;transition to kernel mode: 64 bit = syscall, 32 bit = sysenter&lt;/li&gt;
   &lt;li&gt;following the transition, the dispatcher routine indexes into the SSDT to jump to the actual system call&lt;/li&gt;
 &lt;/ul&gt;
@@ -2295,10 +2295,10 @@ typedef struct _DEVICE_OBJECT *PDEVICE_OBJECT;
   &lt;li&gt;executive is the larger upper layer of ntoskrnl.exe, and the kernel itself is the lower layer.&lt;/li&gt;
   &lt;li&gt;kernel layer implements thread scheduling, interrupt, and exception dispatching&lt;/li&gt;
   &lt;li&gt;kernel layer implements kernel primitives (?)(what are some other ‘primitives’)&lt;/li&gt;
-  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;win32k.sys&lt;/code&gt; is responsible for much of the graphics capabilities of the operating system (?)(was it always in the kernel?)&lt;/li&gt;
-  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;HAL&lt;/code&gt; provides abstractions to make dealing with physical devices easier&lt;/li&gt;
-  &lt;li&gt;System Processes include &lt;code class=&quot;highlighter-rouge&quot;&gt;smss.exe, lsass.exe, winlogon.exe, services.exe&lt;/code&gt;&lt;/li&gt;
-  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;csrss.exe&lt;/code&gt; is a helper to the kernel for managing processes. One instance runs per session. Manager the windows subsystem&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;win32k.sys&lt;/code&gt; is responsible for much of the graphics capabilities of the operating system (?)(was it always in the kernel?)&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;HAL&lt;/code&gt; provides abstractions to make dealing with physical devices easier&lt;/li&gt;
+  &lt;li&gt;System Processes include &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;smss.exe, lsass.exe, winlogon.exe, services.exe&lt;/code&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;csrss.exe&lt;/code&gt; is a helper to the kernel for managing processes. One instance runs per session. Manager the windows subsystem&lt;/li&gt;
   &lt;li&gt;VBS (virtualization based security) puts the actual machine in a Hyper-V virtual machine. Whoa.&lt;/li&gt;
 &lt;/ul&gt;
 
@@ -2308,21 +2308,21 @@ typedef struct _DEVICE_OBJECT *PDEVICE_OBJECT;
   &lt;li&gt;Objects, managed by the Object Manager, count their references and will not be allowed to be destroyed until all references are released&lt;/li&gt;
   &lt;li&gt;Instances of these are data structures&lt;/li&gt;
   &lt;li&gt;Objects reside in system space&lt;/li&gt;
-  &lt;li&gt;User mode must access these indirectly through &lt;code class=&quot;highlighter-rouge&quot;&gt;handles&lt;/code&gt;.&lt;/li&gt;
+  &lt;li&gt;User mode must access these indirectly through &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;handles&lt;/code&gt;.&lt;/li&gt;
   &lt;li&gt;Handles are indexes into tables maintained by processes.&lt;/li&gt;
   &lt;li&gt;the indexes point logically to the kernel object in system space&lt;/li&gt;
-  &lt;li&gt;drivers turn handles into pointers using &lt;code class=&quot;highlighter-rouge&quot;&gt;ObReferenceObjectByHandle&lt;/code&gt; function&lt;/li&gt;
-  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;0&lt;/code&gt; is never a valid handle&lt;/li&gt;
-  &lt;li&gt;handles are in increments of &lt;code class=&quot;highlighter-rouge&quot;&gt;4&lt;/code&gt;.&lt;/li&gt;
-  &lt;li&gt;resource leaks are prevented by calling &lt;code class=&quot;highlighter-rouge&quot;&gt;ObDereferenceObject&lt;/code&gt;&lt;/li&gt;
+  &lt;li&gt;drivers turn handles into pointers using &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ObReferenceObjectByHandle&lt;/code&gt; function&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;0&lt;/code&gt; is never a valid handle&lt;/li&gt;
+  &lt;li&gt;handles are in increments of &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;4&lt;/code&gt;.&lt;/li&gt;
+  &lt;li&gt;resource leaks are prevented by calling &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ObDereferenceObject&lt;/code&gt;&lt;/li&gt;
   &lt;li&gt;the WinObj sysinternals program interfaces with the Object Manager&lt;/li&gt;
   &lt;li&gt;each object points to an object type&lt;/li&gt;
-  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;Create&lt;/code&gt; functions called with a name will either actually create the object or open an existing one if the name exists. This can be checked for by using &lt;code class=&quot;highlighter-rouge&quot;&gt;GetLastError&lt;/code&gt;and seeing if it returns &lt;code class=&quot;highlighter-rouge&quot;&gt;ERROR_ALREADY_EXISTS&lt;/code&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Create&lt;/code&gt; functions called with a name will either actually create the object or open an existing one if the name exists. This can be checked for by using &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;GetLastError&lt;/code&gt;and seeing if it returns &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ERROR_ALREADY_EXISTS&lt;/code&gt;&lt;/li&gt;
   &lt;li&gt;names for objects are prepended with various strings&lt;/li&gt;
-  &lt;li&gt;object names are session-relative. to share across sessions, it can be created in session 0 by prepending the object name with &lt;code class=&quot;highlighter-rouge&quot;&gt;Global\&lt;/code&gt;&lt;/li&gt;
+  &lt;li&gt;object names are session-relative. to share across sessions, it can be created in session 0 by prepending the object name with &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Global\&lt;/code&gt;&lt;/li&gt;
   &lt;li&gt;every process has a private handle table to kernel objects&lt;/li&gt;
   &lt;li&gt;access masks define what operations are allowed to be performed on a handle. Access handles with the proper access mask&lt;/li&gt;
-  &lt;li&gt;to get the true number of references to an object, use kd’s &lt;code class=&quot;highlighter-rouge&quot;&gt;trueref&lt;/code&gt; command. E.g. &lt;code class=&quot;highlighter-rouge&quot;&gt;trueref &amp;lt;objaddr&amp;gt;&lt;/code&gt;&lt;/li&gt;
+  &lt;li&gt;to get the true number of references to an object, use kd’s &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;trueref&lt;/code&gt; command. E.g. &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;trueref &amp;lt;objaddr&amp;gt;&lt;/code&gt;&lt;/li&gt;
 &lt;/ul&gt;
 
 &lt;h2 id=&quot;additional-reading&quot;&gt;Additional Reading&lt;/h2&gt;
@@ -2330,19 +2330,19 @@ typedef struct _DEVICE_OBJECT *PDEVICE_OBJECT;
 &lt;ul&gt;
   &lt;li&gt;https://en.wikipedia.org/wiki/Object_Manager_(Windows)&lt;/li&gt;
   &lt;li&gt;https://docs.microsoft.com/en-us/windows/win32/secauthz/access-rights-and-access-masks&lt;/li&gt;
-&lt;/ul&gt;</content><author><name>Josh Finley</name></author><summary type="html">As I’ve been working my Pavel Yosifovich’s Kernel Programming for Windows, I’ve found that theres a few basic details of the Windows operating system that I have yet to commit to muscle-memory. This page is just some simple notes from the book to maybe help with retention. Items marked with a (?) are those that I feel the need to learn more about.</summary></entry><entry><title type="html">Fixing InfinityHook with ByePg</title><link href="http://localhost:4000/infinityhook-byepg/" rel="alternate" type="text/html" title="Fixing InfinityHook with ByePg" /><published>2020-01-22T00:00:00-06:00</published><updated>2020-01-22T00:00:00-06:00</updated><id>http://localhost:4000/infinityhook-byepg</id><content type="html" xml:base="http://localhost:4000/infinityhook-byepg/">&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;git clone https://github.com/everdox/infinityhook
+&lt;/ul&gt;</content><author><name>Josh Finley</name></author><summary type="html">As I’ve been working my Pavel Yosifovich’s Kernel Programming for Windows, I’ve found that theres a few basic details of the Windows operating system that I have yet to commit to muscle-memory. This page is just some simple notes from the book to maybe help with retention. Items marked with a (?) are those that I feel the need to learn more about.</summary></entry><entry><title type="html">Fixing InfinityHook with ByePg</title><link href="http://localhost:4000/infinityhook-byepg/" rel="alternate" type="text/html" title="Fixing InfinityHook with ByePg" /><published>2020-01-22T00:00:00-06:00</published><updated>2020-01-22T00:00:00-06:00</updated><id>http://localhost:4000/infinityhook-byepg</id><content type="html" xml:base="http://localhost:4000/infinityhook-byepg/">&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;git clone https://github.com/everdox/infinityhook
 git clone https://github.com/can1357/ByePg.git
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
 &lt;ul&gt;
   &lt;li&gt;
-    &lt;p&gt;Open both in Visual Studio, build ByePg and the InfinityHookFix projects, and add the output and source directories from ByePg and the InfinityHook fix respectively to  &lt;code class=&quot;highlighter-rouge&quot;&gt;Additional Include Directories&lt;/code&gt; under &lt;code class=&quot;highlighter-rouge&quot;&gt;libinfityhook-&amp;gt;properies-&amp;gt;C/C++-&amp;gt;General&lt;/code&gt; and add the &lt;code class=&quot;highlighter-rouge&quot;&gt;Output\InfinityHookFix.lib&lt;/code&gt; and &lt;code class=&quot;highlighter-rouge&quot;&gt;Output\ByePgLib.lib&lt;/code&gt; to the linker dependencies for &lt;code class=&quot;highlighter-rouge&quot;&gt;kinfinityhook&lt;/code&gt;.&lt;/p&gt;
+    &lt;p&gt;Open both in Visual Studio, build ByePg and the InfinityHookFix projects, and add the output and source directories from ByePg and the InfinityHook fix respectively to  &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Additional Include Directories&lt;/code&gt; under &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;libinfityhook-&amp;gt;properies-&amp;gt;C/C++-&amp;gt;General&lt;/code&gt; and add the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Output\InfinityHookFix.lib&lt;/code&gt; and &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Output\ByePgLib.lib&lt;/code&gt; to the linker dependencies for &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;kinfinityhook&lt;/code&gt;.&lt;/p&gt;
   &lt;/li&gt;
   &lt;li&gt;
-    &lt;p&gt;Add &lt;code class=&quot;highlighter-rouge&quot;&gt;#include &quot;IhFix.h&quot;&lt;/code&gt; to &lt;code class=&quot;highlighter-rouge&quot;&gt;libinfinityhook\infinityhook.cpp&lt;/code&gt;: &lt;img src=&quot;/assets/IhFix-include.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+    &lt;p&gt;Add &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;#include &quot;IhFix.h&quot;&lt;/code&gt; to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;libinfinityhook\infinityhook.cpp&lt;/code&gt;: &lt;img src=&quot;/assets/IhFix-include.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
   &lt;/li&gt;
   &lt;li&gt;
-    &lt;p&gt;Call the &lt;code class=&quot;highlighter-rouge&quot;&gt;FixInfinityHook&lt;/code&gt; function:&lt;/p&gt;
+    &lt;p&gt;Call the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;FixInfinityHook&lt;/code&gt; function:&lt;/p&gt;
   &lt;/li&gt;
 &lt;/ul&gt;
 
