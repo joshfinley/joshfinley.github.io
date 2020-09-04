@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Notes on SQL injection"
-description: Common techniques
+description: Personal notes on some SQL injection techniques
 series: application_security
 titleImage:
     file: 'title.png'

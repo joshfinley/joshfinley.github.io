@@ -2,6 +2,7 @@
 layout: post
 title:  "Memorizing Basic Windows Details"
 date:   2020-03-13 00:05:28 -0500
+description: Notes on fundamental windows concepts for reference and memorization
 series: windows_internals
 titleImage:
     file: 'title.png'

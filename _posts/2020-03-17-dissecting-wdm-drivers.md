@@ -2,6 +2,7 @@
 layout: post
 title:  "Dissecting a Simple WDM Driver"
 date:   2020-03-16 00:05:28 -0500
+description: Picking apart an example driver made with WDM
 series: windows_internals
 titleImage:
     file: 'title.png'
