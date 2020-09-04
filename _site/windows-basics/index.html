@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Memorizing Basic Windows Details – Notebook</title>
+
+        <meta charset="utf-8" />
+    <meta content='text/html; charset=utf-8' http-equiv='Content-Type'>
+    <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0'>
+
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:creator" content="@mattbierner">
+    <meta name="author" content="Josh Finley" />
+
+
+    <meta property="og:title" content="Memorizing Basic Windows Details" />
+    <meta property="twitter:title" content="Memorizing Basic Windows Details" />
+
+
+
+    <meta name="description" content="As I’ve been working my Pavel Yosifovich’s Kernel Programming for Windows, I’ve found that theres a few basic details of the Windows operating system that I have yet to commit to muscle-memory. This page is just some simple notes from the book to maybe help with retention. Items marked with a (?) are those that I feel the need to learn more about.
+
+" />
+    <meta property="og:description" content="As I’ve been working my Pavel Yosifovich’s Kernel Programming for Windows, I’ve found that theres a few basic details of the Windows operating system that I have yet to commit to muscle-memory. This page is just some simple notes from the book to maybe help with retention. Items marked with a (?) are those that I feel the need to learn more about.
+
+" />
+    <meta name="twitter:description" content="As I’ve been working my Pavel Yosifovich’s Kernel Programming for Windows, I’ve found that theres a few basic details of the Windows operating system that I have yet to commit to muscle-memory. This page is just some simple notes from the book to maybe help with retention. Items marked with a (?) are those that I feel the need to learn more about.
+
+">
+
+
+
+    
+    <meta name="twitter:image" content="http://localhost:4000/content/2020-03-13-windows-basics/title.png">
+
+
+
+
+
+    <link rel="stylesheet" type="text/css" href="/style.css" />
+    <link type="application/atom+xml" rel="alternate" href="http://localhost:4000/feed.xml" title="Notebook" />
+</head>
+
+<body>
+    <div class="toc-container">
+    <nav class="toc hidden">
+        <h1 class="toc-root"><a href="#">#</a></h1>
+        <div class="toc-content"></div>
+    </nav>
+</div>
+
+<header class="masthead">
+    <a href="/" class="site-avatar">
+        <img src="/images/site-default.jpg" alt="Clouds" />
+    </a>
+</header>
+
+<article role="main" class="main post container ">
+    <header class="post-header">
+        
+            <h1 class="post-title">Memorizing Basic Windows Details</h1> 
+        
+
+        <div class="post-meta">
+            <time datetime="2020-03-13T00:05:28-05:00">March 13, 2020</time>
+            
+                &mdash; <a class="channel-link" href="/series/windows_internals">windows internals</a>
+            
+        </div>
+    </header>
+
+    <p>As I’ve been working my Pavel Yosifovich’s <em>Kernel Programming for Windows</em>, I’ve found that theres a few basic details of the Windows operating system that I have yet to commit to muscle-memory. This page is just some simple notes from the book to maybe help with retention. Items marked with a (?) are those that I feel the need to learn more about.</p>
+
+<h2 id="virtual-memory">Virtual Memory</h2>
+
+<ul>
+  <li>default 32 bit address space for processes is 2 GB</li>
+  <li>specifying the <code class="highlighter-rouge">LARGEADDRESSAWARE</code> flag in the PE header allows the address space size to be increased to a max of 3 GB. Binary must have been linked with LARGEADDRESSAWARE linker flag. This brings me back to the days of modding <em>Fallout: New Vegas</em> which was wonderful but limited severely by 32 bit memory requirements. There was a popular mod which I think did exactly this and was able to extend the AS to 4 GB.</li>
+</ul>
+
+<h2 id="page-states">Page States</h2>
+
+<ul>
+  <li>Free</li>
+  <li>Committed</li>
+  <li>Reserved</li>
+</ul>
+
+<h2 id="system-memory">System Memory</h2>
+
+<ul>
+  <li>Operating system resides in upper address range
+    <ul>
+      <li>32 bit: 0x80000000-0xFFFFFFF</li>
+      <li>32 bit w/ increase v_address_space setting: 0xC0000000-0XFFFFFFFF</li>
+      <li>64 bit Win8/2012: upper 8TB</li>
+      <li>64 bit Win8.1/2012 R2 and later: upper 128 TB</li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="threads">Threads</h2>
+
+<ul>
+  <li>Processes expose resources like virtual memory and kernel object handles to threads</li>
+  <li>threads own:
+    <ul>
+      <li>current access mode</li>
+      <li>execution context</li>
+      <li>one or two stacks (?)(why two? answered below)</li>
+      <li>Thread Local Storage array (?)</li>
+      <li>Base priority / dynamic priority</li>
+      <li>Processor affinity (?)</li>
+    </ul>
+  </li>
+  <li>thread stacks:
+    <ul>
+      <li>32 bit: default 12 KB</li>
+      <li>64 bit: default 24 KB</li>
+      <li>user mode threads have two stacks.
+        <ul>
+          <li>the first is the kernel stack and cant be paged out</li>
+          <li>the second one resides in the user address space range and has a default max of 1 MB.
+            <ul>
+              <li>can be paged out</li>
+            </ul>
+          </li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li>user mode thread stack:
+    <ul>
+      <li>starts with a small amount of memory committed, the remaining being reserved</li>
+      <li>the next page after the initially commited memory is marked with a special protection <code class="highlighter-rouge">PAGE_GAURD</code> and is called the Gaurd Page (?)(marked where?)</li>
+      <li>once the gaurd page is written to, an exception is thrown to be handled by the memory manager, who removes the gaurd and commits the memory</li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="system-services--system-calls">System Services \ System Calls</h2>
+
+<ul>
+  <li><code class="highlighter-rouge">ntdll.dll</code> is also known as the <code class="highlighter-rouge">Native API</code>. Didn’t know that.</li>
+  <li>transition to kernel mode: 64 bit = syscall, 32 bit = sysenter</li>
+  <li>following the transition, the dispatcher routine indexes into the SSDT to jump to the actual system call</li>
+</ul>
+
+<h2 id="architecture">Architecture</h2>
+
+<ul>
+  <li>executive hold the various managers: Object Manager, Memory Manager, I/O Manager, PnP Manager, Power Manager, Configuration Manager.</li>
+  <li>executive is the larger upper layer of ntoskrnl.exe, and the kernel itself is the lower layer.</li>
+  <li>kernel layer implements thread scheduling, interrupt, and exception dispatching</li>
+  <li>kernel layer implements kernel primitives (?)(what are some other ‘primitives’)</li>
+  <li><code class="highlighter-rouge">win32k.sys</code> is responsible for much of the graphics capabilities of the operating system (?)(was it always in the kernel?)</li>
+  <li><code class="highlighter-rouge">HAL</code> provides abstractions to make dealing with physical devices easier</li>
+  <li>System Processes include <code class="highlighter-rouge">smss.exe, lsass.exe, winlogon.exe, services.exe</code></li>
+  <li><code class="highlighter-rouge">csrss.exe</code> is a helper to the kernel for managing processes. One instance runs per session. Manager the windows subsystem</li>
+  <li>VBS (virtualization based security) puts the actual machine in a Hyper-V virtual machine. Whoa.</li>
+</ul>
+
+<h2 id="handles-and-objects">Handles and Objects</h2>
+
+<ul>
+  <li>Objects, managed by the Object Manager, count their references and will not be allowed to be destroyed until all references are released</li>
+  <li>Instances of these are data structures</li>
+  <li>Objects reside in system space</li>
+  <li>User mode must access these indirectly through <code class="highlighter-rouge">handles</code>.</li>
+  <li>Handles are indexes into tables maintained by processes.</li>
+  <li>the indexes point logically to the kernel object in system space</li>
+  <li>drivers turn handles into pointers using <code class="highlighter-rouge">ObReferenceObjectByHandle</code> function</li>
+  <li><code class="highlighter-rouge">0</code> is never a valid handle</li>
+  <li>handles are in increments of <code class="highlighter-rouge">4</code>.</li>
+  <li>resource leaks are prevented by calling <code class="highlighter-rouge">ObDereferenceObject</code></li>
+  <li>the WinObj sysinternals program interfaces with the Object Manager</li>
+  <li>each object points to an object type</li>
+  <li><code class="highlighter-rouge">Create</code> functions called with a name will either actually create the object or open an existing one if the name exists. This can be checked for by using <code class="highlighter-rouge">GetLastError</code>and seeing if it returns <code class="highlighter-rouge">ERROR_ALREADY_EXISTS</code></li>
+  <li>names for objects are prepended with various strings</li>
+  <li>object names are session-relative. to share across sessions, it can be created in session 0 by prepending the object name with <code class="highlighter-rouge">Global\</code></li>
+  <li>every process has a private handle table to kernel objects</li>
+  <li>access masks define what operations are allowed to be performed on a handle. Access handles with the proper access mask</li>
+  <li>to get the true number of references to an object, use kd’s <code class="highlighter-rouge">trueref</code> command. E.g. <code class="highlighter-rouge">trueref &lt;objaddr&gt;</code></li>
+</ul>
+
+<h2 id="additional-reading">Additional Reading</h2>
+
+<ul>
+  <li>https://en.wikipedia.org/wiki/Object_Manager_(Windows)</li>
+  <li>https://docs.microsoft.com/en-us/windows/win32/secauthz/access-rights-and-access-masks</li>
+</ul>
+
+
+    <footer class="post-footer">
+        <nav class="post-nav clearfix">
+            <div class="prev">
+                 
+                <a href="/infinityhook-byepg/">&laquo; Fixing InfinityHook with ByePg</a> 
+                
+            </div>
+            <div class="next">
+                 
+                <a href="/irql-dpc/">Notes on IRQL and Deferred Procedure Calls &raquo;</a> 
+                 
+            </div>
+        </nav>
+        <a class="edit-link" href="https://github.com/mattbierner/blog.mattbierner.com/issues/new">Leave a comment or share feedback on github</a>
+    </footer>
+</article>
+
+<nav class='post-pagination body-pagination'>
+     
+    <a title="Previous: Fixing InfinityHook with ByePg" href="/infinityhook-byepg/" class="post-pagination-link prev-post"></a>
+    
+     
+    <a title="Next: Notes on IRQL and Deferred Procedure Calls" href="/irql-dpc/" class="post-pagination-link next-post"></a>
+     
+</nav>
+
+<script type="text/javascript" src="/scripts/jquery.js"></script>
+<script type="text/javascript" src="/scripts/jquery.toc.js"></script>
+<script type="text/javascript" src="/scripts/index.js"></script>
+
+    <div class="wrapper-footer">
+        <div class="container">
+            <footer class="footer page-footer">
+                <nav class="footer-links">
+                    <a href="https://github.com/joshfinley">Github</a>
+                </nav>
+                <div class="footer-post">
+                    <p>
+                        <a rel="license" href="https://creativecommons.org/licenses/by-nc/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-nc/4.0/80x15.png" />
+                        </a><br> Unless otherwise noted, all content is licensed under a <a rel="license" href="https://creativecommons.org/licenses/by-nc/4.0/">Creative Commons Attribution-NonCommercial 4.0 International License</a><br>
+                        share don't sell
+                    </p>
+                    <p id="copyright">&copy; 2020 Josh Finley. Blog style by Matt Bierner</p>
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    
+
+</body>
+
+</html>

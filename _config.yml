@@ -1,0 +1,34 @@
+name: Notebook
+author: Josh Finley
+description: "Sharing notes and resources"
+url: https://joshfinley.github.io
+paginate: 10
+
+baseurl: ""
+
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
+  hard_wrap: false
+
+permalink: /:title/
+
+future: true
+
+
+# Set the Sass partials directory, as we're using @imports
+sass:
+  style: :expanded # You might prefer to minify using :compressed
+
+gems:
+  - jekyll-sitemap
+  - jekyll-feed
+  - jekyll-paginate
+
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - LICENSE
+  - README.md
+  - CNAME
+  - support

@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>PE Format Notes – Notebook</title>
+
+        <meta charset="utf-8" />
+    <meta content='text/html; charset=utf-8' http-equiv='Content-Type'>
+    <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0'>
+
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:creator" content="@mattbierner">
+    <meta name="author" content="Josh Finley" />
+
+
+    <meta property="og:title" content="PE Format Notes" />
+    <meta property="twitter:title" content="PE Format Notes" />
+
+
+
+    <meta name="description" content="struct DOS_Header
+{
+// short is 2 bytes, long is 4 bytes
+     char signature[2] = { 'M', 'Z' };
+     short lastsize;
+     short nblocks;
+     short nreloc;
+     short hdrsize;
+     short minalloc;
+     short maxalloc;
+     void *ss; // 2 byte value
+     void *sp; // 2 byte value
+     short checksum;
+     void *ip; // 2 byte value
+     void *cs; // 2 byte value
+     short relocpos;
+     short noverlay;
+     short reserved1[4];
+     short oem_id;
+     short oem_info;
+     short reserved2[10];
+     long  e_lfanew; // Offset to the 'PE\0\0' signature relative to the beginning of the file
+}
+
+Optional Header (misnomer - not actually optional)
+64 Bit
+typedef struct _IMAGE_OPTIONAL_HEADER64 {
+    WORD        Magic;
+    BYTE        MajorLinkerVersion;
+    BYTE        MinorLinkerVersion;
+    DWORD       SizeOfCode;
+    DWORD       SizeOfInitializedData;
+    DWORD       SizeOfUninitializedData;
+    DWORD       AddressOfEntryPoint;
+    DWORD       BaseOfCode;
+    ULONGLONG   ImageBase;
+    DWORD       SectionAlignment;
+    DWORD       FileAlignment;
+    WORD        MajorOperatingSystemVersion;
+    WORD        MinorOperatingSystemVersion;
+    WORD        MajorImageVersion;
+    WORD        MinorImageVersion;
+    WORD        MajorSubsystemVersion;
+    WORD        MinorSubsystemVersion;
+    DWORD       Win32VersionValue;
+    DWORD       SizeOfImage;
+    DWORD       SizeOfHeaders;
+    DWORD       CheckSum;
+    WORD        Subsystem;
+    WORD        DllCharacteristics;
+    ULONGLONG   SizeOfStackReserve;
+    ULONGLONG   SizeOfStackCommit;
+    ULONGLONG   SizeOfHeapReserve;
+    ULONGLONG   SizeOfHeapCommit;
+    DWORD       LoaderFlags;
+    DWORD       NumberOfRvaAndSizes;
+    IMAGE_DATA_DIRECTORY DataDirectory[IMAGE_NUMBEROF_DIRECTORY_ENTRIES];
+} IMAGE_OPTIONAL_HEADER64, *PIMAGE_OPTIONAL_HEADER64;
+
+
+" />
+    <meta property="og:description" content="struct DOS_Header
+{
+// short is 2 bytes, long is 4 bytes
+     char signature[2] = { 'M', 'Z' };
+     short lastsize;
+     short nblocks;
+     short nreloc;
+     short hdrsize;
+     short minalloc;
+     short maxalloc;
+     void *ss; // 2 byte value
+     void *sp; // 2 byte value
+     short checksum;
+     void *ip; // 2 byte value
+     void *cs; // 2 byte value
+     short relocpos;
+     short noverlay;
+     short reserved1[4];
+     short oem_id;
+     short oem_info;
+     short reserved2[10];
+     long  e_lfanew; // Offset to the 'PE\0\0' signature relative to the beginning of the file
+}
+
+Optional Header (misnomer - not actually optional)
+64 Bit
+typedef struct _IMAGE_OPTIONAL_HEADER64 {
+    WORD        Magic;
+    BYTE        MajorLinkerVersion;
+    BYTE        MinorLinkerVersion;
+    DWORD       SizeOfCode;
+    DWORD       SizeOfInitializedData;
+    DWORD       SizeOfUninitializedData;
+    DWORD       AddressOfEntryPoint;
+    DWORD       BaseOfCode;
+    ULONGLONG   ImageBase;
+    DWORD       SectionAlignment;
+    DWORD       FileAlignment;
+    WORD        MajorOperatingSystemVersion;
+    WORD        MinorOperatingSystemVersion;
+    WORD        MajorImageVersion;
+    WORD        MinorImageVersion;
+    WORD        MajorSubsystemVersion;
+    WORD        MinorSubsystemVersion;
+    DWORD       Win32VersionValue;
+    DWORD       SizeOfImage;
+    DWORD       SizeOfHeaders;
+    DWORD       CheckSum;
+    WORD        Subsystem;
+    WORD        DllCharacteristics;
+    ULONGLONG   SizeOfStackReserve;
+    ULONGLONG   SizeOfStackCommit;
+    ULONGLONG   SizeOfHeapReserve;
+    ULONGLONG   SizeOfHeapCommit;
+    DWORD       LoaderFlags;
+    DWORD       NumberOfRvaAndSizes;
+    IMAGE_DATA_DIRECTORY DataDirectory[IMAGE_NUMBEROF_DIRECTORY_ENTRIES];
+} IMAGE_OPTIONAL_HEADER64, *PIMAGE_OPTIONAL_HEADER64;
+
+
+" />
+    <meta name="twitter:description" content="struct DOS_Header
+{
+// short is 2 bytes, long is 4 bytes
+     char signature[2] = { 'M', 'Z' };
+     short lastsize;
+     short nblocks;
+     short nreloc;
+     short hdrsize;
+     short minalloc;
+     short maxalloc;
+     void *ss; // 2 byte value
+     void *sp; // 2 byte value
+     short checksum;
+     void *ip; // 2 byte value
+     void *cs; // 2 byte value
+     short relocpos;
+     short noverlay;
+     short reserved1[4];
+     short oem_id;
+     short oem_info;
+     short reserved2[10];
+     long  e_lfanew; // Offset to the 'PE\0\0' signature relative to the beginning of the file
+}
+
+Optional Header (misnomer - not actually optional)
+64 Bit
+typedef struct _IMAGE_OPTIONAL_HEADER64 {
+    WORD        Magic;
+    BYTE        MajorLinkerVersion;
+    BYTE        MinorLinkerVersion;
+    DWORD       SizeOfCode;
+    DWORD       SizeOfInitializedData;
+    DWORD       SizeOfUninitializedData;
+    DWORD       AddressOfEntryPoint;
+    DWORD       BaseOfCode;
+    ULONGLONG   ImageBase;
+    DWORD       SectionAlignment;
+    DWORD       FileAlignment;
+    WORD        MajorOperatingSystemVersion;
+    WORD        MinorOperatingSystemVersion;
+    WORD        MajorImageVersion;
+    WORD        MinorImageVersion;
+    WORD        MajorSubsystemVersion;
+    WORD        MinorSubsystemVersion;
+    DWORD       Win32VersionValue;
+    DWORD       SizeOfImage;
+    DWORD       SizeOfHeaders;
+    DWORD       CheckSum;
+    WORD        Subsystem;
+    WORD        DllCharacteristics;
+    ULONGLONG   SizeOfStackReserve;
+    ULONGLONG   SizeOfStackCommit;
+    ULONGLONG   SizeOfHeapReserve;
+    ULONGLONG   SizeOfHeapCommit;
+    DWORD       LoaderFlags;
+    DWORD       NumberOfRvaAndSizes;
+    IMAGE_DATA_DIRECTORY DataDirectory[IMAGE_NUMBEROF_DIRECTORY_ENTRIES];
+} IMAGE_OPTIONAL_HEADER64, *PIMAGE_OPTIONAL_HEADER64;
+
+
+">
+
+
+
+
+
+
+
+    <link rel="stylesheet" type="text/css" href="/style.css" />
+    <link type="application/atom+xml" rel="alternate" href="http://localhost:4000/feed.xml" title="Notebook" />
+</head>
+
+<body>
+    <div class="toc-container">
+    <nav class="toc hidden">
+        <h1 class="toc-root"><a href="#">#</a></h1>
+        <div class="toc-content"></div>
+    </nav>
+</div>
+
+<header class="masthead">
+    <a href="/" class="site-avatar">
+        <img src="/images/site-default.jpg" alt="Clouds" />
+    </a>
+</header>
+
+<article role="main" class="main post container ">
+    <header class="post-header">
+        
+            <h1 class="post-title">PE Format Notes</h1> 
+        
+
+        <div class="post-meta">
+            <time datetime="2020-04-02T00:05:28-05:00">April  2, 2020</time>
+            
+                &mdash; <a class="channel-link" href="/series/windows_internals">windows internals</a>
+            
+        </div>
+    </header>
+
+    <pre><code class="language-C">struct DOS_Header
+{
+// short is 2 bytes, long is 4 bytes
+     char signature[2] = { 'M', 'Z' };
+     short lastsize;
+     short nblocks;
+     short nreloc;
+     short hdrsize;
+     short minalloc;
+     short maxalloc;
+     void *ss; // 2 byte value
+     void *sp; // 2 byte value
+     short checksum;
+     void *ip; // 2 byte value
+     void *cs; // 2 byte value
+     short relocpos;
+     short noverlay;
+     short reserved1[4];
+     short oem_id;
+     short oem_info;
+     short reserved2[10];
+     long  e_lfanew; // Offset to the 'PE\0\0' signature relative to the beginning of the file
+}
+</code></pre>
+<h4 id="optional-header-misnomer---not-actually-optional">Optional Header (misnomer - not actually optional)</h4>
+<h5 id="64-bit">64 Bit</h5>
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">typedef</span> <span class="k">struct</span> <span class="n">_IMAGE_OPTIONAL_HEADER64</span> <span class="p">{</span>
+    <span class="n">WORD</span>        <span class="n">Magic</span><span class="p">;</span>
+    <span class="n">BYTE</span>        <span class="n">MajorLinkerVersion</span><span class="p">;</span>
+    <span class="n">BYTE</span>        <span class="n">MinorLinkerVersion</span><span class="p">;</span>
+    <span class="n">DWORD</span>       <span class="n">SizeOfCode</span><span class="p">;</span>
+    <span class="n">DWORD</span>       <span class="n">SizeOfInitializedData</span><span class="p">;</span>
+    <span class="n">DWORD</span>       <span class="n">SizeOfUninitializedData</span><span class="p">;</span>
+    <span class="n">DWORD</span>       <span class="n">AddressOfEntryPoint</span><span class="p">;</span>
+    <span class="n">DWORD</span>       <span class="n">BaseOfCode</span><span class="p">;</span>
+    <span class="n">ULONGLONG</span>   <span class="n">ImageBase</span><span class="p">;</span>
+    <span class="n">DWORD</span>       <span class="n">SectionAlignment</span><span class="p">;</span>
+    <span class="n">DWORD</span>       <span class="n">FileAlignment</span><span class="p">;</span>
+    <span class="n">WORD</span>        <span class="n">MajorOperatingSystemVersion</span><span class="p">;</span>
+    <span class="n">WORD</span>        <span class="n">MinorOperatingSystemVersion</span><span class="p">;</span>
+    <span class="n">WORD</span>        <span class="n">MajorImageVersion</span><span class="p">;</span>
+    <span class="n">WORD</span>        <span class="n">MinorImageVersion</span><span class="p">;</span>
+    <span class="n">WORD</span>        <span class="n">MajorSubsystemVersion</span><span class="p">;</span>
+    <span class="n">WORD</span>        <span class="n">MinorSubsystemVersion</span><span class="p">;</span>
+    <span class="n">DWORD</span>       <span class="n">Win32VersionValue</span><span class="p">;</span>
+    <span class="n">DWORD</span>       <span class="n">SizeOfImage</span><span class="p">;</span>
+    <span class="n">DWORD</span>       <span class="n">SizeOfHeaders</span><span class="p">;</span>
+    <span class="n">DWORD</span>       <span class="n">CheckSum</span><span class="p">;</span>
+    <span class="n">WORD</span>        <span class="n">Subsystem</span><span class="p">;</span>
+    <span class="n">WORD</span>        <span class="n">DllCharacteristics</span><span class="p">;</span>
+    <span class="n">ULONGLONG</span>   <span class="n">SizeOfStackReserve</span><span class="p">;</span>
+    <span class="n">ULONGLONG</span>   <span class="n">SizeOfStackCommit</span><span class="p">;</span>
+    <span class="n">ULONGLONG</span>   <span class="n">SizeOfHeapReserve</span><span class="p">;</span>
+    <span class="n">ULONGLONG</span>   <span class="n">SizeOfHeapCommit</span><span class="p">;</span>
+    <span class="n">DWORD</span>       <span class="n">LoaderFlags</span><span class="p">;</span>
+    <span class="n">DWORD</span>       <span class="n">NumberOfRvaAndSizes</span><span class="p">;</span>
+    <span class="n">IMAGE_DATA_DIRECTORY</span> <span class="n">DataDirectory</span><span class="p">[</span><span class="n">IMAGE_NUMBEROF_DIRECTORY_ENTRIES</span><span class="p">];</span>
+<span class="p">}</span> <span class="n">IMAGE_OPTIONAL_HEADER64</span><span class="p">,</span> <span class="o">*</span><span class="n">PIMAGE_OPTIONAL_HEADER64</span><span class="p">;</span>
+</code></pre></div></div>
+
+<h5 id="32-bit">32 Bit</h5>
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">typedef</span> <span class="k">struct</span> <span class="n">_IMAGE_OPTIONAL_HEADER</span> <span class="p">{</span>
+    <span class="c1">//
+</span>    <span class="c1">// Standard fields.
+</span>    <span class="c1">//
+</span>
+    <span class="n">WORD</span>    <span class="n">Magic</span><span class="p">;</span>
+    <span class="n">BYTE</span>    <span class="n">MajorLinkerVersion</span><span class="p">;</span>
+    <span class="n">BYTE</span>    <span class="n">MinorLinkerVersion</span><span class="p">;</span>
+    <span class="n">DWORD</span>   <span class="n">SizeOfCode</span><span class="p">;</span>
+    <span class="n">DWORD</span>   <span class="n">SizeOfInitializedData</span><span class="p">;</span>
+    <span class="n">DWORD</span>   <span class="n">SizeOfUninitializedData</span><span class="p">;</span>
+    <span class="n">DWORD</span>   <span class="n">AddressOfEntryPoint</span><span class="p">;</span>
+    <span class="n">DWORD</span>   <span class="n">BaseOfCode</span><span class="p">;</span>
+    <span class="n">DWORD</span>   <span class="n">BaseOfData</span><span class="p">;</span>
+
+    <span class="c1">//
+</span>    <span class="c1">// NT additional fields.
+</span>    <span class="c1">//
+</span>
+    <span class="n">DWORD</span>   <span class="n">ImageBase</span><span class="p">;</span>
+    <span class="n">DWORD</span>   <span class="n">SectionAlignment</span><span class="p">;</span>
+    <span class="n">DWORD</span>   <span class="n">FileAlignment</span><span class="p">;</span>
+    <span class="n">WORD</span>    <span class="n">MajorOperatingSystemVersion</span><span class="p">;</span>
+    <span class="n">WORD</span>    <span class="n">MinorOperatingSystemVersion</span><span class="p">;</span>
+    <span class="n">WORD</span>    <span class="n">MajorImageVersion</span><span class="p">;</span>
+    <span class="n">WORD</span>    <span class="n">MinorImageVersion</span><span class="p">;</span>
+    <span class="n">WORD</span>    <span class="n">MajorSubsystemVersion</span><span class="p">;</span>
+    <span class="n">WORD</span>    <span class="n">MinorSubsystemVersion</span><span class="p">;</span>
+    <span class="n">DWORD</span>   <span class="n">Win32VersionValue</span><span class="p">;</span>
+    <span class="n">DWORD</span>   <span class="n">SizeOfImage</span><span class="p">;</span>
+    <span class="n">DWORD</span>   <span class="n">SizeOfHeaders</span><span class="p">;</span>
+    <span class="n">DWORD</span>   <span class="n">CheckSum</span><span class="p">;</span>
+    <span class="n">WORD</span>    <span class="n">Subsystem</span><span class="p">;</span>
+    <span class="n">WORD</span>    <span class="n">DllCharacteristics</span><span class="p">;</span>
+    <span class="n">DWORD</span>   <span class="n">SizeOfStackReserve</span><span class="p">;</span>
+    <span class="n">DWORD</span>   <span class="n">SizeOfStackCommit</span><span class="p">;</span>
+    <span class="n">DWORD</span>   <span class="n">SizeOfHeapReserve</span><span class="p">;</span>
+    <span class="n">DWORD</span>   <span class="n">SizeOfHeapCommit</span><span class="p">;</span>
+    <span class="n">DWORD</span>   <span class="n">LoaderFlags</span><span class="p">;</span>
+    <span class="n">DWORD</span>   <span class="n">NumberOfRvaAndSizes</span><span class="p">;</span>
+    <span class="n">IMAGE_DATA_DIRECTORY</span> <span class="n">DataDirectory</span><span class="p">[</span><span class="n">IMAGE_NUMBEROF_DIRECTORY_ENTRIES</span><span class="p">];</span>
+<span class="p">}</span> <span class="n">IMAGE_OPTIONAL_HEADER32</span><span class="p">,</span> <span class="o">*</span><span class="n">PIMAGE_OPTIONAL_HEADER32</span><span class="p">;</span>
+</code></pre></div></div>
+
+<h5 id="section-header-struct">Section Header Struct</h5>
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">typedef</span> <span class="k">struct</span> <span class="n">_IMAGE_SECTION_HEADER</span> <span class="p">{</span>
+    <span class="n">BYTE</span>    <span class="n">Name</span><span class="p">[</span><span class="n">IMAGE_SIZEOF_SHORT_NAME</span><span class="p">];</span>
+    <span class="k">union</span> <span class="p">{</span>
+            <span class="n">DWORD</span>   <span class="n">PhysicalAddress</span><span class="p">;</span>
+            <span class="n">DWORD</span>   <span class="n">VirtualSize</span><span class="p">;</span>
+    <span class="p">}</span> <span class="n">Misc</span><span class="p">;</span>
+    <span class="n">DWORD</span>   <span class="n">VirtualAddress</span><span class="p">;</span>
+    <span class="n">DWORD</span>   <span class="n">SizeOfRawData</span><span class="p">;</span>
+    <span class="n">DWORD</span>   <span class="n">PointerToRawData</span><span class="p">;</span>
+    <span class="n">DWORD</span>   <span class="n">PointerToRelocations</span><span class="p">;</span>
+    <span class="n">DWORD</span>   <span class="n">PointerToLinenumbers</span><span class="p">;</span>
+    <span class="n">WORD</span>    <span class="n">NumberOfRelocations</span><span class="p">;</span>
+    <span class="n">WORD</span>    <span class="n">NumberOfLinenumbers</span><span class="p">;</span>
+    <span class="n">DWORD</span>   <span class="n">Characteristics</span><span class="p">;</span>
+<span class="p">}</span> <span class="n">IMAGE_SECTION_HEADER</span><span class="p">,</span> <span class="o">*</span><span class="n">PIMAGE_SECTION_HEADER</span><span class="p">;</span>
+</code></pre></div></div>
+
+
+    <footer class="post-footer">
+        <nav class="post-nav clearfix">
+            <div class="prev">
+                 
+                <a href="/spotter-training-2/">&laquo; NWS Norman - Severe Weather Spotter Training Notes Session 2</a> 
+                
+            </div>
+            <div class="next">
+                 
+                <a href="/dkom-demo/">Windows DKOM Demo &raquo;</a> 
+                 
+            </div>
+        </nav>
+        <a class="edit-link" href="https://github.com/mattbierner/blog.mattbierner.com/issues/new">Leave a comment or share feedback on github</a>
+    </footer>
+</article>
+
+<nav class='post-pagination body-pagination'>
+     
+    <a title="Previous: NWS Norman - Severe Weather Spotter Training Notes Session 2" href="/spotter-training-2/" class="post-pagination-link prev-post"></a>
+    
+     
+    <a title="Next: Windows DKOM Demo" href="/dkom-demo/" class="post-pagination-link next-post"></a>
+     
+</nav>
+
+<script type="text/javascript" src="/scripts/jquery.js"></script>
+<script type="text/javascript" src="/scripts/jquery.toc.js"></script>
+<script type="text/javascript" src="/scripts/index.js"></script>
+
+    <div class="wrapper-footer">
+        <div class="container">
+            <footer class="footer page-footer">
+                <nav class="footer-links">
+                    <a href="https://github.com/joshfinley">Github</a>
+                </nav>
+                <div class="footer-post">
+                    <p>
+                        <a rel="license" href="https://creativecommons.org/licenses/by-nc/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-nc/4.0/80x15.png" />
+                        </a><br> Unless otherwise noted, all content is licensed under a <a rel="license" href="https://creativecommons.org/licenses/by-nc/4.0/">Creative Commons Attribution-NonCommercial 4.0 International License</a><br>
+                        share don't sell
+                    </p>
+                    <p id="copyright">&copy; 2020 Josh Finley. Blog style by Matt Bierner</p>
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    
+
+</body>
+
+</html>

