@@ -8,22 +8,11 @@ titleImage:
     file: 'title.png'
 ---
 
-   Using the PEB to find exports in shellcode and malware is not new.
-As early as the late 90's, malware authors have been accessing and using
-the PEB for a variety of purposes [1]. Additionally, using it to resolve
-exports from ntdll.dll, kernel32.dll, etc. has also been documented elsewhere many times [2]. Still, most of the existing examples are in 32-bit
-assembly, and there are fewer examples in 64-bit. Regardless of the similarities, the world has mostly moved on from x86, yet examples of 64-bit
-shellcode are still much less common. Am0nsec [3] demonstrates the most 
-readable and comprehensive approach to the technique for MASM64, but the
-approach is focused on population tables of function addresses and syscalls
-(the 'Hells Gate' tecnique).
-
-This article simply walks through an adaptation of part of [3] to be more general - almost all of the code is the exact same, but parts have been changed to make a general-purpose function for iterating over a module's exports to find a target
-functions address.
+Using the PEB as a position-independent means of finding exports is not new. As early as the late 90's, malware authors have been accessing and using the PEB for a variety of purposes [1]. Using it to resolve exports from ntdll.dll, kernel32.dll, etc. has also been documented elsewhere repeatedly [2]. Still, most of the existing examples are in 32-bit assembly, and there are fewer examples in 64-bit. But the world has mostly moved on to 64-bit. Am0nsec [3] demonstrates the most readable and comprehensive approach I have yet found for MASM64, but it is designed specifically for populating tables of function addresses and syscall numbers (the 'Hells Gate' tecnique). This article simply descibes a general adaptation of part of [3] - almost all of the code is the exact same, but parts have been changed to make a general-purpose function for iterating over a module's exports to find a target function's address.
 
 ## 1. GetExport prototype
 
-We can declare the prototype for this function to be the following:
+We can declare the prototype for this function to be:
 
 ```c
 // Given the djb2 hash of the target function name and its parent module base addres, resolve its virtual address
@@ -32,7 +21,7 @@ __fastcall uint64_ptr GetExport(long djb2_hash, long lpModuleBase);
 
 ## 2. Finding export directory iterables
 
-Inside the procedure body, the first thing that needs to be done is to find the following information:
+Inside the procedure body, first we need to resolvethe following address:
 
 - `IMAGE_EXPORT_DIRECTORY.AddressOfNames`
 - `IMAGE_EXPORT_DIRECTORY.AddressOfFunctions`
@@ -81,7 +70,7 @@ mov     ecx, [r8].IMAGE_EXPORT_DIRECTORY.NumberOfNames                ; Total nu
 
 ## 3. Search loop
 
-The next part is where things differ slightly. Instead of identifying predetermined syscall functions and their respective syscall values, we loop over the export table and look for our target (passed in `ecx`). If we find its hashmatch, all we have to do is fixup its virtual address and return it in `rax`.
+This is where things differ slightly. Instead of identifying predetermined syscall functions and their respective syscall values, we loop over the export table and look for our target (passed in `ecx`). If we find a function name whose DJB2 hash matches the target, all we have to do is fixup its virtual address and return it in `rax`.
 
 ```
         xor     rax, rax                                                      ; Set counter to 0
@@ -122,7 +111,7 @@ _get_function_address:
 
 ## 4. DJB2 modifications
 
-Doing so requires a slight modification to the djb2 hashing implementation. We need it to take a target hash and a source string and determine if the latter's hash is equivalent to the former. This can be done as such:
+This implentation requries a slight modification to the djb2 hashing implementation. We need it to take a target hash and a source string and determine if the latter's hash is equivalent to the former. This can be done as such:
 
 ```
 ;-----------------------------------------------------------------------------
@@ -158,6 +147,8 @@ _djb2_epilog:
         pop     r10
         ret
 ```
+
+## 5. Conclusion
 
 The sum of these parts is a general-purpose function for finding functions from a module's export directory, without string reliance. Of course, credit for nearly all of these implementation details goes to am0nsec.
 
