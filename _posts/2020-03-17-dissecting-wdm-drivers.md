@@ -1,8 +1,8 @@
 ---
 layout: post
-title:  "Dissecting a Barebones WDM Driver"
+title:  "Dissecting a Simple WDM Driver"
 date:   2020-03-16 00:05:28 -0500
-categories: windows
+series: windows_internals
 titleImage:
     file: 'title.png'
 ---
