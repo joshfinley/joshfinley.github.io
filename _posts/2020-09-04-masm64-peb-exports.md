@@ -154,6 +154,6 @@ The sum of these parts is a general-purpose function for finding functions from 
 
 # References
 
- [1] https://modexp.wordpress.com/2017/01/15/shellcode-resolving-api-addresses/
- [2] https://idafchev.github.io/exploit/2017/09/26/writing_windows_shellcode.html
- [3] https://github.com/am0nsec/vx/blob/master/Injector.Win64.HellsGate/HELLSGATE.ASM
+ [1] https://modexp.wordpress.com/2017/01/15/shellcode-resolving-api-addresses/<br>
+ [2] https://idafchev.github.io/exploit/2017/09/26/writing_windows_shellcode.html<br>
+ [3] https://github.com/am0nsec/vx/blob/master/Injector.Win64.HellsGate/HELLSGATE.ASM<br>
