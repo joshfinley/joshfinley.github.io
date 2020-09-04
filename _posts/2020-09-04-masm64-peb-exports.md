@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "MASM64 Peb Walking and Export resolution"
+title:  "MASM64 Peb Walking and Export Resolution"
 date:   2020-09-04 00:05:29 -0500
 description: PEB Walking and export resolution in 64-bit assembler
 series: windows_internals
