@@ -13,7 +13,24 @@ These functions are are esentially thin wrappers for passing information to the 
 
 The following image shows an example of the disassembly of an `ntdll.dll` system call export:
 
-![resourcse system call disasm](resources/ntdll_syscall_wrapper.png)
+
+```
+.text:000000018009C870 ; Exported entry 478. NtQueryEvent
+.text:000000018009C870 ; Exported entry 2060. ZwQueryEvent
+.text:000000018009C870
+.text:000000018009C870 ; =============== S U B R O U T I N E =======================================
+.text:000000018009C870
+.text:000000018009C870
+.text:000000018009C870                 public NtQueryEvent
+.text:000000018009C870 NtQueryEvent    proc near               ; CODE XREF: PsspDumpObject_Event+25↓p
+.text:000000018009C870                                         ; DATA XREF: .rdata:000000018011F055↓o ...
+.text:000000018009C870                 mov     r10, rcx        ; NtQueryEvent
+.text:000000018009C873                 mov     eax, 56h ; 'V'
+.text:000000018009C878                 test    byte ptr ds:7FFE0308h, 1
+.text:000000018009C880                 jnz     short loc_18009C885
+.text:000000018009C882                 syscall                 ; Low latency system call
+.text:000000018009C884                 retn
+```
 
 `ntdll.dll` itself exports over 2000 functions. On Windows 1909, 464 of these are these system call wrappers. The exports of a given executable can quickly be dumped using `dumpbin.exe` as follows:
 
