@@ -14,11 +14,12 @@ The contents of this page or its referenced materials is not intended as a repre
 
 # Reading List
 
-## 1. Current, Red Teaming & Society
+## 1. Current Events, Red Teaming & Society
 
 - [October 2016. Red Team Journal. *Russia, Reflexive Control, and the Subtle Art of Red Teaming*](https://redteamjournal.com/archive-blog/2016/10/13/russia-reflexive-control-and-the-subtle-art-of-red-teaming)
 - [July 2020. The Red Analysis Society. *Scenarios to Naviate the COVID-19 Pandemic and its Possible Futures*](https://www.redanalysis.org/2020/07/24/scenarios-to-navigate-the-covid-19-pandemic-and-its-possible-futures-1/)
 - [September 2020. The New Yorker. *Is Russian Meddling as Dangerous as we Think?*](https://www.newyorker.com/magazine/2020/09/14/is-russian-meddling-as-dangerous-as-we-think)
+- [March 2019. Special Counsel Robert S. Mueller, III. *Report on the Investigatoin Into Russian Interference in the 2016 Presidential Election*](https://www.justice.gov/storage/report.pdf)
 
 
 ## 3. Antecedent Works & Forensic Intelligence
@@ -36,5 +37,6 @@ The contents of this page or its referenced materials is not intended as a repre
 ## 2. Serial Publications
 
 - [The Red Analysis Society](https://www.redanalysis.org/#latest). Geopolitical risk analysis and feeds. Runs a weekly blog providing feeds for items relating to national security and international security.
+- [Small Wars Jorunal](https://smallwarsjournal.com/). Feeds and publications on matters of international security.
 - [Voices from DARPA Podcast](https://www.darpa.mil/about-us/podcast). Podcast series from DARPA.
 - [Defense Digtal Service's Blog](https://dds.mil/media/blog). Blog from US DoD's Defense Digital Service.
