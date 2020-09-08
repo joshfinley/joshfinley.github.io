@@ -22,7 +22,7 @@ The contents of this page or its referenced materials is not intended as a repre
 - [March 2019. Special Counsel Robert S. Mueller, III. *Report on the Investigatoin Into Russian Interference in the 2016 Presidential Election*](https://www.justice.gov/storage/report.pdf)
 
 
-## 3. Antecedent Works & Forensic Intelligence
+## 2. Antecedent Works & Forensic Intelligence
 
 ### The Red Team Journal
 - [February 1999. Red Team Journal. *The Axis 2001 Scenario*](https://redteamjournal.com/archive-blog/1999/2/18/the-axis-2001-scenario)
@@ -34,7 +34,7 @@ The contents of this page or its referenced materials is not intended as a repre
 - [December 2006. United States Inst. of Peace. *The Iraq Study Group Report*](https://en.wikipedia.org/wiki/Iraq_Study_Group_Report)
 - [December 1994. The New York Times. *Strategic Intelligence and Statecraft: Selected Essays, Adda B Bozeman*](https://www.nytimes.com/1994/12/10/obituaries/adda-bozeman-barkhuus-85-expert-in-international-relations.html)
 
-## 2. Serial Publications
+## 3. Serial Publications
 
 - [The Red Analysis Society](https://www.redanalysis.org/#latest). Geopolitical risk analysis and feeds. Runs a weekly blog providing feeds for items relating to national security and international security.
 - [Small Wars Jorunal](https://smallwarsjournal.com/). Feeds and publications on matters of international security.
