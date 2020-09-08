@@ -21,7 +21,7 @@ The contents of this page or its referenced materials is not intended as a repre
 - [September 2020. The New Yorker. *Is Russian Meddling as Dangerous as we Think?*](https://www.newyorker.com/magazine/2020/09/14/is-russian-meddling-as-dangerous-as-we-think)
 
 
-## 2. Antecedent Works & Forensic Intelligence
+## 3. Antecedent Works & Forensic Intelligence
 
 ### The Red Team Journal
 - [February 1999. Red Team Journal. *The Axis 2001 Scenario*](https://redteamjournal.com/archive-blog/1999/2/18/the-axis-2001-scenario)
