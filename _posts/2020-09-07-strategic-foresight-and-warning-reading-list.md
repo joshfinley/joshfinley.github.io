@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Reading List - 2020 Geopolitics"
+title:  "Reading List - Strategic Risk, Foresight, and Warning"
 date:   2020-09-07 00:05:29 -0500
 description: Reading list of politically and socially relevent items
 series: strategic foresight and warning
