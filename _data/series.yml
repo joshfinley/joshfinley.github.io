@@ -23,3 +23,7 @@ application_security:
 meteorology:
     name: "meteorology"
     dsecription: ""
+
+politics:
+    name: "political thought"
+    description: ""
