@@ -24,6 +24,6 @@ meteorology:
     name: "meteorology"
     dsecription: ""
 
-politics:
-    name: "political thought"
+strategic_foresight_warning:
+    name: "strategic foresight and warning"
     description: ""
