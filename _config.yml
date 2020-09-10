@@ -3,7 +3,7 @@ author: Josh Finley
 description: "Sharing notes and resources"
 url: https://joshfinley.github.io
 paginate: 10
-
+google_analytics: UA-177692148-1
 baseurl: ""
 
 kramdown:
