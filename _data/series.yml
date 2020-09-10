@@ -27,3 +27,7 @@ meteorology:
 strategic_foresight_warning:
     name: "strategic foresight and warning"
     description: ""
+
+advanced_persistent_threats:
+    name: "advanced persistent threats"
+    description: ""
