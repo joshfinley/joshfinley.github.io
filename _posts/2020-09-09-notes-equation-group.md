@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Reading List - Strategic Risk, Foresight, and Warning"
+title:  "Equation Group Notes"
 date:   2020-09-09 00:05:29 -0500
 description: "Notes and compiled resources on Equation Group tools"
 series: advanced persistent threats
