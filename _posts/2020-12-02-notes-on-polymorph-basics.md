@@ -17,7 +17,7 @@
 ;  Focusing on the last of the three first - the decryptor generator -
 ;  According to [1] the algorithm is as follows:
 ;       1. Select random set of registers
-;       2. Choose a compressed pre-coded decryptor (aha!)
+;       2. Choose a compressed pre-coded decryptor 
 ;       3. Enter a loop where junk code is added to the real decryptor
 ;
 ;  This is also the part that confuses me though... Before even adding
@@ -38,7 +38,7 @@
 ;       0x32     110010    r8               r/m8
 ;       0x33     110011    r16/32/64        r/m16/32/64
 ;       0x34     110100    AL               imm8
-;       0x35     110101    rAX              imm16/32
+;       0x35     110101    rAX              imm16/32       fig. 1
 ;   
 ;  The commonality between all six instructions is they begin with
 ;  the first two bits set and the third unset. What differs between
@@ -48,15 +48,15 @@
 ;  In [1], the author mentions building a 'skeleton instruction table'.
 ;  Cursory internet searches don't turn up anything like this. Down in
 ;  the deep I'm sure there's some somewhere... But either way, for my 
-;  purposes, I need to create one. To start off with some quick wins, it
-;  is readily apparent from [5] that ADD, OR, ADC, SBB, AND, SUB, XOR,
-;  and CMP share close opcode values for each addressing mode, (off by 1).
-;  But to build a skeleton table, we need only pick out the first
-;  examples of these. To make things easier, these groups of different 
-;  opcodes for each operation are aligned nicely (0x00-0x08, 0x1-=0x0d)
-;  Other opcodes aren't as neatly organized (e.g. PUSH, POP). Regardless,
-;  just by using [5] we can simply pick out the skeleton instructions 
-;  we need:
+;  purposes, I need to create one. To start off with some quick wins, 
+;  it is readily apparent from [5] that ADD, OR, ADC, SBB, AND, SUB, 
+;  XOR, and CMP share close opcode values for each addressing mode, 
+;  (off by 1). But to build a skeleton table, we need only pick out
+;  the first examples of these. To make things easier, these groups of  
+;  different opcodes for each operation are aligned nicely (0x00-0x08, 
+;  0x1-=0x0d). Other opcodes aren't as neatly organized (e.g. PUSH, POP). 
+;  Regardless,just by using [5] we can simply pick out the skeleton  
+;  instructions we need:
 ;
 ;       hex      opcode
 ;       0x00     ADD    
@@ -67,7 +67,7 @@
 ;       0x28     SUB
 ;       0x30     XOR
 ;       0x38     CMP
-;       0x88     MOV (standard variations)
+;       0x88     MOV (standard variations)                 fig. 2
 ;
 ;  This is only a sample of opcodes with predictible patterns for 
 ;  opcode extensions in the 'ModR/M' byte. Using these 'skeleton' 
@@ -103,9 +103,9 @@
 ;   [7] https://harrisonwl.github.io/assets/courses/malware/spring2017/slides/FinalWeeks/EncryptedOligomorphic.pdf
 ;   [8] https://vx-underground.org/archive/VxHeaven/lib/vmn05.html
 ;
-;  Not directly related but cool:
-;   [i] https://github.com/Battelle/sandsifter
-
+;  Not directly related but still relevant:
+;   [i]   https://github.com/Battelle/sandsifter
+;   [ii]  https://en.wikipedia.org/wiki/Hexspeak#Notable_magic_numbers
 
 option win64:3      ; init shadow space, reserve stack at PROC level
 
@@ -122,6 +122,8 @@ _TEXT$00 SEGMENT ALIGN(10h) 'CODE' READ WRITE EXECUTE
         call    sliding_key_cipher
         call    long_key_cipher
         call    long_key_cipher
+        call    transposition_cipher
+        call    transposition_cipher
         ret
     Main ENDP
 
@@ -149,7 +151,7 @@ simple_substitution_cipher:
         stosw                                           ;  MOV's word from ax to [di], and increases di by 2
                                                         ;  Notice the segment must be marked RWX to modify the code
         loop    simple_substitution_cipher_loop_begin   ;  DEC's cx, and jumps to start_loop if CX > 0
-    simple_substitution_cipher_done:
+    simple_substitution_cipher_end:
         ret
 
 ;   Sliding key cipher [6]
@@ -170,10 +172,11 @@ sliding_key_cipher:
         inc     rbx                                     ;  Increment the loop
         stosw                                           ;  MOV's word from ax to [di], and increases rdi by 2
         loop    sliding_key_cipher_loop_begin           ;  DEC's cx, and jumps to looop head if CX > 0
-    sliding_key_cipher_done:
+    sliding_key_cipher_end:
         ret
 
 ;   Long key encryption [6]
+;
 long_key_cipher:
     long_key_cipher_setup:
         mov     rbx, offset payload_code
@@ -201,8 +204,28 @@ long_key_cipher:
         ret    
 
     long_key:
-        dq 0feeddeadbeefh
+        dq      0FEEDDEADBEEFh
     long_key_ends:
+
+;   Transposition (Order) Encryption [6] (TODO: Make this work)
+;
+transposition_cipher:
+    transposition_cipher_setup:
+        mov     rcx, (offset payload_code_ends - offset payload_code) / 2
+        mov     rsi, offset payload_code                ;  source = start of encrypted code
+        mov     rdi, rsi                                ;  dest = same as source
+
+    transposition_cipher_loop_start:
+        lodsw                                           ;  Load first word from source
+        mov     bx, ax                                  ;  Stores first word in bx
+        lodsw                                           ;  Loads second word from source
+        stosw                                           ;  Puts the second word into the first word's place in dest
+        mov     ax, bx                                  ;  Restores first word from bx to ax
+        stosw                                           ;  Puts first word in second word's place in dset
+        loop transposition_cipher_loop_start  ;  Decrements cx and jumps to loop head if cx > 0
+
+    transposition_cipher_loop_end:
+        ret
 
 ;-----------------------------------------------------------------------------
 ;  Payload Code
