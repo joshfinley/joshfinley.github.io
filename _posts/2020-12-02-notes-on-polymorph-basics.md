@@ -1,7 +1,13 @@
 ```asm
 ;  <polytest.asm>   -   polytest source
+;                         December 2020
 ;
-;  This file tests polymorphic code generation.
+;  ---------------------------- abstract ----------------------------
+;  This file contains a discussion of polymorphic engines, written
+;  as an individual learning exercise that may be shared with others.
+;  ------------------------------------------------------------------
+;
+;           I. Introduction - the Components of the Engine
 ;
 ;  Distilling the poly engine into three components according to [1]:
 ;  the first component of the engine is a random number generator. 
@@ -69,6 +75,24 @@
 ;  as those randomly chosen for the decryptor - and operating on it
 ;  freely with the knowledge of the opcode extension patterns in hand.
 ;
+;           II. Encryption Primitives
+;  
+;  Before the poly engine comes the encryption primitives. One mistake
+;  I seem to have made is in seeking out to understand the concepts in
+;  section I. without understanding how to perform the basic encryption
+;  operations in assembler. I now see that I need to have some mastery
+;  over that subject to move forward.
+;
+;  In [6, 8-9], the author 'MidNyte' discusses the fundamentals of 
+;  encryption/enciphering in the context of the virus or poly engine.
+;  In Part I, four x86 assembly techniques (or as I like to think of
+;  them, 'primitives') are presented. In Part II, they then present
+;  four methods of 'armouring' the encryption. These articles seem
+;  to have everything necessary to understand the basics.
+;
+;  I'll be going through these and implementing them in x86_64 as soon
+;  as I have the time.
+;
 ;  References:
 ;   [1] https://vx-underground.org/archive/VxHeaven/lib/vbb01.html
 ;   [2] https://vx-underground.org/archive/VxHeaven/lib/vda01.html
@@ -77,6 +101,7 @@
 ;   [5] http://ref.x86asm.net/coder64.html
 ;   [6] https://vx-underground.org/archive/VxHeaven/lib/vmn04.html
 ;   [7] https://harrisonwl.github.io/assets/courses/malware/spring2017/slides/FinalWeeks/EncryptedOligomorphic.pdf
+;   [8] https://vx-underground.org/archive/VxHeaven/lib/vmn05.html
 ;
 ;  Not directly related but cool:
 ;   [i] https://github.com/Battelle/sandsifter
