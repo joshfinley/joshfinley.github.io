@@ -1,6 +1,5 @@
 ```asm
 ;  <polytest.asm>   -   polytest source
-;                         Copyright (c) 2020 by Lucroid.
 ;
 ;  This file tests polymorphic code generation.
 ;
