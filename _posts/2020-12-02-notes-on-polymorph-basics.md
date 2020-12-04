@@ -22,13 +22,15 @@
 ;       3. Enter a loop where junk code is added to the real decryptor
 ;           (potentially uneccesary [10])
 ;
-;  This is also the part that confuses me though... Before even adding
-;  junk code, how is the pre-coded decryptor made compatible with the
-;  random selection of registers? From what I understand from [1], it
-;  appears that the polymorphic vxer will take advantage of patterns
-;  in opcodes related to registers/addressing modes. This is not a 
-;  trivial detail but in my experience most other sources see to gloss
-;  over it. I could be wrong. I think it works something like this:
+;           II. Instruction Encoding In-Depth
+;
+;  Before even adding junk code, how is the pre-coded decryptor made 
+;  compatible with the random selection of registers? From what I 
+;  understand from [1], it appears that the polymorphic vxer will 
+;  take advantage of patterns in opcodes related to registers/addres-
+;  sing modes. This is not a trivial detail but in my experience most 
+;  other sources see to gloss overer it. I could be wrong. Regardless,
+;  the basics are this:
 ;
 ;  Each basic instruction in (for example) x86 64-bit mode has
 ;  different bits set for different addressing modes. Take XOR
@@ -48,16 +50,15 @@
 ;  addressing mode.
 ;
 ;  In [1], the author mentions building a 'skeleton instruction table'.
-;  Cursory internet searches don't turn up anything like this. Down in
-;  the deep I'm sure there's some somewhere... But either way, for my 
-;  purposes, I need to create one. To start off with some quick wins, 
-;  it is readily apparent from [5] that ADD, OR, ADC, SBB, AND, SUB, 
-;  XOR, and CMP share close opcode values for each addressing mode, 
+;  Cursory internet searches don't turn up anything like this. To
+;  start off with some quick wins in creating one, we can see that its 
+;  readily apparent from [5] that ADD, OR, ADC, SBB, AND, SUB, XOR,
+;  and CMP share close opcode values for each addressing mode, 
 ;  (off by 1). But to build a skeleton table, we need only pick out
 ;  the first examples of these. To make things easier, these groups of  
 ;  different opcodes for each operation are aligned nicely (0x00-0x08, 
 ;  0x1-=0x0d). Other opcodes aren't as neatly organized (e.g. PUSH, POP). 
-;  Regardless,just by using [5] we can simply pick out the skeleton  
+;  Regardless, just by using [5] we can simply pick out the skeleton  
 ;  instructions we need:
 ;
 ;       hex      opcode
@@ -68,16 +69,69 @@
 ;       0x20     AND
 ;       0x28     SUB
 ;       0x30     XOR
-;       0x38     CMP
-;       0x88     MOV (standard variations)                 fig. 2
+;       0x38     CMP        fig. 2
 ;
-;  This is only a sample of opcodes with predictible patterns for 
-;  opcode extensions in the 'ModR/M' byte. Using these 'skeleton' 
-;  opcodes, one can feasibly imagine being given a register - such
-;  as those randomly chosen for the decryptor - and operating on it
-;  freely with the knowledge of the opcode extension patterns in hand.
+;  But if we look at the encoding of real instructions from an assembl-
+;  ed encryption loop, we can quickly see that theres much more going
+;  on than the addressing mode variations between each instruction:
 ;
-;           II. Encryption Primitives
+;       a) 48 C7 C3 9A 02 00    // mov rbx, 29Ah  
+;       b) 48 2B CB             // sub rcx, rbx 
+;
+;  Why do both instructions begin with a 48? We can assume that C7 is
+;  an opcode for MOV since 2B is an opcode for SUB. What does the
+;  third byte do, and why does the assembler use four bytes to repres-
+;  ent an integer that fits in a word?
+;
+;  It took some effort to track down useful resources and make sense
+;  of all the different interpretation of the data describing these
+;  encodings, but between [5, 12, 13, and 14], I think I was able to
+;  understand it. If we take the following instruction as an example, 
+;  we can decode the meanings of the bit positions [5] [12]:
+;
+;   -----------------------------------------------------------------------
+;       hex            
+;                       __REX.W  
+;                      /   ____r/m16/32/64
+;                     /  /  ______________Mod-Reg-R/M Byte
+;                    /  /  /  ,______,____________________QWORD immediate
+;                a) 48 C7 C3 9A 02 00 
+;                b) 48 2B CB
+;
+;       instruction         
+;                a) mov rbx, 29Ah              
+;                b) sub rcx, rbx           
+;                         
+;       binary                         
+;                                      ______0x29a_____
+;       a)                            /                \
+;         01001000 11000111 11000011 [10011010 00000010] 00000000 000000000  
+;         \______/ \______/       \/  \___________________________________/
+;           |          |          |                    |    
+;   rex prefix      MOV           register             quad word  
+;               
+;       b)         
+;                   01001000         01010110        11001011
+;                   \__/wrxb         \_____/           \/ \/
+;            fixed___/  \__/            |              |   \             
+;                        |         sub immediate       rcx   rbx
+;           64-bit operand ('W' bit set) 
+;                                                                    fig. 3
+;   -----------------------------------------------------------------------
+;
+;   i. Note on Quick Visualization of Binary with Python
+;
+;       # One off
+;       ... data = "48 C7 C3 9A 02 00 00"
+;       ... bytes = bytearray.fromhex((data))
+;       ... [print(bin(bytes[i]), end=" ") for i in range(len(bytes))]
+;       ...
+        # As a function
+;       ... def bin_from_bytes(data):
+;       ...   bytes = bytearray.fromhex(data)
+;       ...   [print(bin(bytes[i]), end=" ") for i in range(len(bytes))]
+;   
+;           II. Encryption Primitives                        
 ;  
 ;  Before the poly engine comes the encryption primitives. One mistake
 ;  I seem to have made is in seeking out to understand the concepts in
@@ -104,25 +158,25 @@
 ;       - integrity-dependent decryption
 ;       - date-dependent decryption
 ;
-;   While they're important, I'm going to avoid the latter four
-;   techniques for the time being as I'm trying to focus on the
-;   basics.
+;  While they're important, I'm going to avoid the latter four
+;  techniques for the time being as I'm trying to focus on the
+;  basics.
 ;
-;           i. A Note on Generating Garbage
+;       ii. A Note on Generating Garbage
 ;
-;   Garbage code generation is still code generation. At that, the
-;   quality of the garbage matters [10]. It is even suggested that
-;   it is more worthwhile to use stronger and more complicated 
-;   encryption than to add junk code at all [10]. Since generating
-;   garbage does not seem reward the time investment at the moment,
-;   I will revisit this later.
+;  Garbage code generation is still code generation. At that, the
+;  quality of the garbage matters [10]. It is even suggested that
+;  it is more worthwhile to use stronger and more complicated 
+;  encryption than to add junk code at all [10]. Since generating
+;  garbage does not seem reward the time investment at the moment,
+;  I will revisit this later.
 ;
-;           III. Pemutating the Decryptor
+;           III. Permuting the Decryptor
 ;
-;   [11] Provides a notation and description for a decryption algor-
-;   ithm very similar to the ones provided by [6]. The following is
-;   an adaptation of the described algorithm and the permutation ru-
-;   les provided:
+;  [11] Provides a notation and description for a decryption algor-
+;  ithm very similar to the ones provided by [6]. The following is
+;  an adaptation of the described algorithm and the permutation ru-
+;  les provided:
 ;
 ;   -----------------------------------------------------------------------
 ;     decrypt proc near
@@ -139,7 +193,7 @@
 ;       10) inc pointer_register                ; increment pointer (x2)    
 ;       11) jnz main_loop                       ; loop until length=0       
 ;       12) ret                                 ; return pc                 
-;     decrypt endp                                                  fig. 3
+;     decrypt endp                                                  fig. 4
 ;   -----------------------------------------------------------------------
 ;       1) permutable, can be placed anywhere
 ;       2) permutable, can be placed anywhere
@@ -152,14 +206,14 @@
 ;       9) permutable, can be placed anywhere after [6]
 ;       10) permutable, can be placed anywhere after [6]
 ;       11) not permutable
-;       12) not permutable                                          fig. 4                    
+;       12) not permutable                                          fig. 5                    
 ;   -----------------------------------------------------------------------
 ;
-;   Just as in [11], this general description of the algorithm with 
-;   permutation rules can be used to "make a matrix of bytes". In
-;   this case, since the algorithm is slightly different. We can n-
-;   ow describe permutations of the same algorithm that are logica-
-;   lly equivalent but different in signature, for example:
+;  Just as in [11], this general description of the algorithm with 
+;  permutation rules can be used to "make a matrix of bytes". In
+;  this case, since the algorithm is slightly different. We can n-
+;  ow describe permutations of the same algorithm that are logica-
+;  lly equivalent but different in signature, for example:
 ;
 ;   matrix a)
 ;       permutation: [4, 1, 2, 3, 5, 6, 8, 9, 7, 10, 11, 12]
@@ -167,14 +221,11 @@
 ;
 ;   matrix b)
 ;       permutation: [3, 1, 2, 4, 5, 6, 7, 10, 8, 9, 11, 12]
-;       place:        1  2  3  4  5  6  7  8   9  10 11  12
+;       place:       [1, 2, 3, 4, 5, 6, 7, 8,  9, 10, 11, 12]
 ;
-;           IV: Coding Instructions for the Decryptor
+;           IV: Random Registers
+;
 ;   
-;   Permuting the order of the instructions is only one part of the
-;   engine, however; there are many ways to code the same logical
-;   instruction.
-;
 ;
 ;
 ;  References:
@@ -189,6 +240,9 @@
 ;   [9] https://vx-underground.org/archive/VxHeaven/lib/vmn06.html
 ;   [10] https://vx-underground.org/archive/VxHeaven/lib/vts01.html
 ;   [11] https://vx-underground.org/archive/VxHeaven/lib/vlj04.html
+;   [12] https://software.intel.com/content/www/us/en/develop/download/intel-64-and-ia-32-architectures-sdm-combined-volumes-1-2a-2b-2c-2d-3a-3b-3c-3d-and-4.html
+;   [13] https://wiki.osdev.org/X86-64_Instruction_Encoding
+;   [14] http://www.c-jump.com/CIS77/CPU/x86/X77_0060_mod_reg_r_m_byte.htm
 ;
 ;  Not directly related but still relevant:
 ;   [i] https://github.com/Battelle/sandsifter
