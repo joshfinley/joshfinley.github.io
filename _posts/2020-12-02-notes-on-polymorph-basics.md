@@ -4,7 +4,8 @@
 ;
 ;  ---------------------------- abstract ----------------------------
 ;  This file contains a discussion of polymorphic engines, written
-;  as an individual learning exercise that may be shared with others.
+;  as an individual learning exercise that may be shared with others
+;  for educational purposes.
 ;  ------------------------------------------------------------------
 ;
 ;           I. Introduction - the Components of the Engine
@@ -19,6 +20,7 @@
 ;       1. Select random set of registers
 ;       2. Choose a compressed pre-coded decryptor 
 ;       3. Enter a loop where junk code is added to the real decryptor
+;           (potentially uneccesary [10])
 ;
 ;  This is also the part that confuses me though... Before even adding
 ;  junk code, how is the pre-coded decryptor made compatible with the
@@ -90,8 +92,90 @@
 ;  four methods of 'armouring' the encryption. These articles seem
 ;  to have everything necessary to understand the basics.
 ;
-;  I'll be going through these and implementing them in x86_64 as soon
-;  as I have the time.
+;  The four ciphers presented in [6] are the following:
+;       - substitution
+;       - sliding key
+;       - long key
+;       - transposition
+;   
+;  In [8], the following armoring techniques are presented:
+;       - variable length transposition
+;       - boundary scrambling
+;       - integrity-dependent decryption
+;       - date-dependent decryption
+;
+;   While they're important, I'm going to avoid the latter four
+;   techniques for the time being as I'm trying to focus on the
+;   basics.
+;
+;           i. A Note on Generating Garbage
+;
+;   Garbage code generation is still code generation. At that, the
+;   quality of the garbage matters [10]. It is even suggested that
+;   it is more worthwhile to use stronger and more complicated 
+;   encryption than to add junk code at all [10]. Since generating
+;   garbage does not seem reward the time investment at the moment,
+;   I will revisit this later.
+;
+;           III. Pemutating the Decryptor
+;
+;   [11] Provides a notation and description for a decryption algor-
+;   ithm very similar to the ones provided by [6]. The following is
+;   an adaptation of the described algorithm and the permutation ru-
+;   les provided:
+;
+;   -----------------------------------------------------------------------
+;     decrypt proc near
+;       1)  mov length_register, length         ; get the code length       
+;       2)  mov pointer_register, startcode     ; load pointer register     
+;       3)  mov destination_register, startcode ; load the destination reg. 
+;       4)  mov key_register, key               ; get the key               
+;     main_loop
+;       5)  mov code_register, pointer_register ; take an encrypted word    
+;       6)  call unscramble                     ; decrypt it (*)            
+;       7)  mov destination_register, code_reg. ; write the decrypted word  
+;       8)  add key_register, key_increment     ; increment the key         
+;       9)  dec length_register                 ; decrement length          
+;       10) inc pointer_register                ; increment pointer (x2)    
+;       11) jnz main_loop                       ; loop until length=0       
+;       12) ret                                 ; return pc                 
+;     decrypt endp                                                  fig. 3
+;   -----------------------------------------------------------------------
+;       1) permutable, can be placed anywhere
+;       2) permutable, can be placed anywhere
+;       3) permutable, can be placed anywhere
+;       4) permutable, can be placed anywhere
+;       5) not permutable
+;       6) not permutable
+;       7) permutable, can be placed anywhere after [6]
+;       8) permutable, can be placed anywhere after [6]
+;       9) permutable, can be placed anywhere after [6]
+;       10) permutable, can be placed anywhere after [6]
+;       11) not permutable
+;       12) not permutable                                          fig. 4                    
+;   -----------------------------------------------------------------------
+;
+;   Just as in [11], this general description of the algorithm with 
+;   permutation rules can be used to "make a matrix of bytes". In
+;   this case, since the algorithm is slightly different. We can n-
+;   ow describe permutations of the same algorithm that are logica-
+;   lly equivalent but different in signature, for example:
+;
+;   matrix a)
+;       permutation: [4, 1, 2, 3, 5, 6, 8, 9, 7, 10, 11, 12]
+;       place:       [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+;
+;   matrix b)
+;       permutation: [3, 1, 2, 4, 5, 6, 7, 10, 8, 9, 11, 12]
+;       place:        1  2  3  4  5  6  7  8   9  10 11  12
+;
+;           IV: Coding Instructions for the Decryptor
+;   
+;   Permuting the order of the instructions is only one part of the
+;   engine, however; there are many ways to code the same logical
+;   instruction.
+;
+;
 ;
 ;  References:
 ;   [1] https://vx-underground.org/archive/VxHeaven/lib/vbb01.html
@@ -102,10 +186,13 @@
 ;   [6] https://vx-underground.org/archive/VxHeaven/lib/vmn04.html
 ;   [7] https://harrisonwl.github.io/assets/courses/malware/spring2017/slides/FinalWeeks/EncryptedOligomorphic.pdf
 ;   [8] https://vx-underground.org/archive/VxHeaven/lib/vmn05.html
+;   [9] https://vx-underground.org/archive/VxHeaven/lib/vmn06.html
+;   [10] https://vx-underground.org/archive/VxHeaven/lib/vts01.html
+;   [11] https://vx-underground.org/archive/VxHeaven/lib/vlj04.html
 ;
 ;  Not directly related but still relevant:
-;   [i]   https://github.com/Battelle/sandsifter
-;   [ii]  https://en.wikipedia.org/wiki/Hexspeak#Notable_magic_numbers
+;   [i] https://github.com/Battelle/sandsifter
+;   [ii] https://en.wikipedia.org/wiki/Hexspeak#Notable_magic_numbers
 
 option win64:3      ; init shadow space, reserve stack at PROC level
 
@@ -135,22 +222,19 @@ _TEXT$00 SEGMENT ALIGN(10h) 'CODE' READ WRITE EXECUTE
 ;
 simple_substitution_cipher:
     simple_substitution_cipher_setup:
-        mov     rbx, offset payload_code
-        mov     rcx, offset payload_code_ends
-        sub     rcx, rbx
-        shr     cx, 1                                   ;  Calculate payload body size in words
-
-        mov     rsi, rbx                                ;  source = start of encrypted code
-        mov     rdi, rsi                                ;  destination = same as the source
-        mov     rbx, 029Ah                              ;  rbx = key
-        xor     rax, rax
-
-    simple_substitution_cipher_loop_begin:
-        lodsw                                           ;  MOV's word from [si] to ax, and increases si by 2
-        xor     ax, bx                                  ;  The actual decryption
-        stosw                                           ;  MOV's word from ax to [di], and increases di by 2
-                                                        ;  Notice the segment must be marked RWX to modify the code
-        loop    simple_substitution_cipher_loop_begin   ;  DEC's cx, and jumps to start_loop if CX > 0
+        mov     rcx, (offset payload_code_ends - offset payload_code) / 2
+                                                        ;  Calculate payload body size in words                         
+                                                                                                                        
+        mov     rsi, rbx                                ;  source = start of encrypted code                             
+        mov     rdi, rsi                                ;  destination = same as the source                             
+        mov     rbx, 029Ah                              ;  rbx = key                                                                                                                                              
+                                                                                                                        
+    simple_substitution_cipher_loop_begin:                                                                              
+        lodsw                                           ;  MOV's word from [si] to ax, and increases si by 2            
+        xor     ax, bx                                  ;  The actual decryption                                        
+        stosw                                           ;  MOV's word from ax to [di], and increases di by 2            
+                                                        ;  Notice the segment must be marked RWX to modify the code     
+        loop    simple_substitution_cipher_loop_begin   ;  DEC's cx, and jumps to start_loop if CX > 0                  
     simple_substitution_cipher_end:
         ret
 
@@ -222,7 +306,7 @@ transposition_cipher:
         stosw                                           ;  Puts the second word into the first word's place in dest
         mov     ax, bx                                  ;  Restores first word from bx to ax
         stosw                                           ;  Puts first word in second word's place in dset
-        loop transposition_cipher_loop_start  ;  Decrements cx and jumps to loop head if cx > 0
+        loop transposition_cipher_loop_start            ;  Decrements cx and jumps to loop head if cx > 0
 
     transposition_cipher_loop_end:
         ret
