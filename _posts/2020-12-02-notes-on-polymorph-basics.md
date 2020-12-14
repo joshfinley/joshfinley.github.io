@@ -22,7 +22,7 @@
 ;       3. Enter a loop where junk code is added to the real decryptor
 ;           (potentially uneccesary [10])
 ;
-;           II. Instruction Encoding In-Depth
+;               II. Instruction Encoding In-Depth
 ;
 ;  Before even adding junk code, how is the pre-coded decryptor made 
 ;  compatible with the random selection of registers? From what I 
@@ -92,30 +92,37 @@
 ;   -----------------------------------------------------------------------
 ;       hex            
 ;                       __REX.W  
-;                      /   ____r/m16/32/64
+;                      /   ____MOV r/m16/32/64
 ;                     /  /  ______________Mod-Reg-R/M Byte
 ;                    /  /  /  ,______,____________________QWORD immediate
 ;                a) 48 C7 C3 9A 02 00 
 ;                b) 48 2B CB
-;
+;                c) 89 05 B9 1F 00 00
+;                   \   
+;                    \
+;                     \__MOV r/m16/32/64
 ;       instruction         
 ;                a) mov rbx, 29Ah              
 ;                b) sub rcx, rbx           
-;                         
+;                c) mov dword ptr ds:0x1fb9,eax               
+;
 ;       binary                         
 ;                                      ______0x29a_____
 ;       a)                            /                \
 ;         01001000 11000111 11000011 [10011010 00000010] 00000000 000000000  
-;         \______/ \______/       \/  \___________________________________/
-;           |          |          |                    |    
+;         \_____/  \_____/       \/   \__________________________________/
+;           |          |         |                     |    
 ;   rex prefix      MOV           register             quad word  
 ;               
 ;       b)         
 ;                   01001000         01010110        11001011
 ;                   \__/wrxb         \_____/           \/ \/
-;            fixed___/  \__/            |              |   \             
+;            fixed___/  \_/            |               |   \             
 ;                        |         sub immediate       rcx   rbx
 ;           64-bit operand ('W' bit set) 
+;
+;       c) 
+;        10001001 00000101 10111001 00011111 00000000 000000000
 ;                                                                    fig. 3
 ;   -----------------------------------------------------------------------
 ;
@@ -126,12 +133,12 @@
 ;       ... bytes = bytearray.fromhex((data))
 ;       ... [print(bin(bytes[i]), end=" ") for i in range(len(bytes))]
 ;       ...
-        # As a function
+;       # As a function
 ;       ... def bin_from_bytes(data):
 ;       ...   bytes = bytearray.fromhex(data)
 ;       ...   [print(bin(bytes[i]), end=" ") for i in range(len(bytes))]
 ;   
-;           II. Encryption Primitives                        
+;                   III. Encryption Primitives                        
 ;  
 ;  Before the poly engine comes the encryption primitives. One mistake
 ;  I seem to have made is in seeking out to understand the concepts in
@@ -162,7 +169,7 @@
 ;  techniques for the time being as I'm trying to focus on the
 ;  basics.
 ;
-;       ii. A Note on Generating Garbage
+;       ii. A Note on Generating Garbage and Simple Ciphers
 ;
 ;  Garbage code generation is still code generation. At that, the
 ;  quality of the garbage matters [10]. It is even suggested that
@@ -171,7 +178,12 @@
 ;  garbage does not seem reward the time investment at the moment,
 ;  I will revisit this later.
 ;
-;           III. Permuting the Decryptor
+;  One contesting idea regarding this however is the benefits of
+;  the sheer simplicity of XOR, ADD, and SUB ciphers. For example,
+;  in [18] one of the most advanced cyber attacks in history, a s-
+;  liding XOR cipher was employed to decent success.
+;
+;                   IV. Permuting the Decryptor
 ;
 ;  [11] Provides a notation and description for a decryption algor-
 ;  ithm very similar to the ones provided by [6]. The following is
@@ -223,10 +235,66 @@
 ;       permutation: [3, 1, 2, 4, 5, 6, 7, 10, 8, 9, 11, 12]
 ;       place:       [1, 2, 3, 4, 5, 6, 7, 8,  9, 10, 11, 12]
 ;
-;           IV: Random Registers
+;                   V: Random Registers
+; 
+;  Now that we know what logical operations must be included and 
+;  have an idea of how what bit-level characteristics each instru-
+;  ction might have (fig 3.), the next fundamental characteristic
+;  of the polymorphic engine to understand is the random selection
+;  of registers mechanism.
 ;
+;       [rax, rbx, rcx, rdx, r8, r9, r11, r12, r13, r14, r15]
+;
+;  To get a random register from this list, one need only to gene-
+;  rate a random number in the range and use it as an index. This
+;  is a good starting point for the discussion on randomness in
+;  general. Fortunately for the poly-engine author, there are so-
+;  me extremely simple algorithms that are 'good-enough' for now.
+;  The following code is lifted straight from [16]:
+;
+;      __uint128_t g_lehmer64_state;
+;      
+;      uint64_t lehmer64() {
+;        g_lehmer64_state *= 0xda942042e4dd58b5;
+;        return g_lehmer64_state >> 64;
+;      }
+;
+;  This could be implemented in asm as follows:
 ;   
+;      get_lehmer:
+;        mov     rax, rcx
+;        mov     rcx, 0da942042e4dd58b5h
+;        mul    rax, rcx
+;        shr     rax, 64
+;        ret
 ;
+;  And after invocation, an index for a register can simply be
+;  derivied by taking the generated random, shifting right 59 bits
+;  (max value is now 0b11111 or 31 in base-10). From there, calc-
+;  ulating the modulo 10. This should be sufficient for an index.
+;  This is just my off-handed way of deriving a number withing a
+;  range from another larger number. I'm sure there's other and 
+;  better ways to do it. In assembly:
+;
+;       get_rand_reg:
+;         shr   rax, 59
+;         xor   rdx, rdx
+;         mov   rcx, 10
+;         div   rcx
+;         mov   rax, rcx
+;
+;  Given the time elapsed between this writing and the introduct-
+;  ion of the RDRAND instruction, its a good bet that it will be
+;  available in most target environments, however it is a magic
+;  black box that in my opinion is better left untouched. 
+;  Instead, entropy an be collected in other ways. For future
+;  reference, [17] is a good introduction to understanding and
+;  calculating entropy.
+;
+;  The last bit to do is to go about shuffling the list of regi-
+;  sters. The initial list can be described as follows:
+;
+;   [length_reg, source_reg, dest_reg, key_reg]
 ;
 ;  References:
 ;   [1] https://vx-underground.org/archive/VxHeaven/lib/vbb01.html
@@ -243,6 +311,10 @@
 ;   [12] https://software.intel.com/content/www/us/en/develop/download/intel-64-and-ia-32-architectures-sdm-combined-volumes-1-2a-2b-2c-2d-3a-3b-3c-3d-and-4.html
 ;   [13] https://wiki.osdev.org/X86-64_Instruction_Encoding
 ;   [14] http://www.c-jump.com/CIS77/CPU/x86/X77_0060_mod_reg_r_m_byte.htm
+;   [15] https://github.com/vxunderground/MalwareSourceCode/blob/6919f569b56cdbf91fad247753571673b1eac083/LegacyWindows/Win98/Win98.BlackBat.asm
+;   [16] https://lemire.me/blog/2019/03/19/the-fastest-conventional-random-number-generator-that-can-pass-big-crush/
+;   [17] https://machinelearningmasteyr.com/what-is-informatin-entropy
+;   [18] https://vxug.fakedoma.in/samples/Exotic/UNC2452/SolarWinds%20Breach/
 ;
 ;  Not directly related but still relevant:
 ;   [i] https://github.com/Battelle/sandsifter
@@ -250,11 +322,11 @@
 
 option win64:3      ; init shadow space, reserve stack at PROC level
 
-_DATA$00 SEGMENT PAGE 'DATA'
+DATA$00 SEGMENT PAGE 'DATA'
 
-_DATA$00 ENDS
+DATA$00 ENDS
 
-_TEXT$00 SEGMENT ALIGN(10h) 'CODE' READ WRITE EXECUTE
+TEXT$00 SEGMENT ALIGN(10h) 'CODE' READ WRITE EXECUTE
 
     Main PROC	
         call    simple_substitution_cipher
@@ -365,24 +437,73 @@ transposition_cipher:
     transposition_cipher_loop_end:
         ret
 
+;  Get random seed
+;
+get_rand_seed:
+    mov     rax, 0FEEDDEADBEEFh                         ;  Just return a test seed for now
+    ret
+
+
+; qword get_lehmer64(ecx=lehmer_state);
+;
+; __uint128_t g_lehmer64_state;
+; 
+; uint64_t lehmer64() {
+;   g_lehmer64_state *= 
+;
+;   return g_lehmer64_state >> 64;
+; }
+;
+get_rand:
+    mov     rax, rcx
+    mov     rcx, 0da942042e4dd58b5h
+    imul    rax, rcx
+    shr     rax, 64
+    ret
+
+; Get a register index from a random uint64
+;
+get_reg_from_rand:
+    shr     rax, 59
+    xor     rdx, rdx
+    mov     rcx, 10
+    div     rcx
+    mov     rax, rcx
+    ret
+
+; Get a random number from a range
+; uint64 RandFromRange(rcx=max)
+rand_from_range:
+    push    rcx                                        ;  Store the max value
+    call    get_rand_seed                              ;  Get a uint64 seed
+    mov     rcx, rax                                   ;  Move the seed to param_1
+    call    get_rand                                   ;  Get a random uint64
+    xor     rcx, rcx                                   ;  Create a counter
+_rand_range_loop:
+    shr     rcx, 1                                     ;  Remove one bit place
+    inc     rcx                                        ;  Increment the counter
+    test    rcx, rcx                                   ;  Did that shift zero it?
+    jnz     _rand_range_loop                           ;  No, there's more data. 
+    mov     r8, 64                                     ;  Max number of places
+    sub     r8, rcx                                    ;  Subtract our number of places
+    shr     rax, r8                                    ;  Shift the random down into our range
+    pop     rcx                                        ;  Get the max value back
+    xor     rdx, rdx                                   ;  Clear for division
+    div     rcx                                        ;  Get the random's representation within the max value by modulo
+    mov     rax, rcx                                   ;  
+    ret                                                ;
+
 ;-----------------------------------------------------------------------------
 ;  Payload Code
 ;-----------------------------------------------------------------------------
 
 payload_code:
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
+    mov     rax, 1
     ret
 
 payload_code_ends:
 
-_TEXT$00 ENDS
+TEXT$00 ENDS
 
 END
 ```
