@@ -21,6 +21,7 @@ titleImage:
 | `tui reg general`      | Display general purpose regs                               |
 | `ctrl+p`               | Previous command in tui mode                               |
 | `ctrl+n`               | Next command in tui mode                                   |
+| `set disassembly-flavor intel` | Dodge the awfulness that is ATT syntax             |
 
 ## Reading Output
 ### Threads
