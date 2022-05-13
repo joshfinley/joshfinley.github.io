@@ -68,7 +68,7 @@ My favorite language for any sort of systems programming is Go. It's as expressi
 
 As mentioned earlier in this post, most EFT radars leverage DMA devices to read process memory. These are deployed to give the cheater the advantage of stealthy memory access. These devices attach to the game machine's PCI bus and issue read commands to physical memory without touching the CPU, making them difficult (but not impossible) to detect.
 
-But this method is used in real cheats. My objective was not to write something for actual game abuse, but a toy project that does everything else that the cheat does. Because evading anti-cheat was not a requirement, I instead leveraged plain-old Windows APIs to read game memory. To make this convenient, I began by writing a simple WinAPI wrapper project. This package abstracts finding processes and loaded modules, obtaining handles, and reading memory. This makes reading game memory reads from the cheat backend simple and abstract. Game memory is primary read using the following functions and types:
+But this method is used in real cheats. My objective was not to write something for actual game abuse, but a toy project that does everything else that the cheat does. Because evading anti-cheat was not a requirement, I instead leveraged plain-old Windows APIs to read game memory. To make this convenient, I began by writing a simple WinAPI wrapper project. This package abstracts finding processes and loaded modules, obtaining handles, and reading memory. This makes reading game memory  from the cheat backend simple and abstract. Game memory is primary read using the following functions and types:
 
 ```
 type WinProc struct {
