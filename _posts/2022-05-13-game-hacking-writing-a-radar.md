@@ -260,6 +260,6 @@ From there, its just a matter of plotting player positions visually, which is a 
 
 ## Conclusion
 
-Please remember that this project is not intended to provide a working game cheat or instruct any one on abusing other player's and ruining their game experience. Please don't try to use `radkov` to cheat in live games with real players for these reasons. `radkov` is not written to be stealthy and evade BattleEye, or leverage DMA attacks to cheat in real games.
+Please remember that this project is not intended to provide a working game cheat or instruct any one on abusing other players and ruining their game experience. Please don't try to use `radkov` to cheat in live games with real players for these reasons. `radkov` is not written to be stealthy and evade BattleEye, or leverage DMA attacks to cheat in real games.
 
 With this project, I completed my first true game cheat, leveraging public knowledge to create a completely new radar cheat framework for Escape from Tarkov. Most public examples are hard to read and rely on hard-coded offsets, but I aimed to avoid these mistakes and provide a clean demonstration of a radar type cheat for a Unity game in a language seldom used in the game hacking scene. This was a super engaging and exciting project, and I hope this article and the `radkov` project source code have been of instructive value to the reader.
