@@ -258,6 +258,8 @@ func main() {
 
 From there, its just a matter of plotting player positions visually, which is a much less exciting programming task, hence why I have not completed it and don't intend to :)
 
+![Radkov in action](../images/tarkov-radar-demo.gif)
+
 ## Conclusion
 
 Please remember that this project is not intended to provide a working game cheat or instruct any one on abusing other players and ruining their game experience. Please don't try to use `radkov` to cheat in live games with real players for these reasons. `radkov` is not written to be stealthy and evade BattleEye, or leverage DMA attacks to cheat in real games.
