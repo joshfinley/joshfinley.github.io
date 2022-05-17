@@ -141,13 +141,38 @@ It appears that despite devoting good effort to ensuring KPP protection of Pico 
 
 It seems to be common knowledge among WSL users that WSL2 offers a full Linux kernel. Keen users may also have noticed that it is implemented using true virtualization. Interestingly, virtualization was not preferred for the original implementation due to overhead, but it seems by now that Microsoft has come up with a workable solution for this, enabling WSL2 to run as fast or faster as its predecessor.
 
-The Linux Kernel leveraged by WSL2 is open-source. Yet the details behind the virtualization technology it uses are sparse. Microsoft appears to have been quietly making updates to its virtualization technology in for use in coming releases of Windows, with the most noteable use case being a subsystem for Android.
-
-This indicates that the limitation of one subsystem in the Pico Provider model has been surmounted using Microsoft virtualization technology. It will be interesting to see if Pico Processes and Pico Providers are leveraged for other uses in the future, or if they will become vestigial organs of the Operating Systems only supported for the sake of WSL1? It appears to be the latter, for now.
+The Linux Kernel leveraged by WSL2 is open-source. Yet the details behind the virtualization technology it uses are sparse. Microsoft appears to have been quietly making updates to its virtualization technology in for use in coming releases of Windows, with the most noteable use case (other than WSL2) being a subsystem for Android. There are numerous sources repeating the something like the phrase 'lightweight utility virtual machine' to describe the virtual machine used by these new subsystems, but no one among the public seems to know what this actually means. 
 
 ### Hyper-V Architecture
 
-Hyper-V organizes VMs as 'partitions'. Each partition can interact with either a `VMBus` or the hypervisor through the `hypercall` API. Hypercalls seem to be similar to `vm_enter` and `vm_exit` in Intel VT/AMD-V.
+Hyper-V organizes VMs as 'partitions'. Each partition can interact with either a `VMBus` or the hypervisor through the `hypercall` API. Hypercalls seem to be similar to `vm_enter` and `vm_exit` in Intel VT/AMD-V or syscalls in a regular ring 3 -> ring 0 model. 
+
+### Questions
+
+To make things even more confusing, there now seems to be change in Microsoft's own terminology for the foundational virtual machine technology, with MSDN documentation claiming that the architecture is still just 'Hyper-V', while numerous online Q&A's on the distinction between Hyper-V (HV), Virtual Machine Platform (VMP), Windows Hypervisor Platform (WHP), and claim that Hyper-V is now just the user interface layer through which the Virtual Machine Platform is accessed. Others claim that the HV is the actual hypervisor implementation and that VMP and WHP are development platforms based on HV:
+
+- https://www.google.com/search?client=firefox-b-1-d&q=Virtual+Machine+Platform
+- https://superuser.com/questions/1556521/virtual-machine-platform-in-win-10-2004-is-hyper-v
+
+This leads me to the following questions:
+
+- Is the 'host' Windows instance virtualized when Hyper-V and VMP are enabled?
+  - If yes, what interfaces exist for us to interact with the hypervisor (virtualization service provider?)
+  - How can we make `hypercall`s to learn more about the environment
+- Regarding the WSL2 'light weight' VM:
+  - Own partition?
+  - How can we interact with it from Windows user mode? Is LxssManager still the COM provider (looks like no)?
+
+
+### Finding the WSL VM
+
+Back to WSL - the move to a virtualized implementation indicates that the limitation of one subsystem in the Pico Provider model has been surmounted using Microsoft virtualization technology. It will be interesting to see if Pico Processes and Pico Providers are leveraged for other uses in the future, or if they will become vestigial organs of the Operating Systems only supported for the sake of WSL1? It appears to be the latter, for now.
+
+WSL2 rquires two other Windows features to be enabled: Hyper-V and Virtual Machine Platform. WSL2 is said to use a lightweight virtual machine, but its not clear what this actually means. Even with running instances of WSL2, the `Get-VM` cmdlet does not return any related VMs, yet we know one exists, but it must not be managed by Hyper-V but rather the Windows hypervisor itself.
+
+### Issuing Hypercalls
+
+Hypercalls must occur from Ring 0 on x64. In order to explore them, a driver will be required.
 
 ## Areas to Explore in the Future
 
@@ -166,5 +191,8 @@ Fuzzing (Microsoft appears to be doing this already):
 - [Pico toolbox](https://github.com/thinkcz/pico-toolbox)
 - [WSL2-Linux-Kernel](https://github.com/microsoft/WSL2-Linux-Kernel)
 - [Hyper-V arhchiecture](https://docs.microsoft.com/en-us/virtualization/hyper-v-on-windows/reference/hyper-v-architecture)
-- [https://lkml.iu.edu/hypermail/linux/kernel/2102.2/00124.html]
+- [Enabling Linux Root Partition](https://lkml.iu.edu/hypermail/linux/kernel/2102.2/00124.html)
 - [Developing WSL distributions in Visual Studio](https://devblogs.microsoft.com/commandline/build-and-debug-c-with-wsl-2-distributions-and-visual-studio-2022/)
+- [Windows Sandbox blog](https://techcommunity.microsoft.com/t5/windows-kernel-internals-blog/windows-sandbox/ba-p/301849)
+- [Blog explaining HV](https://www.acronis.com/en-us/blog/posts/hyper-v-authoritative-guide/)
+- [Hypercall Fuzzing](https://github.com/FSecureLABS/ViridianFuzzer)
