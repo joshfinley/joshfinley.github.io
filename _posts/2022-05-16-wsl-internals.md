@@ -29,8 +29,7 @@ Pico process - Process managed by provider driver for management rather than dir
 
 ### System Calls from Pico Processes
 
-Pico processes with provider drivers are unique in that system calls are dispatched to the driver rather than making it to regular system call handlers. It doesn't seem to be well known what drivers are protected by Kernel Patch Protection (KPP), but its possible that WSL provider drivers `lxss.sys` and `lxcore.sys` are not protected.
-
+Pico processes with provider drivers are unique in that system calls are dispatched to the driver rather than making it to regular system call handlers. 
 This leads me to several questions, with my attempts at answering them below:
 
 - what is the provider driver responsible for? e.g. a system call with valid parameters for an ordinary native API is issued. What happens?
