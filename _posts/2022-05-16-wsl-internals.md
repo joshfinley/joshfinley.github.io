@@ -196,3 +196,4 @@ Fuzzing (Microsoft appears to be doing this already):
 - [Windows Sandbox blog](https://techcommunity.microsoft.com/t5/windows-kernel-internals-blog/windows-sandbox/ba-p/301849)
 - [Blog explaining HV](https://www.acronis.com/en-us/blog/posts/hyper-v-authoritative-guide/)
 - [Hypercall Fuzzing](https://github.com/FSecureLABS/ViridianFuzzer)
+- [Microsoft Hypervisor Top Level Functional Specification](https://raw.githubusercontent.com/MicrosoftDocs/Virtualization-Documentation/live/tlfs/Hypervisor%20Top%20Level%20Functional%20Specification%20v6.0b.pdf)
