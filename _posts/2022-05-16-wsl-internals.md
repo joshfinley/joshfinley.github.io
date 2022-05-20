@@ -164,21 +164,60 @@ This leads me to the following questions:
   - How can we interact with it from Windows user mode? Is LxssManager still the COM provider (looks like no)?
 
 
+### Hypervisor Implementation
+
+Depending on the architecture, the hypervisor itself will be loaded using one of the following:
+- intel: hvix64.exe
+- amd: hvax64.exe
+- arm: hvaa64.exe
+
+The hypervisor is intentionally kept minimal, with all management components confined to the root partition, with interfaces in user mode (WMI, VMM service, VM worker processes).
+
+#### Data Structures
+
+- `VM_VP` for each virtual processer 
+- `TH_THREAD` for each virtual processor
+- `TH_PROCESS` represent the partition process
+- `VM_PARITION` represents actual partition
+
+#### Startup Sequence
+
+From Windows Internals:
+
+- UEFI components load HvLoader module
+- HvLoader loads the hypervisor binery (e.g. `hvix64.exe`)
+- `KiSystemStartup` called (entry point of hypervisor), initializes `KPRCB`
+- `BmpInitBootProcessor` called. 
+  - Queries CPU and sets up:
+  - Memory manager
+  - VMX virtualization abstraction layer (VAL)
+  - Synthetic Interrupt Controller (SynIC)
+  - IOMMU
+  - Address manager
+- Root partition created
+
+TBC
+
 ### Finding the WSL VM
 
 Back to WSL - the move to a virtualized implementation indicates that the limitation of one subsystem in the Pico Provider model has been surmounted using Microsoft virtualization technology. It will be interesting to see if Pico Processes and Pico Providers are leveraged for other uses in the future, or if they will become vestigial organs of the Operating Systems only supported for the sake of WSL1? It appears to be the latter, for now.
 
 WSL2 rquires two other Windows features to be enabled: Hyper-V and Virtual Machine Platform. WSL2 is said to use a lightweight virtual machine, but its not clear what this actually means. Even with running instances of WSL2, the `Get-VM` cmdlet does not return any related VMs, yet we know one exists, but it must not be managed by Hyper-V but rather the Windows hypervisor itself.
 
+TBC
+
 ### Issuing Hypercalls
 
-Hypercalls must occur from Ring 0 on x64. In order to explore them, a driver will be required.
+Hypercalls must occur from Ring 0 on x64. In order to explore them, a driver will be required. TBC
+
+
 
 ## Areas to Explore in the Future
 
 Fuzzing (Microsoft appears to be doing this already):
 - WSL1 system call fuzzing 
 - WSL1 ELF parser fuzzing
+- Hyper-V internals
 
 
 ## Other References
@@ -197,3 +236,5 @@ Fuzzing (Microsoft appears to be doing this already):
 - [Blog explaining HV](https://www.acronis.com/en-us/blog/posts/hyper-v-authoritative-guide/)
 - [Hypercall Fuzzing](https://github.com/FSecureLABS/ViridianFuzzer)
 - [Microsoft Hypervisor Top Level Functional Specification](https://raw.githubusercontent.com/MicrosoftDocs/Virtualization-Documentation/live/tlfs/Hypervisor%20Top%20Level%20Functional%20Specification%20v6.0b.pdf)
+- [http://hvinternals.blogspot.com/2021/]
+- [list of HV resources](https://forum.exetools.com/showthread.php?p=123103)
