@@ -13,7 +13,7 @@
 ;  Distilling the poly engine into three components according to [1]:
 ;  the first component of the engine is a random number generator. 
 ;  Easy enough. The second is a junk code generator. Slightly harder.
-;  The last component is a decryptor generator. Enough said.
+;  The last component is a decryptor generator. 
 ;
 ;  Focusing on the last of the three first - the decryptor generator -
 ;  According to [1] the algorithm is as follows:
@@ -26,10 +26,10 @@
 ;
 ;  Before even adding junk code, how is the pre-coded decryptor made 
 ;  compatible with the random selection of registers? From what I 
-;  understand from [1], it appears that the polymorphic vxer will 
+;  understand from [1], it appears that the polymorphic virus will 
 ;  take advantage of patterns in opcodes related to registers/addres-
 ;  sing modes. This is not a trivial detail but in my experience most 
-;  other sources see to gloss overer it. I could be wrong. Regardless,
+;  other sources see to gloss over it. Regardless,
 ;  the basics are this:
 ;
 ;  Each basic instruction in (for example) x86 64-bit mode has
@@ -143,8 +143,8 @@
 ;  Before the poly engine comes the encryption primitives. One mistake
 ;  I seem to have made is in seeking out to understand the concepts in
 ;  section I. without understanding how to perform the basic encryption
-;  operations in assembler. I now see that I need to have some mastery
-;  over that subject to move forward.
+;  operations in assembl some mastery over that subject is necessary 
+;  to move forward.
 ;
 ;  In [6, 8-9], the author 'MidNyte' discusses the fundamentals of 
 ;  encryption/enciphering in the context of the virus or poly engine.
@@ -164,10 +164,6 @@
 ;       - boundary scrambling
 ;       - integrity-dependent decryption
 ;       - date-dependent decryption
-;
-;  While they're important, I'm going to avoid the latter four
-;  techniques for the time being as I'm trying to focus on the
-;  basics.
 ;
 ;       ii. A Note on Generating Garbage and Simple Ciphers
 ;
@@ -285,11 +281,9 @@
 ;
 ;  Given the time elapsed between this writing and the introduct-
 ;  ion of the RDRAND instruction, its a good bet that it will be
-;  available in most target environments, however it is a magic
-;  black box that in my opinion is better left untouched. 
-;  Instead, entropy an be collected in other ways. For future
-;  reference, [17] is a good introduction to understanding and
-;  calculating entropy.
+;  available in most target environments. Alternatively, entropy 
+;  can be collected in other ways. For future reference, [17] is
+;  a good introduction to understanding and calculating entropy.
 ;
 ;  The last bit to do is to go about shuffling the list of regi-
 ;  sters. The initial list can be described as follows:
@@ -320,6 +314,9 @@
 ;   [i] https://github.com/Battelle/sandsifter
 ;   [ii] https://en.wikipedia.org/wiki/Hexspeak#Notable_magic_numbers
 
+;
+; Ciphers and example code
+;
 option win64:3      ; init shadow space, reserve stack at PROC level
 
 DATA$00 SEGMENT PAGE 'DATA'
