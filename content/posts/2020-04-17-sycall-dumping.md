@@ -1,7 +1,7 @@
 +++
 
 title = "Dumping Syscall Numbers and Offsets"
-date = 2020-04-17 00:05:28 -0500
+date = 2020-04-17 00:05:28 
 
 +++
 

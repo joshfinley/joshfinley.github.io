@@ -1,7 +1,7 @@
 +++
 
 title = "Game Hacking - Writing a Radar in Go"
-date = 2022-05-13 00:05:28 -0500
+date = 2022-05-13 00:05:28
 
 +++
 

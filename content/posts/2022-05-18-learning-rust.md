@@ -1,7 +1,7 @@
 +++
 
 title = "Notes - Learning Rust"
-date = 2022-05-18 00:05:28 -0500
+date = 2022-05-18 00:05:28 
 
 +++
 

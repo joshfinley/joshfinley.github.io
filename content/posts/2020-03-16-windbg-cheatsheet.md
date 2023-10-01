@@ -1,7 +1,7 @@
 +++
 
 title = "WinDbg Cheatsheet"
-date = 2020-03-16 00:05:28 -0500
+date = 2020-03-16 00:05:28
 
 +++
 ## References

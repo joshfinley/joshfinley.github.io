@@ -1,7 +1,7 @@
 +++
 
 title = "Notes - Windows Subsystem for Linux Internals"
-date = 2022-05-16 00:05:28 -0500
+date = 2022-05-16 00:05:28 
 
 +++
 

@@ -1,7 +1,7 @@
 +++
 
 title = "Memorizing Basic Windows Details"
-date = 2020-03-13 00:05:28 -0500
+date = 2020-03-13 00:05:28 
 
 +++
 

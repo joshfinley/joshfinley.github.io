@@ -1,7 +1,7 @@
 +++
 
 title = "NWS Norman - Severe Weather Spotter Training Notes Session 1"
-date = 2020-03-24 00:06:30 -0500
+date = 2020-03-24 00:06:30 
 
 +++
 

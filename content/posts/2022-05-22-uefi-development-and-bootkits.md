@@ -1,7 +1,7 @@
 +++
 
 title = "Notes - UEFI Development and Bootkits"
-date = 2022-05-22 00:05:28 -0500
+date = 2022-05-22 00:05:28 
 
 +++
 

@@ -1,7 +1,7 @@
 +++
 
 title = "Driver Hacking Notes"
-date = 2020-09-12 00:05:29 -0500
+date = 2020-09-12 00:05:29 
 
 +++
 

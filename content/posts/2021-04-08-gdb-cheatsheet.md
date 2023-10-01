@@ -1,7 +1,7 @@
 +++
 
 title = "GDB Cheatsheet"
-date = 2021-04-08 00:05:28 -0500
+date = 2021-04-08 00:05:28
 
 +++
 ## References
