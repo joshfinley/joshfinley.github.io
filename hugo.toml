@@ -1,6 +1,6 @@
 baseURL = 'https://www.fyelin.net/'
 languageCode = 'en-us'
-title = 'My New Hugo Site'
+title = 'Tech Blog of Joshua Finley'
 theme = 'literature'
 
 
