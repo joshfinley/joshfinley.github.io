@@ -1,0 +1,19 @@
+{{ define "main" }}
+
+  <!-- Blog Blurb -->
+  <div class="blog-blurb">
+    <h2>joshfinley.github.io</h2>
+    <p>Notes on cybersecurity, coding, meteorology, and more.</p>
+  </div>
+
+  <!-- List of Posts -->
+  <ul class="post-list">
+    {{ range .Site.RegularPages.ByDate.Reverse }}
+      <li>
+        <p><a href="{{ .RelPermalink }}">{{ .Title }}</a></p>
+        <!-- {{ .Summary }} -->
+      </li>
+    {{ end }}
+  </ul>
+
+{{ end }}

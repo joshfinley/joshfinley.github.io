@@ -1,0 +1,11 @@
+{{- $h2Counter := $.Page.Scratch.Get "h2Counter" | default 0 -}}
+
+{{ if eq .Level 2 }}
+  {{- $h2Counter = add $h2Counter 1 -}}
+  {{- $.Page.Scratch.Set "h2Counter" $h2Counter -}}
+  <h2 id="{{ .Anchor | safeURL }}">
+    {{ $h2Counter }}. {{ .Text }}
+  </h2>
+{{ else }}
+  <h{{ .Level }} id="{{ .Anchor | safeURL }}">{{ .Text }}</h{{ .Level }}>
+{{ end }}

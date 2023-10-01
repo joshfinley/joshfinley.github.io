@@ -1,0 +1,504 @@
+/* Font Faces */
+@font-face {
+  font-family: 'Kanzlei';
+  src: url('/fonts/kanzlei.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'UnifrakturMaguntia ';
+  src: url('/fonts/UnifrakturMaguntia-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'EB Garamond';
+  src: url('/fonts/EBGaramond-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Open Sans';
+  src: url('/fonts/OpenSans-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Playfair Display SC';
+  src: url('/fonts/PlayfairDisplaySC-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Nunito Sans';
+  src: url('/fonts/NunitoSans_10pt-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+}
+
+/* Base */
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'EB Garamond', serif;
+  font-size: 1.4em;
+  background-color: white;
+  color: black;
+}
+
+p {
+  font-size: 1.1em;
+}
+
+/* Headers */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'EB Garamond', serif;
+}
+
+h1 { font-size: 2em; }
+h2 { 
+  font-size: 1.4em; 
+  text-transform: uppercase;
+}
+h3 { font-size: 1.4em; }
+h4 { font-size: 1.3em; }
+h5 { font-size: 1.2em; }
+h6 { font-size: 1.1em; }
+
+/* Navigation Bar */
+.bar {
+  display: table;
+  width: 100%;
+  font-size: 1em;
+  text-transform: uppercase;
+}
+
+.bar a {
+  display: table-cell;
+  width: auto;
+  padding: 1em;
+  color: black;
+  text-decoration: none;
+  text-align: center;
+  position: relative;
+}
+
+.bar a:first-of-type::first-letter {
+  font-family: 'UnifrakturMaguntia', serif;
+  font-size: 1em;
+  float: left;
+  margin-right: 0.1em;
+  line-height: 1;
+}
+
+.bar a:not(:last-child)::after {
+  content: "\2735";
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* Containers */
+#body-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+#container {
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+}
+
+#content {
+  word-break: break-word;
+  overflow-wrap: break-word;
+  box-sizing: border-box;
+  max-width: calc(min(100ch, 60vw));
+  width: 100%;
+}
+
+/* Content Area */
+.content-area h2 {
+  text-align: right;
+}
+
+/* Existing Dark Mode section */
+@media (prefers-color-scheme: dark) {
+  /* ... Your existing dark mode styles ... */
+
+  body {
+    background-color: rgb(24,24,24);
+    color: white;
+  }
+
+  .toc {
+    background-color: rgb(35,35,35) !important;
+    border: .15em solid rgb(60,60,60) !important; /* Add border around the blockquote */
+
+  }
+
+  .toc li a {
+    color: white;
+    
+  }
+
+  .bar a, .toc a {
+    color: white; /* Change to any color that suits your dark theme */
+    border-bottom: none !important;
+  }
+  
+  .bar a:hover, .toc a:hover {
+    color: gray; /* Hover effect for dark theme */
+  }
+
+  a {
+    color: white;
+    border-bottom: 1px dotted gray; /* You can adjust this */
+  }
+  
+  a:hover {
+    color: gray; /* or any other color for hover effect on dark background */
+  }
+
+  .post-list li::before {
+    color: white; /* To make sure the star symbols also adapt */
+  }
+
+  .post-list li p {
+    border-bottom: 1px dotted gray; /* Adjust to suit dark theme */
+  }
+
+  .post-list li p a {
+    color: white;
+  }
+
+  .post-list li p a:hover {
+    color: gray;
+  }
+
+  a {
+    color: white !important;
+    border-bottom: 1px dotted white !important; /* Adjust to suit dark theme */
+
+  }
+
+  blockquote {
+    margin-bottom: 2em;
+    display: table;
+    border-collapse: collapse;
+    margin: 2em; /* Reset the default margin */
+    padding: 2em; 
+    border: .15em solid rgb(60,60,60) !important; /* Add border around the blockquote */
+    border-radius: .015em;
+    font-size: .95em;
+    background-color: rgb(35, 35, 35) !important;
+    color: white;
+    line-height: 1.5em;;
+  }
+  
+  /* Style the content inside the blockquote */
+  blockquote p {
+    font-family: initial; /* Reset font-family for blockquote drop caps */
+    margin: 0; /* Reset the default margin */
+    padding: 1em; /* Add padding inside the blockquote */
+    display: table-cell; /* Make content act like a cell in the table */
+    vertical-align: top; /* Align content to the top of the cell */
+  }
+  
+  
+  li a {
+    color:white;
+
+  }
+  
+  a {
+    text-decoration: none;
+    border-bottom: 1px dotted white;
+  }
+
+  pre {
+    background-color: rgb(35, 35, 35) !important;
+    border: .15em solid rgb(60,60,60) !important; /* Add border around the blockquote */
+    padding: .5em;
+    font-size: .9em;
+    border-radius: .015em;
+    font-family: 'cutive';
+    overflow-x: auto;
+    overflow-wrap: break-word;
+    white-space: pre-wrap;
+  }
+
+  .content-area h2 {
+    text-align: right;
+  }
+}
+
+
+.toc {
+  display: table;
+  font-size: .9em;
+  border-collapse: collapse;
+  border: .05em solid black;
+  border-radius: .015em;
+  padding-left: 1em; /* Adds some space around the contents for better readability */
+  padding-right: 1em;
+  background-color: rgb(250, 250, 250);
+  width: 100%;
+}
+
+
+.toc h1,h2,h3,h4,h5,h6 {
+  padding-left: 1em;
+}
+
+.toc li {
+  list-style: none !important;
+}
+
+.toc a {
+  display: table-cell; /* Makes each link within a list item act like a table cell */
+  font-family: 'Nunito Sans';
+  font-size: .8em;
+  color: black;
+  text-decoration: none;
+  border-bottom: none;
+}
+
+/* For larger screens, where the TOC is floated */
+@media (min-width: 768px) {
+  .toc {
+    float: left; /* Floats TOC to the left */
+    width: 25%; /* Adjust width as needed */
+    margin-right: 20px; /* Space between TOC and main content */
+  }
+
+  .toc ul {
+    padding-left: .7em;
+    padding-right: 1em;
+  }
+
+  .content-area h2::after {
+    margin-left: 20px !important;  /* Add left margin to the underline */
+    margin-right: 20px !important;  /* Add right margin to the underline */
+  }
+}
+
+blockquote {
+  display: table;
+  border-collapse: collapse;
+  margin: 0; /* Reset the default margin */
+  padding: 0; /* Reset the default padding */
+  border: .05em solid black; /* Add border around the blockquote */
+  border-radius: .015em;
+  font-size: .95em;
+  background-color: rgb(250, 250, 250);
+}
+
+/* Style the content inside the blockquote */
+blockquote p {
+  font-family: initial; /* Reset font-family for blockquote drop caps */
+  margin: 0; /* Reset the default margin */
+  padding: 2em; /* Add padding inside the blockquote */
+  display: table-cell; /* Make content act like a cell in the table */
+  vertical-align: top; /* Align content to the top of the cell */
+}
+
+
+a {
+  text-decoration: none;
+  border-bottom: 1px dotted black;
+}
+
+
+/* .article-body p:first-of-type::first-letter {
+  font-family: 'UnifrakturMaguntia', serif;
+  font-size: 4em;
+  float: left;
+  margin-right: 0.1em;
+  line-height: 1;
+} */
+
+.drop-cap {
+  font-family: 'UnifrakturMaguntia ';
+  font-size: 4em;
+  float: left;
+  font-size: 3em;
+  line-height: 1;
+  padding-right: 0.1em;
+}
+
+
+.article-body p {
+  line-height: 1.5em;;
+}
+
+.article-body li {
+  list-style-type: none; /* Remove default bullets */
+}
+
+.article-body li::before {
+  content: "\2727"; /* Your Unicode character */
+  margin-right: 0.5em; /* Adjust the spacing */
+}
+
+.notes .footnotes h2, .notes .references h2 {
+  text-align: center;
+  border-bottom: 1px dotted rgb(60,60,60);
+
+}
+
+.notes .footnotes sup, .notes .footnotes sup {
+  font-size: .5em;
+}
+
+.notes .footnotes ul, .notes .references ul {
+  list-style: none !important;
+  padding-left: 0 !important;
+  line-height: 1.5em;
+}
+
+.notes .footnotes ul li, .notes .references ul li {
+  margin-bottom: 2em;
+  line-height: 1.5em;
+}
+
+.sup-link {
+  white-space: nowrap;
+}
+
+.cloned-footnote {
+  padding: 3em;
+  font-size: 0.8em;
+  max-width: 300px;  
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: normal;
+  max-width: 300px; /* Set max-width as per your requirement */
+}
+
+
+img {
+  border: .15em solid rgb(60,60,60); 
+  max-width: 100%;
+  height: auto;
+}
+
+figure {
+  text-align: center;
+} 
+
+figure img {
+  margin: 0 auto;
+}
+
+.figcaption {
+  font-family: 'lora';
+  font-size: 0.5 em;
+} */
+
+pre {
+  background-color: rgb(250, 250, 250);
+  padding: .5em;
+  font-size: .9em;
+  border-radius: .015em;
+  border: .05em black solid;
+  font-family: 'cutive';
+  overflow-x: auto;
+}
+
+.post-list {
+  list-style-type: none;
+  padding-left: 40px;
+}
+
+.post-list li {
+  position: relative;
+  margin-bottom: 0.625em;  /* 10px equivalent if base font-size is 16px */
+}
+
+.post-list li::before {
+  content: "\2727";
+  position: absolute;
+  left: -25px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.0em;
+}
+
+.post-list li p {
+  border-bottom: 1px dotted black;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+}
+
+a {
+  color:black;
+  border-bottom: 1px dotted black ;
+}
+
+.post-list li a {
+  text-decoration: none;
+  border-bottom: none;
+}
+
+/* Dark mode */
+.dark-mode {
+  background-color: #121212;  /* background color */
+  color: #ffffff;  /* text color */
+}
+
+.fancyquote {
+  position: relative;
+  padding: 2rem;
+  padding-bottom: 3rem; /* Adjust this value as needed */
+}
+
+.quote-mark {
+  font-size: 4rem;
+  line-height: 0.1;
+  color: rgb(60,60,60);
+}
+
+.quote-content::before {
+  content: "\201C";
+  font-size: 4rem;
+  line-height: 0.1;
+  color: rgb(60,60,60);
+}
+
+.quote-content {
+  display: block;
+  margin: 2rem;
+}
+
+.quote-author {
+  text-align: right;
+  font-style: italic;
+  font-size: .9em;
+}
+
+.source {
+  font-weight: normal;
+  font-style: normal;
+}
+
+.source::after {
+  content: "\201D";
+  font-size: 4rem;
+  line-height: 0.1;
+  color: rgb(60,60,60);
+}

@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr">
+
+<div class="">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>This Site | My New Hugo Site</title>
+
+      <link rel="stylesheet" href="/css/main.min.0b5a0ac4a1e075fea0cc21223d882a4edb8dbcef531abbe94cff59b592a5960e.css" integrity="sha256-C1oKxKHgdf6gzCEiPYgqTtuNvO9TGrvpTP9ZtZKllg4=" crossorigin="anonymous">
+
+
+      <script src="/js/main.343e021addfbf7b4de05ab76c4921e382d4ba5152e5cf717a7c753df64392628.js" integrity="sha256-ND4CGt3797TeBat2xJIeOC1LpRUuXPcXp8dT32Q5Jig=" crossorigin="anonymous"></script>
+
+
+  </head>
+  <body>
+    <div id="body-container">
+      <header>
+        <div class="bar">
+          <div id="top-bar">
+    <a>F</a>
+    <a href="https://www.fyelin.net/">Home</a>
+    <a href="https://www.fyelin.net/posts/">Posts</a>
+    
+</div>
+
+        </div>
+      </header>
+      <main>
+        <div id="container">
+          <div id="content">
+              
+<article class="content-with-toc">
+
+  
+  <h1>This Site</h1>
+
+  <div id="main-wrapper">
+
+    
+    <aside class="toc">
+      <nav id="TableOfContents">
+  <ul>
+    <li><a href="#design">Design</a></li>
+    <li><a href="#features">Features</a>
+      <ul>
+        <li><a href="#drop-caps">Drop Caps</a></li>
+        <li><a href="#alternative-block-quotes">Alternative Block Quotes</a></li>
+        <li><a href="#footnotes">Footnotes</a></li>
+        <li><a href="#references">References</a></li>
+        <li><a href="#automatic-citations">Automatic Citations</a></li>
+        <li><a href="#inserting-figures">Inserting Figures</a></li>
+        <li><a href="#archival">Archival</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+    </aside>
+    
+
+    <div class="content-area">
+      
+      <div class="article-body">
+        <blockquote>
+<p>This meta-article briefly discusses this static site focused on long-form, long duration content. The features and design are <em>very</em> heavily inspired by <a href="gwern.net">gwern.net</a>, which has been used as a template in form and function. The intention is to provide a similar tool for publishing long-form content and working with it gradually over time. Writing with any effort is deeply tied to complex thinking, and is a skill that needs to be maintained over time, and any thoughts worth writing are worth revisiting and improving over time. This site and its infrastructure serve as my platform for doing so.</p>
+</blockquote>
+<h2 id="design">
+    1. Design
+  </h2>
+
+<p>Traditional options for &ldquo;blogging&rdquo; leave much to be desired, especially their brittleness caused by external dependency. This site aims to be clean and focused, with features for efficiently annotating and referencing text. Static is emphasized over dynamic and minimal is emphasized over complete.</p>
+<p>While the site emphasizes its static nature to minimize bloat and potential for script failures, there is a recognition that some trade-offs must be made for usability. The system is designed to capture the essence of static web design but with allowances for dynamic features that improve the user experience. This results in a site where both the snapshot-in-time content and the end-user experience maintain a high level of quality. Javascript is avoided where possible, and components such as footnote sections and bibliographies are rendered by the templating engine rather than dynamically using the clients resources. This ensures a consistent user experience across time and minimizes the requirements for viewing the site. Sections of articles should be displayed uniformly, even in text-based web browsers (such as Lynx).</p>
+<h2 id="features">
+    2. Features
+  </h2>
+
+<p>In an effort to enhance readability and provide additional context within text, a series of extensions to the traditional markdown format have been implemented. These extensions not only make it easier to convey complex information but also add to the overall organization of the content.</p>
+
+  <h3 id="drop-caps">Drop Caps</h3>
+
+<p>
+<span class="drop-cap">D</span>
+rop caps create a focal point on the page, drawing the reader&rsquo;s attention to the beginning of a section or chapter. This creates a sense of visual hierarchy, emphasizing what is most important. In a page full of text, a drop cap adds a dash of style and breaks up the monotony. It adds an artistic element to what is otherwise a utilitarian arrangement of characters. Additionally, drop caps have been used historically in illuminated manuscripts and classic books. On a screen, their use helps lend a more traditional feel to a web page.</p>
+<p>Drop caps are used in the markdown as such:</p>
+<pre tabindex="0"><code>{{\&lt; dropcap &#34;D&#34; &gt;}}
+</code></pre>
+  <h3 id="alternative-block-quotes">Alternative Block Quotes</h3>
+
+<p>It is useful to have more than one type of blockquote. Regular blockquotes in markdown are very quick and easy but don&rsquo;t differentiate themselves much from the rest of the text or offer a convenient way to annotate the quote author or origin. However, using a shortcode, we can add new type of blockquote:</p>
+<div class="fancyquote">
+  <span class="quote-content">Quote of some sort.</span>
+  <div class="quote-author">
+    — Author Name: Source
+    
+    <span class="source">
+      
+      
+    </span>
+  </div>
+</div>
+
+<p>This is generated in markdown as follows:</p>
+<pre tabindex="0"><code>{{&amp;lt; fancyquote  author=&#34;Author Name&#34; source=&#34;Source&#34; &gt;}}
+Quote of some sort. {{&amp;lt; /fancyquote&gt;}}
+</code></pre><p>This allows us to use regular markdown blockquotes for other purposes and give actual quotes a more elegant representation.</p>
+
+  <h3 id="footnotes">Footnotes</h3>
+
+<p>Footnotes allow for a more organized reading experience by offering additional information or context without cluttering the main text. They work seamlessly in the site, appearing as clickable numbers next to the text that needs elaboration. Clicking on the number takes the reader to the Footnotes section where a more detailed explanation exists.</p>
+<pre tabindex="0"><code>This is a sentence that needs further explanation`{{\&lt; footnote &gt;}} {{\&lt; /footnote&gt;}}`.
+</code></pre><blockquote>
+<p>This is a sentence that needs further explanation
+
+  <sup><a href="#fn-1" id="ref-1">†1</a></sup>
+
+.</p>
+</blockquote>
+<p>The site also uses margin footnotes on wider displays
+  <sup><a href="#fn-2" id="ref-2">†2</a></sup>
+
+.</p>
+
+  <h3 id="references">References</h3>
+
+<p>A bibliography section is automatically generated at the end of each article, providing citations for all external references used. It allows for proper credit and also serves as a resource for readers who wish to delve deeper into the topic. An archival script will attempt to store references locally as is possible.</p>
+<pre tabindex="0"><code>An example of a reference to a website: {{&amp;lt; reference content=&#34;/archives/58b18932a5357f3f93e9a4abff0eb30567beb7536ed6ef2f04bf3f7eaf3d47c3_wikipedia.org.html&#34; &gt;}}`.
+</code></pre><blockquote>
+<p>An example of a reference to a website archive: 
+
+
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+    
+    
+    
+
+
+
+
+
+
+
+<a class="sup-link" id="ref-1" href="#bib-1"><sup>1</sup></a>
+
+.</p>
+</blockquote>
+
+  <h3 id="automatic-citations">Automatic Citations</h3>
+
+<p>Writing citations is annoying, mundane, and repetitive task. However, clear textual citations not only lend credit to the authors of referenced works, but also offer more information to the reader than a simple hyperlink. Fortunately, as of 2023 we live in the burgeoning age of language models, which can do a fair job at interpreting natural language and doing things like generating citations. A simple script leveraging such tools has been created alongside this site to automatically attempt to generate citations from references. The output is not perfect and has a real chance of badly mis-citing some works, but for the most part works well enough (not to mention that posts on this site are not intended to meet full academic standards for things like citations).</p>
+<p>Only PDFs are supported as of September 2023, but I eventually would like to support citation generation from HTML as well.</p>
+
+  <h3 id="inserting-figures">Inserting Figures</h3>
+
+<p>Features for custom figures are also present. Alt text and figure indexes are automatically generated without client side scripts.</p>
+<pre tabindex="0"><code>{{&amp;lt; figure src=&#34;https://example.com/image.jpg&#34; alt=&#34;Cumulus cloud rolling over the prairie&#34; &gt;}}
+</code></pre><blockquote>
+
+
+
+
+
+  
+  
+
+
+<figure id="fig1">
+  <img src="/portra-cloud.jpg" alt="Cumulus cloud rolling over the prairie">
+  <figcaption>Figure 1: Cumulus cloud rolling over the prairie</figcaption>
+</figure>
+
+</blockquote>
+
+  <h3 id="archival">Archival</h3>
+
+<p>In the digital age, content is ephemeral. Websites shut down, articles are edited, and valuable information can be lost. This makes archiving a crucial component of any site concerned with long-term survival. By storing external links as archives in the site&rsquo;s static data directories, I aim to combat link rot and preserve information relevant to this site&rsquo;s contents. The benefits of this are not only for the site itself but also any reader who may access this content in the future. Plans are underway to also archive my own site to third-party sources to ensure its longevity.</p>
+<p>Currently, the site supports archiving of images, PDFs, and web pages. Web pages are archived using <a href="https://github.com/gildas-lormeau/SingleFile/">Single File CLI</a>, while <code>wget</code> is used for PDFs and images. Items using the bibliography shortcode extension are the only ones which are archived. For example, normal markdown hyperlinks will not be archived (e.g., <code>[link description](https://example.com)</code>). This allows the use of normal links in situations where archiving is not possible or necessary.</p>
+<p>The following is an example of a reference to an archived PDF file: 
+
+
+
+
+
+
+
+
+
+
+
+
+    
+
+
+
+    
+    
+    
+
+
+
+
+
+
+
+<a class="sup-link" id="ref-2" href="#bib-2"><sup>2</sup></a>
+
+</p>
+
+      </div>
+
+      <div class="notes">
+        
+        
+        <section class="footnotes">
+          <h2>Footnotes</h2>
+          <ul>
+            
+            <li id="fn-1">
+              <span>†1 
+                This is the further explanation.<a href="#ref-1" style="font-size:.9em;"> ↩</a>
+              </span>
+            </li>
+            
+            <li id="fn-2">
+              <span>†2 
+                Displaying footnotes in the margins does require some scripting, though this is a nice-to-have feature with minimal overhead. If it breaks in the future, the normal footnotes are statically rendered, thus little is lost.<a href="#ref-2" style="font-size:.9em;"> ↩</a>
+              </span>
+            </li>
+            
+          </ul>
+        </section>
+        
+
+        <section class="references">
+          <h2 id="bibliography">Bibliography</h2>
+          <ul>
+            
+            
+            <li id="bib-1">
+              [1] 
+              
+              <a href="/archives/e28ad381a2a8992f700a7480e53862f45c0bb8a1d08c2c6739eb612108ebb373_www.wikipedia.org.html">/archives/e28ad381a2a8992f700a7480e53862f45c0bb8a1d08c2c6739eb612108ebb373_www.wikipedia.org.html</a><a href="#ref-1" style="font-size:.8em;">↩</a>
+
+            </li>
+            
+            <li id="bib-2">
+              [2] 
+              Grimm, J., &amp; Grimm, W. (1857). Household Stories by Brothers Grimm. Berlin, Germany: C.D. Friedrich Publishers.
+              <a href="/archives/86b96f958ccec1d37f406289c52f12b84d2860f66384591e59f89d956a7a5943_grimm10.pdf">/archives/86b96f958ccec1d37f406289c52f12b84d2860f66384591e59f89d956a7a5943_grimm10.pdf</a><a href="#ref-2" style="font-size:.8em;">↩</a>
+
+            </li>
+            
+          </ul>
+        </section>
+
+      </div>
+    </div>
+  </div>
+</article>
+
+          </div>
+        </div>
+      </main>
+      <footer>
+        <p>Copyright 2023. All rights reserved.</p>
+
+      </footer>
+    </div>
+  </body>
+</div>  
+</html>

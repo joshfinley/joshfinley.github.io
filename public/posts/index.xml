@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Posts on My New Hugo Site</title>
+    <link>https://www.fyelin.net/posts/</link>
+    <description>Recent content in Posts on My New Hugo Site</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Sun, 01 Jan 2023 08:30:00 -0700</lastBuildDate><atom:link href="https://www.fyelin.net/posts/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Notes: Dialectic of Enlightenment</title>
+      <link>https://www.fyelin.net/posts/notes-dialectic-of-enlightenment/</link>
+      <pubDate>Wed, 27 Sep 2023 18:42:07 -0500</pubDate>
+      
+      <guid>https://www.fyelin.net/posts/notes-dialectic-of-enlightenment/</guid>
+      <description>Quotes and footnotes here primarily draw from 1 Structure Essay providing the rest of the work&amp;rsquo;s theoretical basis exploring the relation of rationality/nature with social reality/mastery of nature. This either concludes or is followed by a critique of enlightment Preface (1944-1947) Discovery paid for by decline of theoretical education While we had noted for many years that, in the operations of modern science, the major discoveries are paid for with an increasing decline of theoretical education.</description>
+    </item>
+    
+    <item>
+      <title>Notes</title>
+      <link>https://www.fyelin.net/posts/notes/</link>
+      <pubDate>Sun, 17 Sep 2023 17:54:00 -0500</pubDate>
+      
+      <guid>https://www.fyelin.net/posts/notes/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>Reading List</title>
+      <link>https://www.fyelin.net/posts/reading-list/</link>
+      <pubDate>Fri, 15 Sep 2023 14:13:25 -0500</pubDate>
+      
+      <guid>https://www.fyelin.net/posts/reading-list/</guid>
+      <description> Nothing Feels Good: Punk Rock, Teenagers, and Emo - Andy Greenwald Suburban Nation: The Rise of Sprawl and the Decline of the American Dream - Andres Duany, et al. Critical Theory: A Very Short Introduction - Stephen Eric Bronner Swerve: How the World Became Modern - Stephen Greenblatt 1. Sources https://faroutmagazine.co.uk/patrick-flynn-discusses-new-fiddlehead-album/ </description>
+    </item>
+    
+    <item>
+      <title>The Emos Grew Up</title>
+      <link>https://www.fyelin.net/posts/emos-grew-up/</link>
+      <pubDate>Wed, 13 Sep 2023 10:56:50 -0500</pubDate>
+      
+      <guid>https://www.fyelin.net/posts/emos-grew-up/</guid>
+      <description>In short, everyone has their own emo. It&amp;rsquo;s too contentious, too stylistically and generationally diverse to be a genre, too far-reaching to be a subculture. Emo is an essential element of being a teenager. It is the sound of self-making. — Andy Greenwald , Nothing Feels Good: Punk Rock, Teenagers, and Emo 1 The pioneers of emo music have evolved and matured significantly over the years, beginning in the 1980s and 1990s as a raw and emotionally charged subgenre of punk and indie rock.</description>
+    </item>
+    
+    <item>
+      <title>Poems: Summer-Fall &#39;23</title>
+      <link>https://www.fyelin.net/posts/poems-summer-fall-23/</link>
+      <pubDate>Tue, 05 Sep 2023 18:38:48 -0500</pubDate>
+      
+      <guid>https://www.fyelin.net/posts/poems-summer-fall-23/</guid>
+      <description>Collection of poems written between Summer and Fall 2023.
+T he poems below don&amp;rsquo;t claim all the answers; these poems are less of a proclamation and more of an exploration. They stem from personal observations and experiences, encapsulating moments and passages of my life that have weighed heavy on my mind. Any pretense or theatrics latent in the writing is unintentional. The text is simply a reflection of my own thoughts and feelings at a snapshot in time.</description>
+    </item>
+    
+    <item>
+      <title>This Site</title>
+      <link>https://www.fyelin.net/posts/this-site/</link>
+      <pubDate>Sun, 01 Jan 2023 13:21:45 -0500</pubDate>
+      
+      <guid>https://www.fyelin.net/posts/this-site/</guid>
+      <description>This meta-article briefly discusses this static site focused on long-form, long duration content. The features and design are very heavily inspired by gwern.net, which has been used as a template in form and function. The intention is to provide a similar tool for publishing long-form content and working with it gradually over time. Writing with any effort is deeply tied to complex thinking, and is a skill that needs to be maintained over time, and any thoughts worth writing are worth revisiting and improving over time.</description>
+    </item>
+    
+  </channel>
+</rss>

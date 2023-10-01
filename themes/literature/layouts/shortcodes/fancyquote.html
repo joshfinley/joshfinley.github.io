@@ -1,0 +1,17 @@
+<div class="fancyquote">
+  <span class="quote-content">{{ .Inner | markdownify }}</span>
+  <div class="quote-author">
+    {{ with .Get "author" }}— {{ . }}{{ end }}
+    
+    <span class="source">
+      {{ with .Get "source" }}, {{ . }}{{ end }}
+      {{ if .Get "useLastReference" }}
+        {{ $lastReference := $.Page.Scratch.Get "lastReference" }}
+        <a href="#{{ $lastReference }}"><sup>{{ index (split $lastReference "-") 1 }}</sup></a>
+      {{ else if .Get "useLastFootnote" }}
+        {{ $lastFootnoteIndex := $.Page.Scratch.Get "lastFootnoteIndex" }}
+        <span class="fancyquote-footnote" id="fancyquote-ref-{{ $lastFootnoteIndex }}">, <a href="#fn-{{ $lastFootnoteIndex }}">†{{ $lastFootnoteIndex }}</a></span>
+      {{ end }}
+    </span>
+  </div>
+</div>
