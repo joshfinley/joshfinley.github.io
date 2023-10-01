@@ -1,3 +1,39 @@
++++
+title = 'Notes on Polymorph Basics'
++++
+
+## Abstract
+
+This assembly source code file, polytest.asm, serves as an exploratory study of polymorphic engines, focusing primarily on x86-64 assembly language. The code is intended for educational purposes and was written as part of an individual learning exercise. It offers an in-depth analysis of the components involved in a polymorphic engine: a random number generator, a junk code generator, and a decryptor generator.
+##Components of the Engine
+
+The code begins with an exploration of the core components of a polymorphic engine, adhering to principles outlined in referenced works. It identifies three key elements:
+
+    Random Number Generator: Generates random numbers to be used in other components.
+    Junk Code Generator: Adds 'junk' or 'garbage' code to the real code to obscure its actual functionality.
+    Decryptor Generator: Generates code that can decrypt the payload of the engine.
+
+## Instruction Encoding
+
+A significant part of the discussion revolves around the intricacies of instruction encoding. It provides insights into how opcodes, modes, and operands are encoded into machine instructions, taking examples from the x86-64 architecture.
+##Encryption Primitives
+
+The file also delves into the encryption primitives required before building a polymorphic engine. It outlines the basic assembly techniques for encryption and discusses four types of ciphers:
+
+    Substitution
+    Sliding Key
+    Long Key
+    Transposition
+
+## Permutations and Random Registers
+
+The code then talks about permuting the decryptor and the usage of random registers. This is an important aspect as it gives each instance of the polymorphic code a different 'signature', making it harder to detect.
+Additional Insights
+
+Additional notes on code obfuscation and optimization are provided. This includes notes on the generation of 'garbage code' and its potential drawbacks, as well as the efficacy of using simple XOR, ADD, and SUB ciphers.
+
+The file serves as a comprehensive resource for understanding polymorphic engines and includes extensive code snippets and references for further reading.
+
 ```asm
 ;  <polytest.asm>   -   polytest source
 ;                         December 2020

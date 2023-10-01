@@ -14,7 +14,7 @@ date = 2020-09-12 00:05:29
 
 ### 2a. Publications
 
-- [Eclypsium. *Get Off the Kernel If You Can't Drive](https://eclypsium.com/wp-content/uploads/2019/08/EXTERNAL-Get-off-the-kernel-if-you-cant-drive-DEFCON27.pdf). Presentation documenting known vulnerable drivers and malware abuse methodologies.
+- [Eclypsium. *Get Off the Kernel If You Can't Drive](/archives/725b68740124d34b42fc959e9c10bd642cb6a5c41b7550a749f90c05e414176f_EXTERNAL-Get-off-the-kernel-if-you-cant-drive-DEFCON27.pdf.html). Presentation documenting known vulnerable drivers and malware abuse methodologies.
 - [ReWolf. *MSI ntiolib.sys/winio.sys local privilege escalation*](http://blog.rewolf.pl/blog/?p=1630). MSI local EOP writeup.
 - [Eclypsium. Drivers. *Screwed Drivers*](https://github.com/eclypsium/Screwed-Drivers/blob/master/DRIVERS.md). List of vulnerable drivers (with hashes)
 - [ACTIVELabs. *Viper RGB Driver Local Privilege Escalation (CVE-2019-18845)](https://www.activecyber.us/activelabs/viper-rgb-driver-local-privilege-escalation-cve-2019-18845)
@@ -35,7 +35,7 @@ date = 2020-09-12 00:05:29
 
 ### 2d. Loaders
 
-- [Devcon](https://docs.microsoft.com/en-us/windows-hardware/drivers/devtest/devcon)
+- [Devcon](/archives/0e9c112d0469f4456f6dd3178c2f4891896c28fcbce8a5bcef53ac6f58118e14_devcon.html)
 
 ### 2e. Unsigned Utility Drivers
 

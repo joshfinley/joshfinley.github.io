@@ -7,7 +7,7 @@ date = 2020-09-04 00:05:29
 
 Using the PEB as a position-independent means of finding exports is not new. As early as the late 90's, malware authors have been accessing and using the PEB for a variety of purposes [1]. Using it to resolve exports from ntdll.dll, kernel32.dll, etc. has also been documented elsewhere repeatedly [2]. Still, most of the existing examples are in 32-bit assembly, and there are fewer examples in 64-bit. But the world has mostly moved on to 64-bit. Am0nsec [3] demonstrates the most readable and comprehensive approach I have yet found for MASM64, but it is designed specifically for populating tables of function addresses and syscall numbers (the 'Hells Gate' tecnique). This article simply descibes a general adaptation of part of [3] - almost all of the code is the exact same, but parts have been changed to make a general-purpose function for iterating over a module's exports to find a target function's address.
 
-## 1. GetExport prototype
+## GetExport prototype
 
 We can declare the prototype for this function to be:
 
@@ -16,7 +16,7 @@ We can declare the prototype for this function to be:
 __fastcall uint64_ptr GetExport(long djb2_hash, long lpModuleBase);
 ```
 
-## 2. Finding export directory iterables
+## Finding export directory iterables
 
 Inside the procedure body, first we need to resolve the following address:
 
@@ -65,7 +65,7 @@ mov     ecx, [r8].IMAGE_EXPORT_DIRECTORY.NumberOfNames                ; Total nu
 
 ```
 
-## 3. Search loop
+## Search loop
 
 This is where things differ slightly. Instead of identifying predetermined syscall functions and their respective syscall values, we loop over the export table and look for our target (passed in `ecx`). If we find a function name whose DJB2 hash matches the target, all we have to do is fixup its virtual address and return it in `rax`.
 
@@ -106,7 +106,7 @@ _get_function_address:
         jmp     _getexport_epilog
 ```
 
-## 4. DJB2 modifications
+## DJB2 modifications
 
 This implentation requries a slight modification to the djb2 hashing implementation. We need it to take a target hash and a source string and determine if the latter's hash is equivalent to the former. This can be done as such:
 
@@ -145,7 +145,7 @@ _djb2_epilog:
         ret
 ```
 
-## 5. Conclusion
+## Conclusion
 
 The sum of these parts is a general-purpose function for finding functions from a module's export directory, without string reliance. Of course, credit for nearly all of these implementation details goes to am0nsec.
 

@@ -56,19 +56,21 @@ p {
 }
 
 /* Headers */
-h1, h2, h3, h4, h5, h6 {
-  font-family: 'EB Garamond', serif;
+h3, h4, h5, h6 {
+  font-family: 'Nunito Sans', serif;
 }
 
 h1 { font-size: 2em; }
-h2 { 
-  font-size: 1.4em; 
+h1, h2 { 
   text-transform: uppercase;
+  font-family: 'Playfair Display SC';
 }
+
+h1 { font-size: 1.4em; }
 h3 { font-size: 1.4em; }
-h4 { font-size: 1.3em; }
-h5 { font-size: 1.2em; }
-h6 { font-size: 1.1em; }
+h4 { font-size: 1.2em; font-weight: bold;}
+h5 { font-size: 1.1em; font-weight: bold;}
+h6 { font-size: 1.0em; font-weight: bold;}
 
 /* Navigation Bar */
 .bar {
@@ -88,13 +90,7 @@ h6 { font-size: 1.1em; }
   position: relative;
 }
 
-.bar a:first-of-type::first-letter {
-  font-family: 'UnifrakturMaguntia', serif;
-  font-size: 1em;
-  float: left;
-  margin-right: 0.1em;
-  line-height: 1;
-}
+
 
 .bar a:not(:last-child)::after {
   content: "\2735";
@@ -345,13 +341,24 @@ a {
   line-height: 1.5em;;
 }
 
-.article-body li {
-  list-style-type: none; /* Remove default bullets */
+
+.article-body ul, .article-body ol {
+  list-style-type: none;
+  padding-left: 0;
+  margin-left: 0;
+}
+
+.article-body ul li, .article-body ol li {
+  padding-left: 2em;  /* Padding for the entire list item */
+  text-indent: -1em;  /* Negative text indent to pull the bullet back */
+  position: relative;
 }
 
 .article-body li::before {
-  content: "\2727"; /* Your Unicode character */
-  margin-right: 0.5em; /* Adjust the spacing */
+  content: '•';
+  position: absolute;  /* Use absolute positioning */
+  left: 1em;  /* Set the horizontal position */
+  font-weight: bold;
 }
 
 .notes .footnotes h2, .notes .references h2 {
@@ -420,7 +427,6 @@ pre {
 }
 
 .post-list {
-  list-style-type: none;
   padding-left: 40px;
 }
 
@@ -429,14 +435,6 @@ pre {
   margin-bottom: 0.625em;  /* 10px equivalent if base font-size is 16px */
 }
 
-.post-list li::before {
-  content: "\2727";
-  position: absolute;
-  left: -25px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 1.0em;
-}
 
 .post-list li p {
   border-bottom: 1px dotted black;
@@ -451,7 +449,6 @@ a {
 }
 
 .post-list li a {
-  text-decoration: none;
   border-bottom: none;
 }
 

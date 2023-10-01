@@ -256,7 +256,7 @@ func main() {
 
 From there, its just a matter of plotting player positions visually, which is a much less exciting programming task, hence why I have not completed it and don't intend to :)
 
-![Radkov in action](../images/tarkov-radar-demo.gif)
+![Radkov in action](/tarkov-radar-demo.gif)
 
 ## Conclusion
 

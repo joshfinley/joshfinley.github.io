@@ -108,7 +108,7 @@ IopLoadDriver(
 
 - see [https://github.com/joshfinley/ntoskrnl/blob/master/Io/iomgr/internal.c](https://github.com/joshfinley/ntoskrnl/blob/master/Io/iomgr/internal.c) (forked from the [Windows Research Kernel](https://github.com/Zer0Mem0ry/ntoskrnl/))
 
-In this case, the call to `IopLoadDriver` comes from `IopLoadUnloadDriver`. Here's the source code from the React OS function: [https://doxygen.reactos.org/d9/d9f/ntoskrnl_2io_2iomgr_2driver_8c_source.html](https://doxygen.reactos.org/d9/d9f/ntoskrnl_2io_2iomgr_2driver_8c_source.html).
+In this case, the call to `IopLoadDriver` comes from `IopLoadUnloadDriver`. Here's the source code from the React OS function: [/archives/cf9d022f2c3c7502ddf6522d43c44a109ae1ba838622f110dccd1e2dec3a8986_ntoskrnl_2io_2iomgr_2driver_8c_source.html.html](/archives/cf9d022f2c3c7502ddf6522d43c44a109ae1ba838622f110dccd1e2dec3a8986_ntoskrnl_2io_2iomgr_2driver_8c_source.html.html).
 
 
 ## 2. DriverObject
@@ -405,4 +405,4 @@ PriorityBooster creates the DeviceObject accordingly:
 ```
 
 ## References
- [1] [https://leanpub.com/windowskernelprogramming](https://leanpub.com/windowskernelprogramming)
+ [1] [/archives/5de508b6f3d9624dd8c9b6600e08a48bf2758d33557bf1994c8dbe86edfc2f2f_windowskernelprogramming.html](/archives/5de508b6f3d9624dd8c9b6600e08a48bf2758d33557bf1994c8dbe86edfc2f2f_windowskernelprogramming.html)

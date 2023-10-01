@@ -62,10 +62,10 @@ Despite being hestitant to take on another language which may not add much to my
 
 #### Incredible Effort in Documenting Language and Style
 
-- [Style Book](https://doc.rust-lang.org/1.0.0/style/README.html)
+- [Style Book](/archives/c819ad2d0bf8caa1c17cb330e31fcfff027ae7b35ea06df26978544d3060a59a_README.html.html)
 - [Embedded](https://docs.rust-embedded.org/book/static-guarantees/typestate-programming.html)
-- [Main](https://doc.rust-lang.org/rust-by-example/index.html)
-- [Cargo](https://doc.rust-lang.org/cargo/reference/features.html)
+- [Main](/archives/851e04c26298164f8140175262415e6c529d2a24306a014a39bf3c6a9deb2f80_index.html.html)
+- [Cargo](/archives/9fbf56f39d4a73dcc1ad98e2a7d8912bef11e0dcc215b876b012a89911ef15d1_features.html.html)
 
 #### Fixed length collections (vector, String, HashMap, etc)
 

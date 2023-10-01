@@ -13,13 +13,13 @@ The WSL system is implemented in three major components:
 - lxss.sys driver
 - lxcore.sys driver
 
-![LxssManager Service Properties](assets/lxssmanager-props.png)
+![LxssManager Service Properties](/lxssmanager-props.png)
 
 The drivers are termed 'pico provider' drivers, and processes invoked using WSL are 'pico' processes
 
 ## Pico Processes
 
-The Windows Pico Process concept is explained [here](https://docs.microsoft.com/en-us/archive/blogs/wsl/pico-process-overview). The gist is that Windows Pico processes are distinct from regular processes. They are either supported by provider drivers rather than the Windows kernel, or just empty processes. This leaves many of the implementation details of the process management (such as virtual memory) up to the provider driver.
+The Windows Pico Process concept is explained [here](/archives/87f65010a51e9805856c0552287e894484002a5c06264fc6a4f1715a6662a03c_pico-process-overview.html). The gist is that Windows Pico processes are distinct from regular processes. They are either supported by provider drivers rather than the Windows kernel, or just empty processes. This leaves many of the implementation details of the process management (such as virtual memory) up to the provider driver.
 
 Minimal process - empty user mode process. Like [memfuck](https://winternl.com/memfuck/) without having to unload everything and no management.
 
@@ -39,11 +39,11 @@ This leads me to several questions, with my attempts at answering them below:
 
 ### Pico Process System Calls - What Must the Provider Implement?
 
-As stated in the WSL blog on an [Overview Pico Processes](https://docs.microsoft.com/en-us/archive/blogs/wsl/pico-process-overview), the provider is responsible for all Pico process interfaces with the kernel. It seems that anything needed from the kernel must be explicitly provided by the provider.
+As stated in the WSL blog on an [Overview Pico Processes](/archives/87f65010a51e9805856c0552287e894484002a5c06264fc6a4f1715a6662a03c_pico-process-overview.html), the provider is responsible for all Pico process interfaces with the kernel. It seems that anything needed from the kernel must be explicitly provided by the provider.
 
 ### Pico Process System Calls - Protected by Patch Guard?
 
-[According to Alex Ionescu](https://raw.githubusercontent.com/ionescu007/lxss/6a3040fadff5ce43d7bfd638a4e5d7dfe8780143/WSL-BlueHat-Final.pdf), yes, Pico Providers register their handlers with PatchGuard.
+[According to Alex Ionescu](/archives/50105ffdbddfc7677c760e08af91325b0814fbaa4988da52afb559508a314710_WSL-BlueHat-Final.pdf.bin), yes, Pico Providers register their handlers with PatchGuard.
 
 
 ### Pico Provider Registration - Registration Process
@@ -56,7 +56,7 @@ It does not seem that Microsoft provides any documentation for writing other Pic
 
 Answering the question of where pico process system call is dispatched to its provider driver in the dispatching lifecycle involves delving into the Windows kernel. Upon syscall, the instruction pointer is set to an existing value in the LSTAR MSR, which itself is set upon boot. This is the address of the function `nt!KiSystemCallShadow`(`nt!KisystemCall` on spectre-unmitigated versions). 
 
-![LSTAR pointer as seen in WinDBG](assets/widbg-lstar-syscall.png)
+![LSTAR pointer as seen in WinDBG](/widbg-lstar-syscall.png)
 
 Next in the workflow is `nt!KiSystemServiceUser`.  Here, `nt!_KPCR` (`gs:00h`), `nt!_KPCRB` (`gs:180h`), and `nt!_KTHREAD` (`gs:188h`) are leveraged to determine the correct course of action. Early in the flow of `nt!KiSystemServiceUser`, a byte comparison against `nt!_KTHREAD+0x03` (technically `nt!_DISPATCHER_HEADER+0x03`) is performed. The first field in `nt!_KTHREAD` is `nt!_DISPATCHER_HEADER`, a data structure with a plethora of uses and versions in use across the Windows kernel. In the context of a thread object, the byte at offset `nt!_DISPATCHER_HEADER+0x03` is read interpreted as a bit field with the name `DebugActive` which has flags to distinguish the current thread context as a minimal process or a pico process. 
 
@@ -220,19 +220,19 @@ Fuzzing (Microsoft appears to be doing this already):
 
 ## Other References
 
-- [A syscall journey in the Windows kernel](https://alice.climent-pommeret.red/posts/a-syscall-journey-in-the-windows-kernel/)
+- [A syscall journey in the Windows kernel](/archives/577910001db3e9a7672a2466569c506939865ebe7ee4b6e8057fc51e49f9fcde_.html)
 - [DISPATCHER_HEADER - Geoff Chappell, Software Analyst](https://www.geoffchappell.com/studies/windows/km/ntoskrnl/inc/ntos/ntosdef_x/dispatcher_header/index.htm)
 - [WinAltSyscallHandler](https://github.com/0xcpu/WinAltSyscallHandler/blob/master/README.md)
 - [DebugActive - Geoff Chappell, Software Analyst](https://www.geoffchappell.com/studies/windows/km/ntoskrnl/inc/ntos/ntosdef_x/dispatcher_header/debugactive.htm)
-- [Gaining visibility into Linux binaries on Windows: Defend and Understand WSL](https://raw.githubusercontent.com/ionescu007/lxss/6a3040fadff5ce43d7bfd638a4e5d7dfe8780143/WSL-BlueHat-Final.pdf)
+- [Gaining visibility into Linux binaries on Windows: Defend and Understand WSL](/archives/50105ffdbddfc7677c760e08af91325b0814fbaa4988da52afb559508a314710_WSL-BlueHat-Final.pdf.bin)
 - [Pico toolbox](https://github.com/thinkcz/pico-toolbox)
 - [WSL2-Linux-Kernel](https://github.com/microsoft/WSL2-Linux-Kernel)
-- [Hyper-V arhchiecture](https://docs.microsoft.com/en-us/virtualization/hyper-v-on-windows/reference/hyper-v-architecture)
+- [Hyper-V arhchiecture](/archives/6b5cca628a052b5d9525639338b1940ad587cbf6ec80ebf4d7a3e3e88d5e059e_hyper-v-architecture.html)
 - [Enabling Linux Root Partition](https://lkml.iu.edu/hypermail/linux/kernel/2102.2/00124.html)
 - [Developing WSL distributions in Visual Studio](https://devblogs.microsoft.com/commandline/build-and-debug-c-with-wsl-2-distributions-and-visual-studio-2022/)
 - [Windows Sandbox blog](https://techcommunity.microsoft.com/t5/windows-kernel-internals-blog/windows-sandbox/ba-p/301849)
 - [Blog explaining HV](https://www.acronis.com/en-us/blog/posts/hyper-v-authoritative-guide/)
 - [Hypercall Fuzzing](https://github.com/FSecureLABS/ViridianFuzzer)
-- [Microsoft Hypervisor Top Level Functional Specification](https://raw.githubusercontent.com/MicrosoftDocs/Virtualization-Documentation/live/tlfs/Hypervisor%20Top%20Level%20Functional%20Specification%20v6.0b.pdf)
+- [Microsoft Hypervisor Top Level Functional Specification](/archives/858642504c86ed80b141862048b6d1327c0fe5237b666e4cbe41fb351faee92c_Hypervisor%20Top%20Level%20Functional%20Specification%20v6.0b.pdf.bin)
 - [http://hvinternals.blogspot.com/2021/]
 - [list of HV resources](https://forum.exetools.com/showthread.php?p=123103)
