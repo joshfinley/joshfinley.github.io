@@ -1,9 +1,8 @@
 +++
-layout = post
+
 title = "Game Hacking - Writing a Radar in Go"
 date = 2022-05-13 00:05:28 -0500
-description = Writing a game hack
-titleImage =     file = 'title.png'
+
 +++
 
 ## Introduction

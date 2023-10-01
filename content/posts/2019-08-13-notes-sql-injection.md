@@ -1,10 +1,7 @@
 ---
-layout: post
+
 title: "Notes on SQL injection"
-description: Personal notes on some SQL injection techniques
-series: application_security
-titleImage:
-    file: 'title.png'
+
 ---
 
 ## SQL Injection - Enumerating the Databse Using `UNION`

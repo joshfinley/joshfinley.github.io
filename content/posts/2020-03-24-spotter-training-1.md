@@ -1,9 +1,8 @@
 +++
-layout = post
+
 title = "NWS Norman - Severe Weather Spotter Training Notes Session 1"
 date = 2020-03-24 00:06:30 -0500
-description = Quick notes on storm spotting training seminar with NWS Norman
-series = meteorology
+
 +++
 
 Notes on Severe Weather Spotter Training on 3-24-2020

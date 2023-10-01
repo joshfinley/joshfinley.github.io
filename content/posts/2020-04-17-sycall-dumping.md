@@ -1,10 +1,8 @@
 +++
-layout = post
+
 title = "Dumping Syscall Numbers and Offsets"
 date = 2020-04-17 00:05:28 -0500
-description = Iterating over NTDLL exports and pseudo-disassembling for syscall numbers
-series = windows_internals
-titleImage =     file = 'title.png'
+
 +++
 
 Source code for this demonstration can be found [here](https://github.com/joshfinley/SyscallDumper/tree/v1.0)

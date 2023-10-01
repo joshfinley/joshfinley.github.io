@@ -1,9 +1,8 @@
 +++
-layout = post
+
 title = "Notes - Learning Rust"
 date = 2022-05-18 00:05:28 -0500
-description = Notes taken while diving into Rust for the first time
-titleImage =     file = 'prairie-sunset.png'
+
 +++
 
 ## Introduction

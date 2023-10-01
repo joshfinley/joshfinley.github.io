@@ -1,10 +1,8 @@
 +++
-layout = post
+
 title = "Driver Hacking Notes"
 date = 2020-09-12 00:05:29 -0500
-description = Collection of resources on driver abuse, including bug-hunting and known vulnerable signed drivers
-series = windows_internals
-titleImage =     file = 'title.png'
+
 +++
 
 ## 1. Bug-Hunting

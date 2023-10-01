@@ -1,9 +1,7 @@
 +++
-layout = post
+
 title = "Fixing InfinityHook with ByePg"
-description = Using ByePg to allow InfinityHook to patch systemcalls again
-series = windows_internals
-titleImage =     file = 'title.png'
+
 +++
 
 ```

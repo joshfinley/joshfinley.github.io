@@ -1,9 +1,8 @@
 +++
-layout = post
+
 title = "GDB Cheatsheet"
 date = 2021-04-08 00:05:28 -0500
-description = So I don't have to google the same things again and again
-titleImage =     file = 'title.png'
+
 +++
 ## References
 

@@ -1,10 +1,8 @@
 +++
-layout = post
+
 title = "Memorizing Basic Windows Details"
 date = 2020-03-13 00:05:28 -0500
-description = Notes on fundamental windows concepts for reference and memorization
-series = windows_internals
-titleImage =     file = 'title.png'
+
 +++
 
 As I've been working my Pavel Yosifovich's _Kernel Programming for Windows_, I've found that theres a few basic details of the Windows operating system that I have yet to commit to muscle-memory. This page is just some simple notes from the book to maybe help with retention. Items marked with a (?) are those that I feel the need to learn more about.

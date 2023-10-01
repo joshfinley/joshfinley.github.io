@@ -1,9 +1,8 @@
 +++
-layout = post
+
 title = "Notes - Windows Subsystem for Linux Internals"
 date = 2022-05-16 00:05:28 -0500
-description = Notes on WSL internals
-titleImage =     file = 'prairie-sunset.png'
+
 +++
 
 # WSL Version 1

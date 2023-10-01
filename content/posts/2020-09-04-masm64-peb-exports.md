@@ -1,10 +1,8 @@
 +++
-layout = post
+
 title = "MASM64 Peb Walking and Export Resolution"
 date = 2020-09-04 00:05:29 -0500
-description = PEB Walking and export resolution in 64-bit assembler
-series = windows_internals
-titleImage =     file = 'title.png'
+
 +++
 
 Using the PEB as a position-independent means of finding exports is not new. As early as the late 90's, malware authors have been accessing and using the PEB for a variety of purposes [1]. Using it to resolve exports from ntdll.dll, kernel32.dll, etc. has also been documented elsewhere repeatedly [2]. Still, most of the existing examples are in 32-bit assembly, and there are fewer examples in 64-bit. But the world has mostly moved on to 64-bit. Am0nsec [3] demonstrates the most readable and comprehensive approach I have yet found for MASM64, but it is designed specifically for populating tables of function addresses and syscall numbers (the 'Hells Gate' tecnique). This article simply descibes a general adaptation of part of [3] - almost all of the code is the exact same, but parts have been changed to make a general-purpose function for iterating over a module's exports to find a target function's address.
