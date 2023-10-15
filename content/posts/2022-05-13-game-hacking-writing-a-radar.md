@@ -9,11 +9,11 @@ date = 2022-05-13 00:05:28
 
 As a cybersecurity professional, the world of game cheating has always been fascinating to me. The cheat-anti-cheat adversarial paradigm is essentially the same as that of malware and anti-malware. Yet, both sub areas of computer security have evolved uniquely, and amazingly, some of the most amazing work in computer security happens in the cheat-anti-cheat world. Evading an EDR and abusing a protected process to run code & extract credentials is essentially the same workflow as writing a successful cheat for a game protected by an anti-cheat, except the anti-cheat can often be more intense in achieving its protection goals than the best EDRs.
 
-To write a good game cheat, a fair degree of reverse engineering and game engine knowledge is required. The tried-and-true method of constructing game cheats usually involves identifying key game objects in memory and traversing pointers to find, extract, and sometimes modify the game to the advantage of the cheater. This presents unique software engineering problems, as this methodology requires the use of static offsets from the game process and the developer of the game is not interested keeping these offsets stable.
+To write a good game cheat, a fair degree of reverse engineering and game engine knowledge is required. The tried-and-true method of constructing game cheats usually involves identifying key game objects in memory and traversing pointers to find, extract, and sometimes modify the game to the advantage of the cheater. This presents unique software engineering problems, as this methodology often requires the use of static offsets or byte signatures from the game process memory and the developer of the game, which are subject to frequent change.
 
 ## Escape from Tarkov
 
-Because of my interest in this area, I set out to write a specific class of game cheat for the game Escape from Tarkov, a first person survival looter-shooter game from Battlestate Games. The basic premise of the game is that the player assumes the role of an isolated private military contractor in a contested territory in eastern Europe. The player enters zones of this territory to find and recover valuable items for use or sale. Entering these zones typically involves interacting with other human players, and these interactions are almost always violent. 
+Because of my interest in this area, I set out to write a demo of a specific class of game cheat for the game Escape from Tarkov, a first person survival looter-shooter game from Battlestate Games. The basic premise of the game is that the player assumes the role of an isolated private military contractor in a contested territory in eastern Europe. The player enters zones of this territory to find and recover valuable items for use or sale. Entering these zones typically involves interacting with other human players, and these interactions are almost always violent. 
 
 One interesting feature of this game is the level of combat difficulty. Not only is the player responsible for maintaining their energy and hydration levels, but the game also has a fairly advanced system for health of the player character's body. Each limb's health is tracked individually, in addition to overall player health. Damage to player health is represented by changes to the vision (blur, tunnel vision, etc), player mobility, and combat effectiveness. For example, damage to a leg will make the player limp, slowing them down. Damage to the arms makes shooting accurately extremely difficult. Additionally, there is no minimap and no indicators showing the locations of players. The level of danger and limited information available to the player make the game frightening, heart-racing, and engaging.
 
@@ -37,7 +37,7 @@ With ample examples on hand of some generic approaches to writing an EFT radar, 
 2. Traverse game objects to find relevant data (player positions, player information, loot locations, etc)
 3. Stream relevent data to a plotting utility and display a live feed of information to the user
 
-As a result of my efforts to implement such a program, I'm happy to share my project [radkov](https://github.com/joshfinley/radkov), an EFT radar base project written in Go. This project contains the source for accessing game memory, locating player data, and streaming it using gRPC. The remainder of this post will break down the components of this project and explain how it was written.
+As a result of my efforts to implement such a program, I'm happy to share my project, [radkov](https://github.com/joshfinley/radkov), an EFT radar base project written in Go. This project contains the source for accessing game memory, locating player data, and streaming it using gRPC. The remainder of this post will break down the components of this project and explain how it was written.
 
 ### Project Layout
 
@@ -60,7 +60,7 @@ root
 
 ### Why Golang
 
-My favorite language for any sort of systems programming is Go. It's as expressive as Python but with strong typing and none of the object-oriented nastiness. Go is decently mature at this point in time as well, and in my opinion is a great language for both serious code bases and hobby projects alike.
+My favorite language for most sorts of systems programming is Go. It's as expressive as Python but with strong typing and none of the object-oriented nastiness. Go is decently mature at this point in time as well, and in my opinion is a great language for both serious code bases and hobby projects alike.
 
 ### Reading Game Memory - Wrapping up the Windows API
 
@@ -68,7 +68,7 @@ As mentioned earlier in this post, most EFT radars leverage DMA devices to read 
 
 But this method is used in real cheats. My objective was not to write something for actual game abuse, but a toy project that does everything else that the cheat does. Because evading anti-cheat was not a requirement, I instead leveraged plain-old Windows APIs to read game memory. To make this convenient, I began by writing a simple WinAPI wrapper project. This package abstracts finding processes and loaded modules, obtaining handles, and reading memory. This makes reading game memory from the cheat backend simple and abstract:
 
-```
+```go
 type WinProc struct {
 	Pid     uint32         // process id
 	Modules []WinMod       // loaded dlls
@@ -112,18 +112,15 @@ func (p *WinProc) ReadPtr64(addr uintptr) (uintptr, error) {
 }
 ```
 
-Easy as that.
-
 ### Finding Player Positions
 
 The next challenge - and the meat of the project - is in locating the data we need for the radar, namely vectors (x,y,z coordinates) representing player positions on the map. To assist with this, I wrote a simple package called `unity` to abstract basic components of a Unity game and offer utilities for Unity specific game components.
 
-To be completely honest, I'm not certain how much of the code for my `unity` package is actually tarkov specific, but the abstraction of these basic Unity related components of the cheat was still useful. The general approach is to find the game and its `UnityPlayer.dll` in order to find the generic Unity game objects relevant to the cheat, namely `GameObjectManager` and `LocalGameWorld`. These components seem to be common to all unity games and are extended by game developers to implement game functionality.
+To be completely honest, I'm not certain how much of the code for my `unity` package is actually tarkov specific, but the abstraction of these basic Unity related components of the cheat was still useful. The general approach is to find the game and its `UnityPlayer.dll` in order to find the generic Unity game objects relevant to the cheat, namely `GameObjectManager` and `LocalGameWorld`. From my little experience, these components seem to be common to all unity games and are extended by game developers to implement game functionality.
 
 The `unity` package of my radar backend accepts offsets as paremeters and will attempt to traverse these game objects:
 
-```
-
+```go
 type UnityGame struct {
 	Proc              *winutil.WinProc // process associated with the game
 	Mod               *winutil.WinMod  // dll associated with the game
@@ -172,11 +169,11 @@ func NewUnityGame(process string, offsets Offsets) (*UnityGame, error) {
 }
 ```
 
-This is where the process of engineering game cheats gets tricky. Offsets are essential to this approach to writing the cheat, and the offsets can change between releases of the game, requiring some amount of manual or automatic reverse engineering to update offsets. In my mind, it makes the most sense avoid hard-coding these offsets into the source and instead rely on the package's users to provide up-to-date offset information. This has the benefit of keeping the code modular and the access of memory at each offset easy to follow while reading the code. 
+This is where the process of engineering game cheats gets tricky. Offsets are essential to this approach to writing the cheat, and the offsets can change between releases of the game, requiring some amount of manual or automatic reverse engineering to update offsets. In my mind, it makes the most sense avoid hard-coding these offsets into the source and instead abstract things a bit to provide up-to-date offset information. This has the benefit of keeping the code modular and the access of memory at each offset easy to follow while reading the code. 
 
-The `unity` package also implement the fundamental data type that we are attempting to stream from the game process - the vector.
+The `unity` package also implements the fundamental data type that we are attempting to stream from the game process -- the vector.
 
-```
+```go
 type Vec3 struct {
 	X float32
 	Y float32
@@ -198,7 +195,7 @@ With the ability to access relevant game objects, the only remaining challenge i
 
 The code for steps 5-7 are implemented in `radkov/pkg/tarkov` and `radkov/tkovmon`, with `tkovmon` being the main game monitoring package. `tkovmon` builds upon the `tarkov`, `unity`, and `winutil` packages to monitor player positions in game memory and stream them using gRPC. gRPC allows us to specify a protocol buffer format for the radar and RPC server prototypes for sending and receiving data about player positions:
 
-```
+```go
 // Radkov Service 
 service Radar {
     rpc StreamPlayerPositions(stream PlayerPositions) returns (stream Response) {}
@@ -223,7 +220,7 @@ message PlayerPositions {
 
 `tkovmon` leverages these types and server prototypes to call functions from the other packages to monitor game memory and stream positions:
 
-```
+```go
 func main() {
 	// dial server
 	conn, err := grpc.Dial(
@@ -254,9 +251,9 @@ func main() {
 }
 ```
 
-From there, its just a matter of plotting player positions visually, which is a much less exciting programming task, hence why I have not completed it and don't intend to :)
+From there, its just a matter of plotting player positions visually, which is a task I find uninteresting, hence why I have not completed it and don't intend to :)
 
-![Radkov in action](/tarkov-radar-demo.gif)
+{{< figure src="/tarkov-radar-demo.gif" alt="Radkov in action" >}}
 
 ## Conclusion
 
