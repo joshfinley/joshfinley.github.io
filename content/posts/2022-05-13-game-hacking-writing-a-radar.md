@@ -62,7 +62,9 @@ root
 
 My favorite language for most sorts of systems programming is Go. It's as expressive as Python but with strong typing and none of the object-oriented nastiness. Go is decently mature at this point in time as well, and in my opinion is a great language for both serious code bases and hobby projects alike.
 
-### Reading Game Memory - Wrapping up the Windows API
+### Reading Game Memory 
+
+*Wrapping up the Windows API*
 
 As mentioned earlier in this post, most EFT radars leverage DMA devices to read process memory. These are deployed to give the cheater the advantage of stealthy memory access. These devices attach to the game machine's PCI bus and issue read commands to physical memory without touching the CPU, making them difficult (but not impossible) to detect.
 
