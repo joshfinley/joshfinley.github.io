@@ -16,7 +16,8 @@ The code begins with an exploration of the core components of a polymorphic engi
 ## Instruction Encoding
 
 A significant part of the discussion revolves around the intricacies of instruction encoding. It provides insights into how opcodes, modes, and operands are encoded into machine instructions, taking examples from the x86-64 architecture.
-##Encryption Primitives
+
+## Encryption Primitives
 
 The file also delves into the encryption primitives required before building a polymorphic engine. It outlines the basic assembly techniques for encryption and discusses four types of ciphers:
 

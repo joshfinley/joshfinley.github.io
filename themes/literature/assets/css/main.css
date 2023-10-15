@@ -56,23 +56,21 @@ p {
   font-size: 1.1em;
 }
 
-/* Headers */
-h3, h4, h5, h6 {
-  font-family: 'Nunito Sans', serif;
+
+h1 { 
+  font-family: 'Playfair Display SC', serif;
+  font-size: 2em;
+  text-align: center;
 }
-
-h1 { font-size: 2em; }
-h1, h2 { 
-  text-transform: uppercase;
-  font-family: 'Playfair Display SC';
+  
+h2 { 
+  font-family: 'Playfair Display SC', serif;
+  font-size: 1.4em; 
 }
-
-h1 { font-size: 1.4em; }
-h3 { font-size: 1.4em; }
-h4 { font-size: 1.2em; font-weight: bold;}
-h5 { font-size: 1.1em; font-weight: bold;}
-h6 { font-size: 1.0em; font-weight: bold;}
-
+h3 { font-size: 1.4em; font-family: 'EB Garamond' !important; }
+h4 { font-size: 1.3em; font-family: 'EB Garamond' !important; }
+h5 { font-size: 1.2em; }
+h6 { font-size: 1.1em; }
 /* Navigation Bar */
 .bar {
   display: table;
