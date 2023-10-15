@@ -11,15 +11,8 @@ Chapter 4 of _Kernel Programming for Windows_ walks through the process of devel
 
 The full source code for the project can be found on GitHub: [https://github.com/joshfinley/PriorityBooster](https://github.com/joshfinley/PriorityBooster)
 
-| Table of Contents |
-| ----------------- |
-| 1. DriverEntry    |
-| 2. DriverObject   |
-| 3. DeviceObject   |
-| 4. IRP            |
-| 5. DeviceControl  |
 
-## 1. DriverEntry
+## DriverEntry
 
 Stack trace at driver entry:
 
@@ -111,7 +104,7 @@ IopLoadDriver(
 In this case, the call to `IopLoadDriver` comes from `IopLoadUnloadDriver`. Here's the source code from the React OS function: [/archives/cf9d022f2c3c7502ddf6522d43c44a109ae1ba838622f110dccd1e2dec3a8986_ntoskrnl_2io_2iomgr_2driver_8c_source.html.html](/archives/cf9d022f2c3c7502ddf6522d43c44a109ae1ba838622f110dccd1e2dec3a8986_ntoskrnl_2io_2iomgr_2driver_8c_source.html.html).
 
 
-## 2. DriverObject
+## DriverObject
 
 `DriverObject` is defined in `wdm.h` as follows:
 
@@ -300,7 +293,7 @@ Local var @ 0xffffbe84b6db7918 Type _DRIVER_OBJECT*
 
 Each index, of course corresponds to an `IRP_MJ_` code
 
-## 3. DeviceObject
+## DeviceObject
 
 Device Object is a structure that looks like this:
 ``` C++

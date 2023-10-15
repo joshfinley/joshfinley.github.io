@@ -9,9 +9,9 @@ Notes on Advanced Severe Weather Spotter Training webinar #skywarn.
 
 ## On the Agenda
 
-- 1. Reporting refresher
-- 2. Severe weather meteorology
-- 3. Storm structure and evolution (deep dive)
+1. Reporting refresher
+2. Severe weather meteorology
+3. Storm structure and evolution (deep dive)
 
 At the NWS office:
 - They know theres a storm
@@ -19,27 +19,27 @@ At the NWS office:
 - They need groundobservations to verify
 
 - They need a prepoderance of evidence
-    - Mainly radar data and spotter reports
-    - Conceptual models
-    - Storm history
-    - Forecaster intuition
-    - Forecaster experience
-    - Potential storm impacts
-    - Potential warning impacts
+  - Mainly radar data and spotter reports
+  - Conceptual models
+  - Storm history
+  - Forecaster intuition
+  - Forecaster experience
+  - Potential storm impacts
+  - Potential warning impacts
 
 Deciding on a type of warning:
 - spotters are very important for this component
 
 NWS Warnings
 - Paradigm:
-    - Severe Thunderstorm worning
-        - elevated wording
-        - tornado possible
+  - Severe Thunderstorm worning
+    - elevated wording
+    - tornado possible
     tornado
-        - radar
-        - observed
-        - considerable
-        - catastrophic
+    - radar
+    - observed
+    - considerable
+    - catastrophic
     - Spotter reports drive the message
 
 
@@ -115,7 +115,7 @@ NWS Warnings
 - pictures are very useful
 - www.spc.noaa.gov/exper/spcousom is the next step after this video
 
-## 2. Severe Weather Meteorology
+## Severe Weather Meteorology
 Mostly mesoscale scale features rather than storm scale
 
 
@@ -134,7 +134,7 @@ Ingredients for supercells:
 - lift
 - windshear
 
-### A. Moisture
+### Moisture
 Oklahoma
 - main moisture source is Gulf of Mexico
 - Measurement: dewpoint around 50-55* for supercells, higher for tornadic supercells
@@ -156,7 +156,7 @@ Monitoring Moisture
 - Raw Skew-T plot moisture from surface to top of atmosphere
 
 
-### B. Instability
+### Instability
 Stable vs unstable:
 - balloon example. Cool air at surface, balloon will want to rise less
 - cool lower, warm upper layer is stable
@@ -194,7 +194,7 @@ Monitoring instability
     - Lower the cloud base the more potential for tornado development
 - instability in NWS discussions
 
-# C. Lift
+# Lift
 
 Multiple kinds. Means "something to give a nudge upward"
 
@@ -233,7 +233,7 @@ Outflow boundaries
 Monitoring Boundaries
 - SPC mesoanalysis page
 
-## D.Wind Shear
+## Wind Shear
 - increase of wind speed or direction with height
 - important for forming supercells, without it the storm kills itself by downdrafting on itself
 - Deep sehar needed for supercells
@@ -281,7 +281,7 @@ Monitoring Wind Shear:
       - higher values suggest better potential
       - greater than 20 knots is ideal for tornadogenesis
 
-## 3. Storm Structure and Evolution
+## Storm Structure and Evolution
 
 Build upon the mesoscale features
 

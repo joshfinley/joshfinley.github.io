@@ -5,12 +5,12 @@ date = 2020-09-12 00:05:29
 
 +++
 
-## 1. Bug-Hunting
+## Bug-Hunting
 
 - [Hacksys. *Extreme Vulnerable Driver*](https://github.com/hacksysteam/HackSysExtremeVulnerableDriver). Driver with most common driver vulnerabilities.
 - [Forshaw. *Introduction to Logical Privilege Escalation on Windows*](https://conference.hitb.org/hitbsecconf2017ams/materials/D2T3%20-%20James%20Forshaw%20-%20Introduction%20to%20Logical%20Privilege%20Escalation%20on%20Windows.pdf). Includes brief explanations on kernel-based EOP.
 
-## 2. Known Vulnerable Drivers
+## Known Vulnerable Drivers
 
 ### 2a. Publications
 
@@ -41,7 +41,7 @@ date = 2020-09-12 00:05:29
 
 - [Zerosum0x0. *ShellcodeDriver*](https://github.com/zerosum0x0/ShellcodeDriver). Run usermode shellcode (uses CAPCOM logic).
 
-## 3. In Malware
+## In Malware
 
 ### 3a. LoJax
 
