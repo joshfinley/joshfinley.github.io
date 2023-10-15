@@ -241,9 +241,9 @@ h6 { font-size: 1.1em; }
   }
 }
 
+
 .toc {
   display: table;
-  z-index: 1;
   font-size: .9em;
   border-collapse: collapse;
   border: .05em solid black;
@@ -251,7 +251,7 @@ h6 { font-size: 1.1em; }
   padding-left: 1em; /* Adds some space around the contents for better readability */
   padding-right: 1em;
   background-color: rgb(250, 250, 250);
-  width: 100%;
+  width: 35%;
 }
 
 
@@ -273,7 +273,7 @@ h6 { font-size: 1.1em; }
   white-space: nowrap; /* Prevent text from wrapping onto next line */
   overflow: hidden;    /* Hide overflow */
   text-overflow: ellipsis; /* Show an ellipsis when the text overflows */
-  max-width: 90%; /* Optional: Set a max-width if needed */
+  max-width: 35%; /* Optional: Set a max-width if needed */
 }
 
 /* For larger screens, where the TOC is floated */
