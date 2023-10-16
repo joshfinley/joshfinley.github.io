@@ -1,5 +1,6 @@
 +++
 title = 'Notes on Polymorph Basics'
+date = 2020-12-02 00:05:28 
 +++
 
 ## Abstract

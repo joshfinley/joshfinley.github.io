@@ -41,6 +41,24 @@
   font-style: normal;
 }
 
+@font-face {
+  font-family: 'XenType';
+  src: url('/fonts/Xentype.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+}
+
+.blog-blurb h2 {
+  font-family: 'XenType';
+  font-size: 5em;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+
 
 /* Base */
 body {
@@ -71,12 +89,19 @@ h3 { font-size: 1.4em; font-family: 'EB Garamond' !important; }
 h4 { font-size: 1.3em; font-family: 'EB Garamond' !important; }
 h5 { font-size: 1.2em; }
 h6 { font-size: 1.1em; }
+
 /* Navigation Bar */
 .bar {
   display: table;
   width: 100%;
-  font-size: 1em;
+  font-size: 1.2em;
   text-transform: uppercase;
+  font-family: 'EB Garamond', serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
 .bar a {
@@ -89,7 +114,16 @@ h6 { font-size: 1.1em; }
   position: relative;
 }
 
+/* Media query for screen widths less than 768px */
+@media (max-width: 768px) {
+  .blog-blurb h2 {
+    font-size: 3em; /* Adjust this value as needed */
+  }
 
+  .bar {
+    font-size: 1em; /* Adjust this value as needed */
+  }
+}
 
 .bar a:not(:last-child)::after {
   content: "\2735";
@@ -121,7 +155,7 @@ h6 { font-size: 1.1em; }
   word-break: break-word;
   overflow-wrap: break-word;
   box-sizing: border-box;
-  max-width: calc(min(100ch, 60vw));
+  max-width: calc(min(100ch, 80vw));
   width: 100%;
 }
 
@@ -358,9 +392,13 @@ a {
 }
 
 .article-body li::before {
-  content: '•';
+  content: "\26B9";
   position: absolute;  /* Use absolute positioning */
   font-weight: bold;
+}
+
+.article-body ul li a {
+  border-bottom: 1px dotted rgb(60,60,60) !important;
 }
 
 .notes .footnotes h2, .notes .references h2 {
@@ -427,31 +465,47 @@ pre {
   font-family: 'cutive';
   overflow-x: auto;
 }
-
 .post-list {
-  padding-left: 40px;
+  list-style-type: none;
 }
 
 .post-list li {
   position: relative;
-  margin-bottom: 0.625em;  /* 10px equivalent if base font-size is 16px */
+  margin-bottom: 0.625em;
+  padding-left: 1em;
+  font-size: .9em;
 }
 
+.post-list li:before {
+  content: "\26B9";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
 
 .post-list li p {
   border-bottom: 1px dotted black;
   border-left: none;
   border-right: none;
   border-top: none;
+  margin: 0;
 }
 
-a {
-  color:black;
-  border-bottom: 1px dotted black ;
+
+.post-date,
+.post-title {
+  display: inline-block;
 }
 
-.post-list li a {
-  border-bottom: none;
+.post-date {
+  min-width: 9.375em; /* Adjust width based on your specific needs */
+  padding-right: 0.625em;
+  text-align: left;
+  border-bottom: none !important;
+}
+.post-title {
+  padding-left: 10px;
 }
 
 /* Dark mode */

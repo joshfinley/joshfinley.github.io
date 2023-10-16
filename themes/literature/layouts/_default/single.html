@@ -6,10 +6,13 @@
 
   <div id="main-wrapper">
 
-    {{ with .TableOfContents }}
-    <aside class="toc">
-      {{ . | safeHTML }}
-    </aside>
+    {{ $toc := .TableOfContents }}
+    {{ if ne $toc "<nav id=\"TableOfContents\"></nav>" }}
+      {{ with $toc }}
+        <aside class="toc">
+          {{ . | safeHTML }}
+        </aside>
+      {{ end }}
     {{ end }}
 
     <div class="content-area">

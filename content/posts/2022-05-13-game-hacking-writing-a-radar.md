@@ -26,7 +26,7 @@ Due to the intentional lack of a minimap and player locations in the game, a cla
 There are several existing public and private source EFT radar projects. Most public/open source projects are not actively maintained and exist as hobby projects (as is mine). The private projects are usually paid services where a customer of the cheat receives a distribution of programs to interact with DMA devices they own to provide a game radar. These projects usually offer some degree of support, and differentiate from each other in the market based on level of support, cost, software quality, and features. Many of these providers market their services on game hacking forums and chat rooms, while some rely on word-of-mouth.
 
 One example of a public EFT radar that served as an initial jumping off point for my adventures writing my own was https://github.com/danielignacak/RadarBase. This project is an outdated but generally useful example of a barebones EFT radar in C#. Other examples in mostly c++ can be found here: 
- - https://github.com/CplNathan/Nathans-Tarkov-Radar-Public
+- https://github.com/CplNathan/Nathans-Tarkov-Radar-Public
 - https://github.com/BUDDGAF/eft-radar
 
 ## Writing an EFT Radar
