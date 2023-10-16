@@ -280,16 +280,12 @@ h6 { font-size: 1.1em; }
     display: table-cell; /* Make content act like a cell in the table */
     vertical-align: top; /* Align content to the top of the cell */
   }
-  
-  
-  li a {
-    color:white;
 
-  }
   
   a {
     text-decoration: none;
     border-bottom: 1px dotted white;
+    color: black;
   }
 
   pre {
@@ -502,6 +498,7 @@ pre {
   font-family: 'cutive';
   overflow-x: auto;
 }
+
 .post-list {
   list-style-type: none;
 }
@@ -522,10 +519,9 @@ pre {
 }
 
 .post-list li p {
+  display: flex;
+  align-items: center;
   border-bottom: 1px dotted black;
-  border-left: none;
-  border-right: none;
-  border-top: none;
   margin: 0;
 }
 
@@ -533,21 +529,21 @@ pre {
   font-size: 1em;
 }
 
-
-.post-date,
-.post-title {
-  display: inline-block;
-}
-
 .post-date {
-  min-width: 9.375em; /* Adjust width based on your specific needs */
+  flex: 0 0 auto;
+  min-width: 9.375em;
   padding-right: 0.625em;
-  text-align: left;
-  border-bottom: none !important;
+  white-space: nowrap;
 }
+
 .post-title {
-  padding-left: 10px;
+  flex-grow: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
+
+
 
 /* Dark mode */
 .dark-mode {
