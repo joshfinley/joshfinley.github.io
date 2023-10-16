@@ -50,7 +50,7 @@
 
 .blog-blurb h2 {
   font-family: 'XenType';
-  font-size: 5em;
+  font-size: 8vw;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -131,8 +131,8 @@ h6 { font-size: 1.1em; }
     word-break: break-word;
     overflow-wrap: break-word;
     box-sizing: border-box;
-    max-width: 90% !important;
-    width: 100% !important;
+    max-width: calc(min(110ch, 90vw)) !important;
+
   }
 
   .article-body li::before {
