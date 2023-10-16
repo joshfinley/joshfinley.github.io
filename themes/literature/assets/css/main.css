@@ -122,6 +122,41 @@ h6 { font-size: 1.1em; }
   .bar {
     font-size: .9em; /* Adjust this value as needed */
   }
+
+  h1 {
+    font-size: 2em;;
+  }
+
+  #content {
+    word-break: break-word;
+    overflow-wrap: break-word;
+    box-sizing: border-box;
+    max-width: 90% !important;
+    width: 100% !important;
+  }
+
+  .article-body li::before {
+    content: "\26B9";
+    position: absolute;  /* Use absolute positioning */
+    font-weight: bold;
+    padding-left: 2%;
+  }
+
+  .article-body li {
+    padding-left: 5%;
+  }
+
+}
+
+
+@media (min-width: 768px) {
+  #content{
+    word-break: break-word;
+    overflow-wrap: break-word;
+    box-sizing: border-box;
+    max-width: calc(min(100ch, 60vw));
+    width: 100%;
+  }
 }
 
 .bar a:not(:last-child)::after {
@@ -154,7 +189,7 @@ h6 { font-size: 1.1em; }
   word-break: break-word;
   overflow-wrap: break-word;
   box-sizing: border-box;
-  max-width: calc(min(100ch, 80vw));
+  max-width: calc(min(100ch, 60vw));
   width: 100%;
 }
 
