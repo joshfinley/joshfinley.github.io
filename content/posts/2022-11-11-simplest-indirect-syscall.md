@@ -10,7 +10,9 @@ When dealing with the current era of highly imperfect EDR solutions, indirect sy
 
 This post does not aim to exhaustively explain the technique, but rather demonstrate it in x86-64 native assembly. The general premise is to avoid embedding the `syscall` instruction directly in malware code. In its simplest form, it is done by finding the `syscall` bytes (`0f 05`) somewhere and jumping directly to them, with the return address set somewhere we can regain control. With this method there are flaws and room for improvement exists. However, its generally acceptable in my experience.
 
-The below code demonstrates the the technique very simply. A pattern is used to find a syscall stub in `ntdll`. Following this, the return address is manually set using a trick to get `rip` and add the size of the instructions leading up to and including the `jmp` to the stub. The rest of the syscall stub operates like normal.
+The below code demonstrates the the technique very simply. A pattern is used to find a syscall stub in `ntdll`. Following this, the return address is manually set using a trick to get `rip` and adding the size of the instructions leading up to and including the `jmp` to the stub. The rest of the syscall stub operates like normal.
+
+{{< footnote >}}The assembler in use is UASM, which can be found at https://github.com/Terraspace/UASM. It is a MASM syntax assembler with great features, including structure offset calculation, abstract looping, automatic stack space handling, and more. It makes writing x64 assembly less of a hair-pulling experience.{{< /footnote>}}
 
 ```asm
 ; <main.asm>       -      Direct Syscall JOP Toy
