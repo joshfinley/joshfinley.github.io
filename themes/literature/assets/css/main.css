@@ -64,7 +64,7 @@ body {
   margin: 0;
   padding: 0;
   font-family: 'EB Garamond', serif;
-  font-size: 1.4em;
+  font-size: 1.45em;
   background-color: white;
   color: black;
 }
@@ -406,30 +406,40 @@ a {
   padding-right: 0.1em;
 }
 
-
 .article-body p {
-  line-height: 1.5em;;
+  line-height: 1.5em;
 }
 
-
-.article-body ul, .article-body ol {
+.article-body ul {
   list-style-type: none;
-  padding-left: 0;
-  margin-left: 0;
+}
+
+.article-body ol {
+  list-style-type: decimal;
+  padding-left: 1em;  /* Add left padding */
 }
 
 .article-body ul li, .article-body ol li {
-  text-indent: -1em;
-  left: 7.5%;
+  text-indent: 0em;  /* Reset text indent */
   position: relative;
+  line-height: 2em;
+  font-size: 1em;
 }
 
-.article-body li::before {
+.article-body ul li::before {
   content: "\26B9";
-  position: absolute;  /* Use absolute positioning */
+  position: absolute;
   font-weight: bold;
+  left: 0;  /* Align with the left edge of the li */
 }
 
+.article-body ul li {
+  padding-left: 1.5em;  /* Add left padding to make space for the bullet symbol */
+}
+
+.article-body ul li a {
+  border-bottom: 1px dotted rgb(60,60,60) !important;
+}
 .article-body ul li a {
   border-bottom: 1px dotted rgb(60,60,60) !important;
 }
@@ -439,6 +449,24 @@ a {
   border-bottom: 1px dotted rgb(60,60,60);
 
 }
+
+/* Table styles */
+.article-body table {
+  border-collapse: collapse;  /* Collapses the borders into a single border */
+  width: 100%;
+}
+
+.article-body th, .article-body td {
+  border: 1px solid rgb(60,60,60);  /* Set border for table header and table data */
+  padding: 8px;
+  text-align: left;
+}
+
+.article-body th {
+  text-align: center;
+}
+
+
 
 .notes .footnotes sup, .notes .footnotes sup {
   font-size: .5em;

@@ -84,8 +84,6 @@ Exmaple code:
 extern EFI_BOOT_SERVICES *gBS;
 EFI_EXIT_BOOT_SERVICES     gOrigExitBootServices;
 
-
-
 EFI_STATUS
 EFIAPI
 ExitBootServicesHook(IN EFI_HANDLE ImageHandle, IN UINTN MapKey){
