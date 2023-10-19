@@ -6,6 +6,7 @@ draft = true
 
 Welcome to my "Works" page, where you'll find a curated collection of my coding projects that span across a few focus areas, primarily in system-level programming, security research, and Windows internals. From extracting system calls in Windows with the NTDLL system call extraction tool to delving into the world of import obfuscation with demonstrations in x64 ASM and C++, these projects showcase my areas of study and research.
 
+- [Pebless GetModuleHandle](https://github.com/joshfinley/PeblessGetModuleHandle)
 - [Windows NTDLL system call extraction tool](https://github.com/joshfinley/SyscallDumper)
 - [Escape From Tarkov radar cheat](https://github.com/joshfinley/radkov)
 - [Demonstration of dynamic import obfuscation in x64 ASM and C++](https://github.com/joshfinley/Not-A-Virus.Win64.ImportObfuscation)
