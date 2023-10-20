@@ -135,7 +135,7 @@ h6 { font-size: 1.1em; }
 
   }
 
-  .article-body li::before {
+  .article-body ul li::before {
     content: "\26B9";
     position: absolute;  /* Use absolute positioning */
     font-weight: bold;
@@ -146,6 +146,24 @@ h6 { font-size: 1.1em; }
     padding-left: 5%;
   }
 
+  .toc {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
+  }
+
+  .toc a {
+    display: table-cell; /* Makes each link within a list item act like a table cell */
+    font-family: 'Nunito Sans';
+    font-size: .8em;
+    color: black;
+    text-decoration: none;
+    border-bottom: none;
+    overflow: hidden;    /* Hide overflow */
+    text-overflow: ellipsis; /* Show an ellipsis when the text overflows */
+    max-width: 100%; /* Optional: Set a max-width if needed */
+    white-space: normal;  /* Allow text to wrap */
+  }
 }
 
 
@@ -157,191 +175,7 @@ h6 { font-size: 1.1em; }
     max-width: calc(min(100ch, 60vw));
     width: 100%;
   }
-}
 
-.bar a:not(:last-child)::after {
-  content: "\2735";
-  position: absolute;
-  left: 100%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-}
-
-/* Containers */
-#body-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-#container {
-  width: 100%;
-  box-sizing: border-box;
-  display: flex;
-  justify-content: center;
-}
-
-#content {
-  word-break: break-word;
-  overflow-wrap: break-word;
-  box-sizing: border-box;
-  max-width: calc(min(100ch, 60vw));
-  width: 100%;
-}
-
-/* Content Area */
-.content-area h2 {
-  text-align: right;
-}
-
-/* Existing Dark Mode section */
-@media (prefers-color-scheme: dark) {
-  /* ... Your existing dark mode styles ... */
-
-  body {
-    background-color: rgb(24,24,24);
-    color: white;
-  }
-
-  .toc {
-    background-color: rgb(35,35,35) !important;
-    border: .15em solid rgb(60,60,60) !important; /* Add border around the blockquote */
-
-  }
-
-  .toc li a {
-    color: white;
-    
-  }
-
-  .bar a, .toc a {
-    color: white; /* Change to any color that suits your dark theme */
-    border-bottom: none !important;
-  }
-  
-  .bar a:hover, .toc a:hover {
-    color: gray; /* Hover effect for dark theme */
-  }
-
-  a {
-    color: white;
-    border-bottom: 1px dotted gray; /* You can adjust this */
-  }
-  
-  a:hover {
-    color: gray; /* or any other color for hover effect on dark background */
-  }
-
-  .post-list li::before {
-    color: white; /* To make sure the star symbols also adapt */
-  }
-
-  .post-list li p {
-    border-bottom: 1px dotted gray; /* Adjust to suit dark theme */
-  }
-
-  .post-list li p a {
-    color: white;
-  }
-
-  .post-list li p a:hover {
-    color: gray;
-  }
-
-  a {
-    color: white !important;
-    border-bottom: 1px dotted white !important; /* Adjust to suit dark theme */
-
-  }
-
-  blockquote {
-    margin-bottom: 2em;
-    display: table;
-    border-collapse: collapse;
-    margin: 2em; /* Reset the default margin */
-    padding: 2em; 
-    border: .15em solid rgb(60,60,60) !important; /* Add border around the blockquote */
-    border-radius: .015em;
-    font-size: .95em;
-    background-color: rgb(35, 35, 35) !important;
-    color: white;
-    line-height: 1.5em;;
-  }
-  
-  /* Style the content inside the blockquote */
-  blockquote p {
-    font-family: initial; /* Reset font-family for blockquote drop caps */
-    margin: 0; /* Reset the default margin */
-    padding: 1em; /* Add padding inside the blockquote */
-    display: table-cell; /* Make content act like a cell in the table */
-    vertical-align: top; /* Align content to the top of the cell */
-  }
-
-  
-  a {
-    text-decoration: none;
-    border-bottom: 1px dotted white;
-    color: black;
-  }
-
-  pre {
-    background-color: rgb(35, 35, 35) !important;
-    border: .15em solid rgb(60,60,60) !important; /* Add border around the blockquote */
-    padding: .5em;
-    font-size: .9em;
-    border-radius: .015em;
-    font-family: 'cutive';
-    overflow-x: auto;
-    overflow-wrap: break-word;
-    white-space: pre-wrap;
-  }
-
-  .content-area h2 {
-    text-align: right;
-  }
-}
-
-
-.toc {
-  display: table;
-  font-size: .9em;
-  border-collapse: collapse;
-  border: .05em solid black;
-  border-radius: .015em;
-  padding-left: 1em; /* Adds some space around the contents for better readability */
-  padding-right: 1em;
-  background-color: rgb(250, 250, 250);
-  width: 35%;
-}
-
-
-.toc h1,h2,h3,h4,h5,h6 {
-  padding-left: 1em;
-}
-
-.toc li {
-  list-style: none !important;
-}
-
-.toc a {
-  display: table-cell; /* Makes each link within a list item act like a table cell */
-  font-family: 'Nunito Sans';
-  font-size: .8em;
-  color: black;
-  text-decoration: none;
-  border-bottom: none;
-  white-space: nowrap; /* Prevent text from wrapping onto next line */
-  overflow: hidden;    /* Hide overflow */
-  text-overflow: ellipsis; /* Show an ellipsis when the text overflows */
-  max-width: 35%; /* Optional: Set a max-width if needed */
-}
-
-/* For larger screens, where the TOC is floated */
-@media (min-width: 768px) {
   .toc {
     float: left; /* Floats TOC to the left */
     width: 25%; /* Adjust width as needed */
@@ -353,30 +187,207 @@ h6 { font-size: 1.1em; }
     padding-right: 1em;
   }
 
-  .content-area h2::after {
-    margin-left: 20px !important;  /* Add left margin to the underline */
-    margin-right: 20px !important;  /* Add right margin to the underline */
+  .toc a {
+    white-space: nowrap; /* Prevent text from wrapping onto next line for larger screens */
   }
 }
 
-blockquote {
-  display: table;
-  border-collapse: collapse;
-  margin: 0; /* Reset the default margin */
-  padding: 0; /* Reset the default padding */
-  border: .05em solid black; /* Add border around the blockquote */
-  border-radius: .015em;
-  font-size: .95em;
-  background-color: rgb(250, 250, 250);
+.bar a:not(:last-child)::after {
+  content: "\2735";
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translate(-50%, -50%);
 }
 
-/* Style the content inside the blockquote */
-blockquote p {
-  font-family: initial; /* Reset font-family for blockquote drop caps */
-  margin: 0; /* Reset the default margin */
-  padding: 2em; /* Add padding inside the blockquote */
-  display: table-cell; /* Make content act like a cell in the table */
-  vertical-align: top; /* Align content to the top of the cell */
+
+/* Global Styles */
+#body-container,
+#container,
+#content {
+  box-sizing: border-box;
+  width: 100%;
+}
+
+#body-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+}
+
+#container {
+  display: flex;
+  justify-content: center;
+}
+
+#content {
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-width: calc(min(100ch, 60vw));
+}
+
+.bar a:not(:last-child)::after {
+  content: "\2735";
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.content-area h2 {
+  text-align: right;
+}
+
+/* Table of Contents */
+.toc {
+  display: table;
+  font-size: .9em;
+  border-collapse: collapse;
+  border: .05em solid black;
+  border-radius: .015em;
+  padding-left: 1em;
+  padding-right: 1em;
+  background-color: rgb(250, 250, 250);
+  width: 35%;
+}
+
+.toc h1,
+.toc h2,
+.toc h3,
+.toc h4,
+.toc h5,
+.toc h6 {
+  padding-left: 1em;
+}
+
+.toc li {
+  list-style: none !important;
+}
+
+.toc a {
+  display: table-cell;
+  font-family: 'Nunito Sans';
+  font-size: .8em;
+  color: black;
+  text-decoration: none;
+  border-bottom: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Media Queries */
+@media (max-width: 768px) {
+  .blog-blurb h2,
+  h1 {
+    font-size: 2em;
+  }
+
+  .bar {
+    font-size: .9em;
+  }
+
+  #content {
+    max-width: calc(min(110ch, 90vw)) !important;
+  }
+
+  .toc,
+  .toc a {
+    max-width: 100% !important;
+    white-space: normal;
+  }
+}
+
+@media (min-width: 768px) {
+  #content {
+    max-width: calc(min(100ch, 60vw));
+  }
+
+  .toc {
+    float: left;
+    width: 25%;
+    margin-right: 20px;
+  }
+
+  .toc ul {
+    padding-left: .7em;
+    padding-right: 1em;
+  }
+
+  .toc a {
+    white-space: nowrap;
+  }
+}
+
+/* Dark Mode */
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: rgb(24,24,24);
+    color: white;
+  }
+
+  .toc {
+    background-color: rgb(35,35,35) !important;
+    border: .15em solid rgb(60,60,60) !important;
+  }
+
+  .toc li a,
+  .bar a,
+  a {
+    color: white;
+  }
+
+  .bar a:hover,
+  .toc a:hover,
+  a:hover {
+    color: gray;
+  }
+
+  .post-list li::before,
+  .post-list li p a,
+  blockquote,
+  blockquote p,
+  pre {
+    color: white;
+  }
+
+  .post-list li p {
+    border-bottom: 1px dotted gray;
+  }
+
+  blockquote {
+    margin-bottom: 2em;
+    display: table;
+    border-collapse: collapse;
+    margin: 2em;
+    padding: 2em;
+    border: .15em solid rgb(60,60,60) !important;
+    border-radius: .015em;
+    font-size: .95em;
+    background-color: rgb(35, 35, 35) !important;
+    line-height: 1.5em;
+  }
+
+  blockquote p {
+    font-family: initial;
+    margin: 0;
+    padding: 1em;
+    display: table-cell;
+    vertical-align: top;
+  }
+
+  pre {
+    background-color: rgb(35, 35, 35) !important;
+    border: .15em solid rgb(60,60,60) !important;
+    padding: .5em;
+    font-size: .9em;
+    border-radius: .015em;
+    font-family: 'cutive';
+    overflow-x: auto;
+    overflow-wrap: break-word;
+    white-space: pre-wrap;
+  }
 }
 
 p a {

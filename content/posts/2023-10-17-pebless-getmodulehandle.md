@@ -50,8 +50,8 @@ Through emulation or debugging, it is possible to monitor access to the PEB or T
 
 Finally, a very simple detection for code accessing the PEB or TEB is to match suspicious code to a pattern matching a move operation with the x86_64 segment override prefix for the `gs` segment register. An example pattern would be something like:
 ```
-65 * 8b 04 25 60 00 00 00 00 ; PEB access using 0x65 segment override prefix
-65 * 8b 04 25 30 00 00 00 00 ; TEB access using 0x65 segment override prefix
+65 48 8b * 25 60 00 00 00 00 ; PEB access using 0x65 segment override prefix
+65 48 8b * 25 30 00 00 00 00 ; TEB access using 0x65 segment override prefix
 ```
 
 ## ASLR Analysis
@@ -518,7 +518,7 @@ INT main()
 
 ## Conclusion
 
-This article presented an analysis of the standard methods used to retrieve module base addresses in native Windows code, including the widely-used `GetModuleHandle`` API and manual module resolution through the Process Environment Block (PEB). It also introduced two novel methods—-*Module Discovery by Code Traversal* and *Module Discovery by Heuristic Stack Analysis*-—as alternatives that are robust yet do not rely on API calls or the PEB. Both methods offer unique advantages and disadvantages, depending on the constraints and requirements of the situation. Additionally, this work evaluated the challenges posed by Address Space Layout Randomization (ASLR) and proposed ways to work around them.
+This article presented an analysis of the standard methods used to retrieve module base addresses in native Windows code, including the widely-used `GetModuleHandle` API and manual module resolution through the Process Environment Block (PEB). It also introduced two novel methods—*Module Discovery by Code Traversal* and *Module Discovery by Heuristic Stack Analysis*—as alternatives that are robust yet do not rely on API calls or the PEB. Both methods offer unique advantages and disadvantages, depending on the constraints and requirements of the situation. Additionally, this work evaluated the challenges posed by Address Space Layout Randomization (ASLR) and proposed ways to work around them.
 
 ***Suggestions for Future Work***
 
