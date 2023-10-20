@@ -280,6 +280,8 @@ pre {
   padding-right: 1em;
   background-color: rgb(250, 250, 250);
   width: 35%;
+  z-index: 2;
+  position: relative;
 }
 
 .toc h1,
@@ -441,18 +443,18 @@ a {
 .article-body p {
   line-height: 1.5em;
 }
-
 .article-body ul {
   list-style-type: none;
+  list-style-position: inside;
 }
 
 .article-body ol {
   list-style-type: decimal;
-  padding-left: 1em;  /* Add left padding */
+  padding-left: 1em; 
 }
 
 .article-body ul li, .article-body ol li {
-  text-indent: 0em;  /* Reset text indent */
+  text-indent: 0em;
   position: relative;
   line-height: 2em;
   font-size: 1em;
@@ -460,18 +462,15 @@ a {
 
 .article-body ul li::before {
   content: "\26B9";
-  position: absolute;
   font-weight: bold;
-  left: 0;  /* Align with the left edge of the li */
+  left: 0;
+  padding-right: 1em;
 }
 
 .article-body ul li {
-  padding-left: 1.5em;  /* Add left padding to make space for the bullet symbol */
+  padding-left: 1.5em;
 }
 
-.article-body ul li a {
-  border-bottom: 1px dotted rgb(60,60,60) !important;
-}
 .article-body ul li a {
   border-bottom: 1px dotted rgb(60,60,60) !important;
 }
