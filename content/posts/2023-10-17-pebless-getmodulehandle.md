@@ -342,6 +342,8 @@ PVOID PeblessGetModuleHandle(PCHAR szModuleName) {
     StartAddr = (PBYTE)FindByteSig(
         (PVOID)RIP, MzSig, sizeof(MzSig), 0xFFFFF, TRUE);
 
+    if (szModuleName == NULL) return StartAddr;
+
     return PeblessFindModuleRecursively(
         StartAddr, szModuleName, Visited, &nVisited);
 }
@@ -349,7 +351,11 @@ PVOID PeblessGetModuleHandle(PCHAR szModuleName) {
 // Program entry point
 INT main()
 {
-    PVOID ModuleHandle = PeblessGetModuleHandle((PCHAR)"ntdll.dll");
+    PVOID BaseNtdll = PeblessGetModuleHandle((PCHAR)"ntdll.dll");
+    if (!BaseNtdll) return ERROR_NOT_FOUND;
+
+    PVOID BaseCurrent = PeblessGetModuleHandle(NULL);
+    if (!BaseCurrent) return ERROR_NOT_FOUND;
 
     return 0;
 }
