@@ -56,7 +56,7 @@
   align-items: center;
   margin: 0 !important;
   padding: 0 !important;
-  text-wrap:nowrap;
+  text-wrap:;
 }
 
 
@@ -130,6 +130,17 @@ pre {
   text-align: center;
   position: relative;
 }
+
+.post-list ul {
+  text-decoration: none !important;
+  list-style-type: none !important;
+}
+
+.post-list li {
+  text-decoration: none !important;
+  list-style-type: none !important;
+}
+
 
 /* Media query for screen widths less than 768px */
 @media (max-width: 768px) {
