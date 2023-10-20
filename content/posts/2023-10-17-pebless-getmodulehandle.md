@@ -357,7 +357,7 @@ INT main()
 
 ## Speculation: Stack-Analysis for Module Identification
 
-In addition to the first method, weaknesses in Windows ASLR may be exploited to predict valid system module addresses from data on the stack. New threads begin with `ntdll!RtlUserThreadStart`` followed by `KERNEL32!BaseThreadInitThunk``. Therefore it should be possible to obtain base addresses if an ASLR attack is used. Statistical modeling of ASLR could be done to evaluate:
+In addition to the first method, weaknesses in Windows ASLR may be exploited to predict valid system module addresses from data on the stack. New threads begin with `ntdll!RtlUserThreadStart` followed by `KERNEL32!BaseThreadInitThunk`. Therefore it should be possible to obtain base addresses if an ASLR attack is used. Statistical modeling of ASLR could be done to evaluate:
 
 * Mean distance from user code to system module code
 * Spread of module load locations
