@@ -89,6 +89,23 @@ h4 { font-size: 1.3em; font-family: 'EB Garamond' !important; }
 h5 { font-size: 1.2em; }
 h6 { font-size: 1.1em; }
 
+pre {
+  background-color: rgb(250, 250, 250);
+  padding: .5em;
+  font-size: .9em;
+  border-radius: .015em;
+  border: .05em black solid;
+  font-family: 'cutive';
+  overflow-x: auto;
+  border: .15em solid rgb(60,60,60) !important;
+  padding: .5em;
+  font-size: .9em;
+  border-radius: .015em;
+  font-family: 'cutive';
+  white-space: pre-wrap;
+}
+
+
 /* Navigation Bar */
 .bar {
   display: table;
@@ -379,14 +396,6 @@ h6 { font-size: 1.1em; }
 
   pre {
     background-color: rgb(35, 35, 35) !important;
-    border: .15em solid rgb(60,60,60) !important;
-    padding: .5em;
-    font-size: .9em;
-    border-radius: .015em;
-    font-family: 'cutive';
-    overflow-x: auto;
-    overflow-wrap: break-word;
-    white-space: pre-wrap;
   }
 }
 
@@ -477,8 +486,6 @@ a {
   text-align: center;
 }
 
-
-
 .notes .footnotes sup, .notes .footnotes sup {
   font-size: .5em;
 }
@@ -528,15 +535,6 @@ figure img {
   font-size: 0.5 em;
 } */
 
-pre {
-  background-color: rgb(250, 250, 250);
-  padding: .5em;
-  font-size: .9em;
-  border-radius: .015em;
-  border: .05em black solid;
-  font-family: 'cutive';
-  overflow-x: auto;
-}
 
 .post-list {
   list-style-type: none;
