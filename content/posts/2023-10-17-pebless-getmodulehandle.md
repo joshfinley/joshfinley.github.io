@@ -253,6 +253,7 @@ QWORD_PTR FindFirstModuleImport(PBYTE MzLoc, PCHAR ModName)
 
     return NULL;
 }
+
 // Function to check if a module has already been visited
 bool IsModuleVisited(PVOID* Visited, int nVisited, PVOID ModBase) {
     for (int i = 0; i < nVisited; i++) {
