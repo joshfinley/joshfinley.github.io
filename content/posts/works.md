@@ -8,15 +8,13 @@ Welcome to my "Works" page, where you'll find a curated collection of my coding 
 
 ## Technique Demos
 
-### Basic
 - [Demo of simple minimal PE](https://github.com/joshfinley/minpe)
 - [Demo of direct kernel object manipulation in Windows](https://github.com/joshfinley/DKOM_Demo)
 - [Demo of basic DLL injection](https://github.com/joshfinley/ManualInject)
 - [Demo of basic return address spoofing](https://github.com/joshfinley/ReturnAddressSpoofDemo)
 - [Demo of basic command line argument spoofing](https://github.com/joshfinley/CommandLineArgumentTamperingDemo)
 - [Demo of parent process ID spoofing](https://github.com/joshfinley/ParentProcessSpoofDemo)
-
-### Intermediate
+- [Demo of system call number resolution by sorting export RVAs](https://github.com/joshfinley/SyscallResolutionViaRvaDemo)
 - [Demo of dynamic import obfuscation in x64 ASM and C++](https://github.com/joshfinley/Not-A-Virus.Win64.ImportObfuscation)
 - [Demo of PEB-Less GetModuleHandle](https://github.com/joshfinley/PeblessGetModuleHandle)
 - [Demo of Cronos sleep obfuscation](https://github.com/joshfinley/SleepObfuscationTimerDemo)
