@@ -19,6 +19,7 @@ Welcome to my "Works" page, where you'll find a curated collection of my coding 
 - [Demo of PEB-Less GetModuleHandle](https://github.com/joshfinley/PeblessGetModuleHandle)
 - [Demo of Cronos sleep obfuscation](https://github.com/joshfinley/SleepObfuscationTimerDemo)
 - [Demo of synthetic stack spoofing with some improvements](https://github.com/joshfinley/SyntheticStackSpoofDemo)
+- [Demo of DLL unhooking](https://github.com/joshfinley/UnhookDemo)
 
 ## Tools / Projects
 - [Windows NTDLL system call extraction tool](https://github.com/joshfinley/SyscallDumper)
