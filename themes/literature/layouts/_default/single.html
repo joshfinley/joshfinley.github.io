@@ -1,0 +1,63 @@
+{{ define "main" }}
+<article class="content-with-toc">
+
+  <!-- Title and TOC-->
+  <h1>{{ .Title }}</h1>
+
+  <div id="main-wrapper">
+
+    {{ $toc := .TableOfContents }}
+    {{ if ne $toc "<nav id=\"TableOfContents\"></nav>" }}
+      {{ with $toc }}
+        <aside class="toc">
+          {{ . | safeHTML }}
+        </aside>
+      {{ end }}
+    {{ end }}
+
+    <div class="content-area">
+      <!-- Article Body -->
+      <div class="article-body">
+        {{ .Content }}
+      </div>
+
+      <div class="notes">
+        <!-- Footnotes section -->
+        {{ with .Scratch.Get "footnotes" }}
+        <section class="footnotes">
+          <h2>Footnotes</h2>
+          <ul>
+            {{ range . }}
+            <li id="fn-{{ .index }}">
+              <span>†{{ .index }} 
+                {{ .content | markdownify }}<a href="#ref-{{ .index }}" style="font-size:.9em;"> ↩</a>
+              </span>
+            </li>
+            {{ end }}
+          </ul>
+        </section>
+        {{ end }}
+
+        {{ $refs := $.Page.Scratch.Get "refs" }}
+        {{ with $refs }}
+          {{ if . }}
+            <section class="references">
+              <h2 id="bibliography">Bibliography</h2>
+              <ul>
+                {{ range $index, $elem := . }}
+                  <li id="bib-{{ add $index 1 }}">
+                    [{{ add $index 1 }}] 
+                    {{ with $elem.citation }}{{ . }}{{ end }}
+                    <a href="{{ $elem.url }}">{{ $elem.url }}</a><a href="#ref-{{ add $index 1 }}" style="font-size:.8em;">↩</a>
+                  </li>
+                {{ end }}
+              </ul>
+            </section>
+          {{ end }}
+        {{ end }}
+
+      </div>
+    </div>
+  </div>
+</article>
+{{ end }}

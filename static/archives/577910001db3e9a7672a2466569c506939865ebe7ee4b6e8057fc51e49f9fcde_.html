@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="robots" content="noodp" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge, chrome=1">
+        <title>A Syscall Journey in the Windows Kernel - Alice Climent-Pommeret</title><meta name="Description" content=""><meta property="og:title" content="A Syscall Journey in the Windows Kernel" />
+<meta property="og:description" content="The analysis on this post was made from a Windows 10 x64 bits. If you are trying to compare the content of this post on a lower Windows version you will be disappointed since changes were made in Windows 10.
+In my last post dedicated to the different ways to retrieve Syscall ID, I explained quickly how direct syscalls were performed in User Mode and remained vague about how it was processed in Kernel Mode." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://alice.climent-pommeret.red/posts/a-syscall-journey-in-the-windows-kernel/" />
+<meta property="article:published_time" content="2022-03-24T12:12:24+01:00" />
+<meta property="article:modified_time" content="2022-03-24T12:12:24+01:00" />
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="A Syscall Journey in the Windows Kernel"/>
+<meta name="twitter:description" content="The analysis on this post was made from a Windows 10 x64 bits. If you are trying to compare the content of this post on a lower Windows version you will be disappointed since changes were made in Windows 10.
+In my last post dedicated to the different ways to retrieve Syscall ID, I explained quickly how direct syscalls were performed in User Mode and remained vague about how it was processed in Kernel Mode."/>
+<meta name="application-name" content="Alice Climent-Pommeret">
+<meta name="apple-mobile-web-app-title" content="Alice Climent-Pommeret"><link rel="shortcut icon" type="image/x-icon" href="/favicon.ico" />
+        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+        <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png"><link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png"><link rel="manifest" href="/site.webmanifest"><link rel="canonical" href="https://alice.climent-pommeret.red/posts/a-syscall-journey-in-the-windows-kernel/" /><link rel="prev" href="https://alice.climent-pommeret.red/posts/direct-syscalls-hells-halos-syswhispers2/" /><link rel="next" href="https://alice.climent-pommeret.red/posts/how-and-why-to-unhook-the-import-address-table/" /><link rel="stylesheet" href="/lib/normalize/normalize.min.css"><link rel="stylesheet" href="/css/style.min.css"><link rel="stylesheet" href="/lib/fontawesome-free/all.min.css"><link rel="stylesheet" href="/lib/animate/animate.min.css"><script type="application/ld+json">
+    {
+        "@context": "http://schema.org",
+        "@type": "BlogPosting",
+        "headline": "A Syscall Journey in the Windows Kernel",
+        "inLanguage": "en",
+        "mainEntityOfPage": {
+            "@type": "WebPage",
+            "@id": "https:\/\/alice.climent-pommeret.red\/posts\/a-syscall-journey-in-the-windows-kernel\/"
+        },"genre": "posts","keywords": "Kernel, System Calls, Windows Internals","wordcount":  5423 ,
+        "url": "https:\/\/alice.climent-pommeret.red\/posts\/a-syscall-journey-in-the-windows-kernel\/","datePublished": "2022-03-24T12:12:24+01:00","dateModified": "2022-03-24T12:12:24+01:00","publisher": {
+            "@type": "Organization",
+            "name": "Alice"},"author": {
+                "@type": "Person",
+                "name": "Alice"
+            },"description": ""
+    }
+    </script></head>
+    <body header-desktop="" header-mobile=""><script type="text/javascript">(window.localStorage && localStorage.getItem('theme') ? localStorage.getItem('theme') === 'dark' : ('' === 'auto' ? window.matchMedia('(prefers-color-scheme: dark)').matches : '' === 'dark')) && document.body.setAttribute('theme', 'dark');</script>
+
+        <div id="mask"></div><div class="wrapper"><header class="desktop" id="header-desktop">
+    <div class="header-wrapper">
+        <div class="header-title">
+            <a href="/" title="Alice Climent-Pommeret">Alice Climent-Pommeret</a>
+        </div>
+        <div class="menu">
+            <div class="menu-inner"><a class="menu-item" href="/posts/"> Posts </a><a class="menu-item" href="/categories/"> Categories </a><a class="menu-item" href="/about/"> Resume </a><a class="menu-item" href="https://github.com/xalicex" title="Github" rel="noopener noreffer" target="_blank"><i class='fab fa-github fa-fw'></i>  </a><a class="menu-item" href="https://www.linkedin.com/in/alice-c-140504b2/" title="LinkedIn" rel="noopener noreffer" target="_blank"><i class='fab fa-linkedin fa-fw'></i>  </a><a class="menu-item" href="https://twitter.com/AliceCliment" title="twitter" rel="noopener noreffer" target="_blank"><i class='fab fa-twitter fa-fw'></i>  </a><span class="menu-item delimiter"></span><a href="javascript:void(0);" class="menu-item theme-switch" title="Switch Theme">
+                    <i class="fas fa-adjust fa-fw"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+</header><header class="mobile" id="header-mobile">
+    <div class="header-container">
+        <div class="header-wrapper">
+            <div class="header-title">
+                <a href="/" title="Alice Climent-Pommeret">Alice Climent-Pommeret</a>
+            </div>
+            <div class="menu-toggle" id="menu-toggle-mobile">
+                <span></span><span></span><span></span>
+            </div>
+        </div>
+        <div class="menu" id="menu-mobile"><a class="menu-item" href="/posts/" title="">Posts</a><a class="menu-item" href="/categories/" title="">Categories</a><a class="menu-item" href="/about/" title="">Resume</a><a class="menu-item" href="https://github.com/xalicex" title="Github" rel="noopener noreffer" target="_blank"><i class='fab fa-github fa-fw'></i></a><a class="menu-item" href="https://www.linkedin.com/in/alice-c-140504b2/" title="LinkedIn" rel="noopener noreffer" target="_blank"><i class='fab fa-linkedin fa-fw'></i></a><a class="menu-item" href="https://twitter.com/AliceCliment" title="twitter" rel="noopener noreffer" target="_blank"><i class='fab fa-twitter fa-fw'></i></a><a href="javascript:void(0);" class="menu-item theme-switch" title="Switch Theme">
+                <i class="fas fa-adjust fa-fw"></i>
+            </a></div>
+    </div>
+</header>
+<div class="search-dropdown desktop">
+    <div id="search-dropdown-desktop"></div>
+</div>
+<div class="search-dropdown mobile">
+    <div id="search-dropdown-mobile"></div>
+</div>
+<main class="main">
+                <div class="container"><div class="toc" id="toc-auto">
+            <h2 class="toc-title">Contents</h2>
+            <div class="toc-content" id="toc-content-auto"></div>
+        </div><article class="page single"><h1 class="single-title animated flipInX">A Syscall Journey in the Windows Kernel</h1><div class="post-meta">
+            <div class="post-meta-line"><span class="post-author"><a href="/" title="Author" rel=" author" class="author"><i class="fas fa-user-circle fa-fw"></i>Alice</a></span>&nbsp;<span class="post-category">included in <a href="/categories/windows-internals/"><i class="far fa-folder fa-fw"></i>Windows Internals</a></span></div>
+            <div class="post-meta-line"><i class="far fa-calendar-alt fa-fw"></i>&nbsp;<time datetime="2022-03-24">2022-03-24</time>&nbsp;<i class="fas fa-pencil-alt fa-fw"></i>&nbsp;5423 words&nbsp;
+                <i class="far fa-clock fa-fw"></i>&nbsp;26 minutes&nbsp;</div>
+        </div><div class="details toc" id="toc-static"  kept="">
+                <div class="details-summary toc-title">
+                    <span>Contents</span>
+                    <span><i class="details-icon fas fa-angle-right"></i></span>
+                </div>
+                <div class="details-content toc-content" id="toc-content-static"><nav id="TableOfContents">
+  <ul>
+    <li><a href="#previously-in-the-user-mode">Previously in the User Mode</a></li>
+    <li><a href="#welcome-my-son-welcome-to-the-machine-kernel1">Welcome My Son, Welcome To The Machine Kernel</a></li>
+    <li><a href="#retrieving-the-kernel-thread-with-kisystemserviceuser">Retrieving the Kernel Thread with KiSystemServiceUser()</a></li>
+    <li><a href="#the-secrets-of-the-syscall-number-and-kisystemservicestart">The secrets of the Syscall Number and KiSystemServiceStart()</a></li>
+    <li><a href="#check-and-find-with-kisystemservicerepeat">Check and find with KiSystemServiceRepeat()</a>
+      <ul>
+        <li><a href="#00-synthesis-break">00 Synthesis break</a></li>
+        <li><a href="#01-synthesis-break">01 Synthesis break</a></li>
+        <li><a href="#02-synthesis-break">02 Synthesis break</a></li>
+        <li><a href="#03-synthesis-break">03 Synthesis break</a></li>
+        <li><a href="#what-about-the-filter-table-">What about the Filter Table ?</a></li>
+      </ul>
+    </li>
+    <li><a href="#the-execution-of-the-kernel-routine-via-kisystemservicecopyend">The execution of the Kernel routine via KiSystemServiceCopyEnd()</a></li>
+    <li><a href="#wrapping-it-up">Wrapping it up</a></li>
+    <li><a href="#thanks">Thanks</a></li>
+    <li><a href="#sources">Sources</a></li>
+  </ul>
+</nav></div>
+            </div><div class="content" id="content"><p><strong>The analysis on this post was made from a Windows 10 x64 bits. If you are trying to compare the content of this post on a lower Windows version <em>you will be disappointed</em> since changes were made in Windows 10</strong>.</p>
+<p><a href="https://alice.climent-pommeret.red/posts/direct-syscalls-hells-halos-syswhispers2/" target="_blank" rel="noopener noreffer">In my last post</a> dedicated to the different ways to retrieve Syscall ID, I explained quickly how direct syscalls were performed in User Mode and remained vague about how it was processed in Kernel Mode.</p>
+<p>In this post, we will focus on how syscall numbers are processed in the Kernel and how the kernel routines related to the syscall numbers are retrieved and executed.</p>
+<h2 id="previously-in-the-user-mode">Previously in the User Mode</h2>
+<p>When a program needs to interact with other processes, memory, drives or the file system it uses the Windows API functions in <code>Kernel32.dll</code>. However, to interact with the Windows GUI, a program will use functions located in <code>user32.dll</code> and <code>gdi32.dll</code>.</p>
+<p>Some of these functions can be seen as wrappers for direct syscalls to the Kernel. For instance, if you perform an <code>OpenProcess()</code> the execution will be:</p>
+<figure>
+    <img src="/edr/SystemCall.png"
+         alt="OpenProcess direct syscall"/> <figcaption>
+            <p>OpenProcess direct syscall</p>
+        </figcaption>
+</figure>
+
+<p>If you perform a <code>SetMenu()</code> the execution will be:</p>
+<figure>
+    <img src="/edr/SystemCall01.png"
+         alt="OpenProcess direct syscall"/> <figcaption>
+            <p>OpenProcess direct syscall</p>
+        </figcaption>
+</figure>
+
+<p>Finally, if you perform a <code>GetRandomRgn()</code> the execution will be:</p>
+<figure>
+    <img src="/edr/SystemCall02.png"
+         alt="OpenProcess direct syscall"/> <figcaption>
+            <p>OpenProcess direct syscall</p>
+        </figcaption>
+</figure>
+
+<p>In the native windows execution flow, direct syscalls are performed via <code>Nt*</code> and <code>Zw*</code> functions that can be found in <code>ntdll.dll</code> or by <code>NtUser*</code> and <code>NtGdi*</code> functions that can be found in <code>win32u.dll</code>.</p>
+<p>Small warning here, not all the <code>Kernel32</code>, <code>user32</code> and <code>gdi32</code> functions end up in direct syscall.</p>
+<p><strong>The &ldquo;real&rdquo; code of <code>Nt*</code>, <code>Zw*</code>, <code>NtUser*</code> and <code>NtGdi*</code> function runs in Kernel Mode.</strong></p>
+<p>In this post, <code>Nt*</code> and <code>Zw*</code> functions will be called <code>Native functions</code>. <code>NtUser*</code> and <code>NtGdi*</code> functions will be called <code>GUI functions</code>.</p>
+<p>A direct syscall looks like this:</p>
+<figure>
+    <img src="/kernel/OpenProcess.png"
+         alt="OpenProcess direct syscall"/> <figcaption>
+            <p>OpenProcess direct syscall</p>
+        </figcaption>
+</figure>
+
+<p>The code of a direct syscall is also called <code>syscall stub</code>.</p>
+<p>The purpose of the <code>syscall stub</code> is to forward the execution flow of the function to the related code in the Kernel (the <code>kernel routine</code>). It&rsquo;s the last step in User Mode. This transfer of execution is done by the assembly instruction <code>syscall</code>.</p>
+<p>The only difference between <code>syscall stub</code> is the number moved in EAX. This number is called <code>syscall ID</code> or <code>syscall number</code> or <code>system service number (SSN)</code>.</p>
+<p>It allows the Kernel to retrieve the function code related to this identifier. Syscall identifiers are unique on a system and linked to a single function. <em><strong>They can change between different OS versions or service packs</strong></em>.</p>
+<h2 id="welcome-my-son-welcome-to-the-machine-kernel1">Welcome My Son, Welcome To The <del>Machine</del> Kernel<sup id="fnref:1"><a href="#fn:1" class="footnote-ref" role="doc-noteref">1</a></sup></h2>
+<p>On a 64 bits system, When the <code>syscall</code> instruction is executed the address in the <code>LSTAR</code> register is put in the <code>RIP</code> register.</p>
+<figure>
+    <img src="/kernel/syscall_LSTAR.png"/> 
+</figure>
+
+<p><code>RIP</code> is the register that store the next address to be executed in the workflow.</p>
+<p>For the <code>LSTAR</code> register, it&rsquo;s only purpose is to store the address of the first function executed in Kernel-Mode after a <code>syscall</code> instruction. The <code>LSTAR</code> register is one of many others registers called MSR (Model Specific Registers).</p>
+<p>The value of the <code>LSTAR</code> register is set at the boot time.</p>
+<p>We can see the value in <code>LSTAR</code> by using Windbg in Kernel Debug mode. In the system, <code>LSTAR</code> is identified as <code>msr[c0000082]</code>.</p>
+<p>To read his value, we use the command <code>rdmsr</code> (read MSR).</p>
+<div class="highlight"><pre class="chroma"><code class="language-c" data-lang="c"><span class="n">lkd</span><span class="o">&gt;</span> <span class="n">rdmsr</span> <span class="n">c0000082</span> <span class="c1">//
+</span><span class="c1"></span><span class="n">msr</span><span class="p">[</span><span class="n">c0000082</span><span class="p">]</span> <span class="o">=</span> <span class="n">fffff807</span><span class="err">`</span><span class="mi">403</span><span class="n">ca140</span>
+<span class="n">lkd</span><span class="o">&gt;</span> <span class="n">ln</span>  <span class="n">fffff807</span><span class="err">`</span><span class="mi">403</span><span class="n">ca140</span>
+
+<span class="p">(</span><span class="n">fffff807</span><span class="err">`</span><span class="mi">403</span><span class="n">ca140</span><span class="p">)</span>   <span class="n">nt</span><span class="o">!</span><span class="n">KiSystemCall64Shadow</span>   <span class="o">|</span>  <span class="p">(</span><span class="n">fffff807</span><span class="err">`</span><span class="mi">403</span><span class="n">ca16d</span><span class="p">)</span>   <span class="n">nt</span><span class="o">!</span><span class="n">KiSystemCall64ShadowCommon</span></code></pre></div>
+<p>After the execution of the <code>syscall</code> instruction in User Mode, we <strong>switch into the Kernel Mode</strong>.</p>
+<p>From here to the execution of the related kernel routine, the following functions will be executed (pretty much in this order) :</p>
+<ul>
+<li><code>KiSystemCall64Shadow</code> or <code>KiSystemCall64</code> (if the Meltdown mitigation is not activated);</li>
+<li><code>KiSystemServiceUser</code>;</li>
+<li><code>KiSystemServiceStart</code>;</li>
+<li><code>KiSystemServiceRepeat</code>;</li>
+<li><code>KiSystemServiceGdiTebAccess</code>;</li>
+<li><code>KiSystemServiceCopyStart</code> (not executed all the time);</li>
+<li><code>KiSystemServiceCopyEnd</code>.</li>
+</ul>
+<p>In this post we will only focus on <code>KiSystemServiceUser</code>, <code>KiSystemServiceStart</code>, <code>KiSystemServiceRepeat</code>and
+<code>KiSystemServiceCopyEnd</code> functions. We will also focus on specific Kernel structures used during the syscall number processing.</p>
+<h2 id="retrieving-the-kernel-thread-with-kisystemserviceuser">Retrieving the Kernel Thread with KiSystemServiceUser()</h2>
+<p>After the execution of the first function of the workflow (<code>KiSystemCall64</code>), <code>KiSystemServiceUser()</code> is the next one.</p>
+<p>One of the important things happening in this function is the retrieval of the <code>KTHREAD structure</code> address of the current thread.</p>
+<p>To do so, the instruction <code>mov rbx, gs:188h</code> is used.</p>
+<figure>
+    <img src="/kernel/00_KiSystemServiceUser.png"
+         alt="get KThread"/> <figcaption>
+            <p>get KThread</p>
+        </figcaption>
+</figure>
+
+<p>But what is this instruction? In the kernel of x64 bits systems, <code>gs:0</code> contains a pointer to the <code>_KPCR</code> structure. KPCR stands for <code>Kernel Processor Control Region</code>.</p>
+<div class="highlight"><pre class="chroma"><code class="language-c" data-lang="c"><span class="n">lkd</span><span class="o">&gt;</span> <span class="n">dt</span> <span class="n">nt</span><span class="o">!</span><span class="n">_KPCR</span>
+   <span class="o">+</span><span class="mh">0x000</span> <span class="nl">NtTib</span>            <span class="p">:</span> <span class="n">_NT_TIB</span>
+   <span class="o">+</span><span class="mh">0x000</span> <span class="nl">GdtBase</span>          <span class="p">:</span> <span class="n">Ptr64</span> <span class="n">_KGDTENTRY64</span>
+   <span class="o">+</span><span class="mh">0x008</span> <span class="nl">TssBase</span>          <span class="p">:</span> <span class="n">Ptr64</span> <span class="n">_KTSS64</span>
+   <span class="o">+</span><span class="mh">0x010</span> <span class="nl">UserRsp</span>          <span class="p">:</span> <span class="n">Uint8B</span>
+   <span class="o">+</span><span class="mh">0x018</span> <span class="nl">Self</span>             <span class="p">:</span> <span class="n">Ptr64</span> <span class="n">_KPCR</span>
+   <span class="o">+</span><span class="mh">0x020</span> <span class="nl">CurrentPrcb</span>      <span class="p">:</span> <span class="n">Ptr64</span> <span class="n">_KPRCB</span>
+   <span class="o">+</span><span class="mh">0x028</span> <span class="nl">LockArray</span>        <span class="p">:</span> <span class="n">Ptr64</span> <span class="n">_KSPIN_LOCK_QUEUE</span>
+   <span class="o">+</span><span class="mh">0x030</span> <span class="nl">Used_Self</span>        <span class="p">:</span> <span class="n">Ptr64</span> <span class="n">Void</span>
+   <span class="o">+</span><span class="mh">0x038</span> <span class="nl">IdtBase</span>          <span class="p">:</span> <span class="n">Ptr64</span> <span class="n">_KIDTENTRY64</span>
+   <span class="o">+</span><span class="mh">0x040</span> <span class="nl">Unused</span>           <span class="p">:</span> <span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="n">Uint8B</span>
+   <span class="o">+</span><span class="mh">0x050</span> <span class="nl">Irql</span>             <span class="p">:</span> <span class="n">UChar</span>
+   <span class="o">+</span><span class="mh">0x051</span> <span class="nl">SecondLevelCacheAssociativity</span> <span class="p">:</span> <span class="n">UChar</span>
+   <span class="o">+</span><span class="mh">0x052</span> <span class="nl">ObsoleteNumber</span>   <span class="p">:</span> <span class="n">UChar</span>
+   <span class="o">+</span><span class="mh">0x053</span> <span class="nl">Fill0</span>            <span class="p">:</span> <span class="n">UChar</span>
+   <span class="o">+</span><span class="mh">0x054</span> <span class="nl">Unused0</span>          <span class="p">:</span> <span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="n">Uint4B</span>
+   <span class="o">+</span><span class="mh">0x060</span> <span class="nl">MajorVersion</span>     <span class="p">:</span> <span class="n">Uint2B</span>
+   <span class="o">+</span><span class="mh">0x062</span> <span class="nl">MinorVersion</span>     <span class="p">:</span> <span class="n">Uint2B</span>
+   <span class="o">+</span><span class="mh">0x064</span> <span class="nl">StallScaleFactor</span> <span class="p">:</span> <span class="n">Uint4B</span>
+   <span class="o">+</span><span class="mh">0x068</span> <span class="nl">Unused1</span>          <span class="p">:</span> <span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="n">Ptr64</span> <span class="n">Void</span>
+   <span class="o">+</span><span class="mh">0x080</span> <span class="nl">KernelReserved</span>   <span class="p">:</span> <span class="p">[</span><span class="mi">15</span><span class="p">]</span> <span class="n">Uint4B</span>
+   <span class="o">+</span><span class="mh">0x0bc</span> <span class="nl">SecondLevelCacheSize</span> <span class="p">:</span> <span class="n">Uint4B</span>
+   <span class="o">+</span><span class="mh">0x0c0</span> <span class="nl">HalReserved</span>      <span class="p">:</span> <span class="p">[</span><span class="mi">16</span><span class="p">]</span> <span class="n">Uint4B</span>
+   <span class="o">+</span><span class="mh">0x100</span> <span class="nl">Unused2</span>          <span class="p">:</span> <span class="n">Uint4B</span>
+   <span class="o">+</span><span class="mh">0x108</span> <span class="nl">KdVersionBlock</span>   <span class="p">:</span> <span class="n">Ptr64</span> <span class="n">Void</span>
+   <span class="o">+</span><span class="mh">0x110</span> <span class="nl">Unused3</span>          <span class="p">:</span> <span class="n">Ptr64</span> <span class="n">Void</span>
+   <span class="o">+</span><span class="mh">0x118</span> <span class="nl">PcrAlign1</span>        <span class="p">:</span> <span class="p">[</span><span class="mi">24</span><span class="p">]</span> <span class="n">Uint4B</span>
+   <span class="o">+</span><span class="mh">0x180</span> <span class="nl">Prcb</span>             <span class="p">:</span> <span class="n">_KPRCB</span></code></pre></div>
+<p>The <code>_KPCR</code> structure is used to store processor specific data. At the end of the structure (offset <code>0x180h</code>), we can see another structure called <code>_KPRCB</code> (Kernel Processor Control Block).</p>
+<p>Like <code>_KPCR</code>, this structure contains processor specific data but it also <strong>contains pointers to the current, next and idle thread schedule for execution</strong>.</p>
+<p>The target offset was <code>gs:188h</code>. So, if the end of <code>_KPCR</code> is at <code>180h</code>, our value is at the offset <code>0x008h</code> of <code>_KPRCB</code>.</p>
+<div class="highlight"><pre class="chroma"><code class="language-c" data-lang="c"><span class="n">lkd</span><span class="o">&gt;</span> <span class="n">dt</span> <span class="n">nt</span><span class="o">!</span><span class="n">_KPRCB</span>
+   <span class="o">+</span><span class="mh">0x000</span> <span class="nl">MxCsr</span>            <span class="p">:</span> <span class="n">Uint4B</span>
+   <span class="o">+</span><span class="mh">0x004</span> <span class="nl">LegacyNumber</span>     <span class="p">:</span> <span class="n">UChar</span>
+   <span class="o">+</span><span class="mh">0x005</span> <span class="nl">ReservedMustBeZero</span> <span class="p">:</span> <span class="n">UChar</span>
+   <span class="o">+</span><span class="mh">0x006</span> <span class="nl">InterruptRequest</span> <span class="p">:</span> <span class="n">UChar</span>
+   <span class="o">+</span><span class="mh">0x007</span> <span class="nl">IdleHalt</span>         <span class="p">:</span> <span class="n">UChar</span>
+   <span class="o">+</span><span class="mh">0x008</span> <span class="nl">CurrentThread</span>    <span class="p">:</span> <span class="n">Ptr64</span> <span class="n">_KTHREAD</span>
+   <span class="o">+</span><span class="mh">0x010</span> <span class="nl">NextThread</span>       <span class="p">:</span> <span class="n">Ptr64</span> <span class="n">_KTHREAD</span>
+   <span class="o">+</span><span class="mh">0x018</span> <span class="nl">IdleThread</span>       <span class="p">:</span> <span class="n">Ptr64</span> <span class="n">_KTHREAD</span>
+   <span class="p">....</span></code></pre></div>
+<p>the value at <code>0x008h</code> is a pointer to the <code>_KTHREAD</code> structure of the current thread!</p>
+<p>So by getting the value in <code>gs:188h</code>, we can indeed retrieve the KTHREAD address of the current thread.</p>
+<p>The KTHREAD structure contains a lots of crucial informations needed by the Kernel for thread execution/management. It can be viewed as the Kernel version of the <code>TEB</code> (Thread Environment Block). <strong>Fun fact, the address of the TEB is stored in the KTHREAD!</strong></p>
+<div class="highlight"><pre class="chroma"><code class="language-c" data-lang="c">   <span class="n">lkd</span><span class="o">&gt;</span> <span class="n">dt</span> <span class="n">nt</span><span class="o">!</span><span class="n">_KTHREAD</span> 
+   <span class="o">+</span><span class="mh">0x000</span> <span class="nl">Header</span>           <span class="p">:</span> <span class="n">_DISPATCHER_HEADER</span>
+   <span class="o">+</span><span class="mh">0x018</span> <span class="nl">SListFaultAddress</span> <span class="p">:</span> <span class="n">Ptr64</span> <span class="n">Void</span>
+   <span class="p">....</span>
+   <span class="o">+</span><span class="mh">0x080</span> <span class="nl">SystemCallNumber</span> <span class="p">:</span> <span class="n">Uint4B</span>
+   <span class="o">+</span><span class="mh">0x084</span> <span class="nl">ReadyTime</span>        <span class="p">:</span> <span class="n">Uint4B</span>
+   <span class="o">+</span><span class="mh">0x088</span> <span class="nl">FirstArgument</span>    <span class="p">:</span> <span class="n">Ptr64</span> <span class="n">Void</span>
+   <span class="p">....</span>
+   <span class="o">+</span><span class="mh">0x0f0</span> <span class="nl">Teb</span>              <span class="p">:</span> <span class="n">Ptr64</span> <span class="n">Void</span>
+   <span class="p">....</span></code></pre></div>
+<p>At the end of <code>KiSystemServiceUser()</code>, two values are initialized in the KTHREAD structure.</p>
+<figure>
+    <img src="/kernel/01_KiSystemServiceUser.png"
+         alt="Set SystemCall number and address of the first argument"/> <figcaption>
+            <p>Set SystemCall number and address of the first argument</p>
+        </figcaption>
+</figure>
+
+<p>We know by now that <code>rbx</code> stores the KTHREAD address of the current thread.</p>
+<p>If we check the related offsets, we can see that <code>0x080</code> is the <strong>SystemCallNumber</strong> field and <code>0x088</code> is the <strong>FirstArgument</strong> field (<em>cf. KTHREAD structure above</em>).</p>
+<h2 id="the-secrets-of-the-syscall-number-and-kisystemservicestart">The secrets of the Syscall Number and KiSystemServiceStart()</h2>
+<p>The <code>System Call Number</code> or <code>System Service Number</code> contains more information that it seems.</p>
+<p>Actually, it contains 2 informations. The <code>Table Identifier</code> and the <code>System Call Index</code>.</p>
+<figure>
+    <img src="/kernel/SSN.png"
+         alt="Informations in the Syscall Number 23h (NtQueryVirtualMemory)"/> <figcaption>
+            <p>Informations in the Syscall Number 23h (NtQueryVirtualMemory)</p>
+        </figcaption>
+</figure>
+
+<p>In the first 12 bits [0 to 11] of this numbers (to read from the right to the left), it&rsquo;s where the <code>System Call Index</code> is stored. In the bits 12 to 13 the <code>Table Identifier</code> is stored. The rest of the bits are unused.</p>
+<p>Even if theoretically, the 2 bits dedicated to the <code>Table Identifier</code> can generate 4 values, today (in Windows 10 and 11) the values on the <code>Table Identifier</code> can only be <code>00</code> or <code>01</code>.</p>
+<p>The purpose of the function <code>KiSystemServiceStart()</code> is to <strong>extract these informations</strong> from the <code>System Call Number</code>.</p>
+<p>Remember that our <code>System Call Number</code> is stored in the <code>eax</code> register.</p>
+<figure>
+    <img src="/kernel/QueryMemory.png"
+         alt="Function NtQueryVirtualMemory()"/> <figcaption>
+            <p>Function NtQueryVirtualMemory()</p>
+        </figcaption>
+</figure>
+
+<p>Now, let&rsquo;s take a look on what this function is actually doing.</p>
+<figure>
+    <img src="/kernel/00_KiSystemServiceStart.png"
+         alt="The function KiSystemServiceStart()"/> <figcaption>
+            <p>The function KiSystemServiceStart()</p>
+        </figcaption>
+</figure>
+
+<p>If we take as example the function <code>NtQueryVirtualMemory()</code>, the <code>System Call Number</code> associated is <code>23h</code></p>
+<pre><code>mov edi,eax     // edi = 23h = 0010 0011 
+shr edi, 7      // We shift edi 7 bits to the right
+</code></pre><figure>
+    <img src="/kernel/QueryMemoryShift.png"
+         alt="Shift 7 bits to the right"/> <figcaption>
+            <p>Shift 7 bits to the right</p>
+        </figcaption>
+</figure>
+
+<p>The value of <code>edi</code> is now  <code>0000 0000</code> or <code>00h</code>. Then, we extract the table identifier:</p>
+<pre><code>and edi, 20h    // edi = 00h
+</code></pre><figure>
+    <img src="/kernel/QueryMemoryTableIndex.png"
+         alt="Extract table index"/> <figcaption>
+            <p>Extract table index</p>
+        </figcaption>
+</figure>
+
+<p>For <code>NtQueryVirtualMemory()</code> the Table Identifier is <code>00h</code>.</p>
+<p>Now we extract the <code>System Call Index</code> from <code>eax</code></p>
+<pre><code>and eax, 0FFFh  // eax = 23h
+</code></pre><figure>
+    <img src="/kernel/QueryMemoryExtractSSN.png"
+         alt="Extract SSN"/> <figcaption>
+            <p>Extract SSN</p>
+        </figcaption>
+</figure>
+
+<p>The <code>System Call Index</code> for NtQueryVirtualMemory() is <code>23h</code>.</p>
+<p>So basically, nothing change except that we have now the <code>Table Identifier</code> in the <code>edi</code> register and the <code>System Call Index</code> in <code>eax</code>. Well, that&rsquo;s kind of true.</p>
+<p>But let&rsquo;s take another example not from <code>ntdll</code>.</p>
+<figure>
+    <img src="/kernel/NtUserSetMenuCall.png"
+         alt="Function NtUserSetMenu()"/> <figcaption>
+            <p>Function NtUserSetMenu()</p>
+        </figcaption>
+</figure>
+
+<p>For the function <code>NtUserSetMenu()</code> of <code>win32u.dll</code> the <code>System Call Number</code> is <code>1496h</code>.</p>
+<pre><code>mov edi, eax    // edi = 1496h = 0001 0100 1001 0110
+shr edi, 7      // Shift bits to the right
+</code></pre><figure>
+    <img src="/kernel/GdiShift.png"
+         alt="Shift 7 bits to the right"/> <figcaption>
+            <p>Shift 7 bits to the right</p>
+        </figcaption>
+</figure>
+
+<p>The value of <code>edi</code> is now  <code>0000 0000 0010 1001 </code> or <code>29h</code>. Then, we extract the table identifier:</p>
+<pre><code>and edi, 20h    // edi = 29h
+</code></pre><figure>
+    <img src="/kernel/GdiTable.png"
+         alt="Extract table index"/> <figcaption>
+            <p>Extract table index</p>
+        </figcaption>
+</figure>
+
+<p>For <code>NtUserSetMenu()</code> the table identifier is <code>20h</code>.</p>
+<p>Now we extract the <code>System Call Index</code> from <code>eax</code></p>
+<pre><code>and eax, 0FFFh  // eax = 1496h
+</code></pre><figure>
+    <img src="/kernel/GdiSSN.png"
+         alt="Extract SSN"/> <figcaption>
+            <p>Extract SSN</p>
+        </figcaption>
+</figure>
+
+<p>The <code>System Call Index</code> for <code>NtUserSetMenu()</code> is <code>496h</code>.</p>
+<p>Today in Windows 10 and 11, the initial value on the <code>Table Identifier</code> can only lead to the results <code>20h</code> or <code>00h</code>. This can be predicted just by looking at the <code>Syscall Number</code>.</p>
+<p>If the number is between<code>1000h</code> and <code>1FFFh</code> the <code>Table Identifier</code> will be <code>20h</code>. This format of <code>Syscall Number</code> can be found on <code>win32u.dll</code>. <strong>These functions are related to the Windows GUI</strong>.</p>
+<p>If the <code>Syscall Number</code> is between <code>0h</code> and <code>FFFh</code> the <code>Table Identifier</code> will be <code>00h</code>. This format of <code>Syscall Number</code> can be found on <code>ntdll.dll</code>. <strong>These functions are related to Native functions</strong>.</p>
+<p>We will see in detail in the next chapter why the <code>Table Identifier</code> value is important.</p>
+<h2 id="check-and-find-with-kisystemservicerepeat">Check and find with KiSystemServiceRepeat()</h2>
+<p><strong>Friendly warning, this section is quite complex. I suggest you read it completely once to grasp the general idea and then read it a second time to pay attention to the detail.</strong></p>
+<p>The <code>KiSystemServiceRepeat()</code> function is the heart of the System call processing in the kernel.</p>
+<p>It&rsquo;s purpose is to:</p>
+<ul>
+<li>check if the syscall is related to a GUI function;</li>
+<li>choose the right <code>System Descriptor Table</code>;</li>
+<li>retrieve the address of the kernel routine related to the <code>System Call Index</code>.</li>
+</ul>
+<p>Let&rsquo;s start the analysis of this function!</p>
+<figure>
+    <img src="/kernel/00_ServiceRepeat.png"/> 
+</figure>
+
+<p>We can see that the address of 2 structures are loaded in <code>r10</code> and <code>r11</code>. These structures named <code>KeServiceDescriptorTable</code> and <code>KeServiceDescriptorTableShadow</code> are generally called <code>Service Descriptor Table</code> (SDT).</p>
+<p><code>Service Descriptor Table</code> always contains 4 <code>SYSTEM_SERVICE_TABLE</code> structure.</p>
+<div class="highlight"><pre class="chroma"><code class="language-c" data-lang="c"><span class="k">typedef</span> <span class="k">struct</span> <span class="n">tag_SERVICE_DESCRIPTOR_TABLE</span> <span class="p">{</span>
+    <span class="n">SYSTEM_SERVICE_TABLE</span> <span class="n">item1</span><span class="p">;</span>
+    <span class="n">SYSTEM_SERVICE_TABLE</span> <span class="n">item2</span><span class="p">;</span>
+    <span class="n">SYSTEM_SERVICE_TABLE</span> <span class="n">item3</span><span class="p">;</span>
+    <span class="n">SYSTEM_SERVICE_TABLE</span> <span class="n">item4</span><span class="p">;</span>
+<span class="p">}</span> <span class="n">SERVICE_DESCRIPTOR_TABLE</span><span class="p">;</span></code></pre></div>
+<p>And a <code>SYSTEM_SERVICE_TABLE</code> contains 4 elements:</p>
+<div class="highlight"><pre class="chroma"><code class="language-c" data-lang="c"><span class="k">typedef</span> <span class="k">struct</span> <span class="n">tag_SYSTEM_SERVICE_TABLE</span> <span class="p">{</span>
+    <span class="n">PULONG</span>      <span class="n">ServiceTable</span><span class="p">;</span>
+    <span class="n">PULONG_PTR</span>  <span class="n">CounterTable</span><span class="p">;</span>
+    <span class="n">ULONG_PTR</span>   <span class="n">ServiceLimit</span><span class="p">;</span>
+    <span class="n">PBYTE</span>       <span class="n">ArgumentTable</span><span class="p">;</span>
+<span class="p">}</span> <span class="n">SYSTEM_SERVICE_TABLE</span><span class="p">;</span></code></pre></div>
+<p>In this function the elements <code>ServiceTable</code> and <code>ServiceLimit</code> of the <code>SYSTEM_SERVICE_TABLE</code> will be used.</p>
+<h3 id="00-synthesis-break">00 Synthesis break</h3>
+<blockquote>
+<ul>
+<li>We have two <code>Service Descriptor Table</code> named <code>KeServiceDescriptorTable</code> and <code>KeServiceDescriptorTableShadow</code></li>
+<li>The <code>Service Descriptor Table</code> contains 4 <code>SYSTEM_SERVICE_TABLE</code></li>
+<li><code>SYSTEM_SERVICE_TABLE</code> are composed by 4 elements but for us only <code>ServiceTable</code> and <code>ServiceLimit</code> will be useful.</li>
+</ul>
+</blockquote>
+<p>In the Kernel memory the <code>KeServiceDescriptorTable</code> look like this:</p>
+<div class="highlight"><pre class="chroma"><code class="language-c" data-lang="c"><span class="n">lkd</span><span class="o">&gt;</span> <span class="n">dps</span> <span class="n">nt</span><span class="o">!</span><span class="n">KeServiceDescriptorTable</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mf">23e04880</span>  <span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">ca8450</span> <span class="n">nt</span><span class="o">!</span><span class="n">KiServiceTable</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mf">23e04888</span>  <span class="mo">00000000</span><span class="err">`</span><span class="mo">00000000</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mf">23e04890</span>  <span class="mo">00000000</span><span class="err">`</span><span class="mo">000001</span><span class="n">cf</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mf">23e04898</span>  <span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">ca8b90</span> <span class="n">nt</span><span class="o">!</span><span class="n">KiArgumentTable</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mf">23e048</span><span class="n">a0</span>  <span class="mo">00000000</span><span class="err">`</span><span class="mo">00000000</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mf">23e048</span><span class="n">a8</span>  <span class="mo">00000000</span><span class="err">`</span><span class="mo">00000000</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mf">23e048</span><span class="n">b0</span>  <span class="mo">00000000</span><span class="err">`</span><span class="mo">00000000</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mf">23e048</span><span class="n">b8</span>  <span class="mo">00000000</span><span class="err">`</span><span class="mo">00000000</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mf">23e048</span><span class="n">c0</span>  <span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">bd7280</span> <span class="n">nt</span><span class="o">!</span><span class="n">KiBreakpointTrapShadow</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mf">23e048</span><span class="n">c8</span>  <span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">bd7300</span> <span class="n">nt</span><span class="o">!</span><span class="n">KiOverflowTrapShadow</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mf">23e048</span><span class="n">d0</span>  <span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">bd7d00</span> <span class="n">nt</span><span class="o">!</span><span class="n">KiRaiseSecurityCheckFailureShadow</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mf">23e048</span><span class="n">d8</span>  <span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">bd7d80</span> <span class="n">nt</span><span class="o">!</span><span class="n">KiRaiseAssertionShadow</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mf">23e048</span><span class="n">e0</span>  <span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">bd7e00</span> <span class="n">nt</span><span class="o">!</span><span class="n">KiDebugServiceTrapShadow</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mf">23e048</span><span class="n">e8</span>  <span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">bd9140</span> <span class="n">nt</span><span class="o">!</span><span class="n">KiSystemCall64Shadow</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mf">23e048</span><span class="n">f0</span>  <span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">bd8e00</span> <span class="n">nt</span><span class="o">!</span><span class="n">KiSystemCall32Shadow</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mf">23e048</span><span class="n">f8</span>  <span class="mo">00000000</span><span class="err">`</span><span class="mo">00000000</span></code></pre></div>
+<p>And <code>KeServiceDescriptorTableShadow</code> look like this:
+<div class="highlight"><pre class="chroma"><code class="language-c" data-lang="c"><span class="n">lkd</span><span class="o">&gt;</span> <span class="n">dps</span> <span class="n">nt</span><span class="o">!</span><span class="n">KeServiceDescriptorTableShadow</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">ded980</span>  <span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">ca8450</span> <span class="n">nt</span><span class="o">!</span><span class="n">KiServiceTable</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">ded988</span>  <span class="mo">00000000</span><span class="err">`</span><span class="mo">00000000</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">ded990</span>  <span class="mo">00000000</span><span class="err">`</span><span class="mo">000001</span><span class="n">cf</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">ded998</span>  <span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">ca8b90</span> <span class="n">nt</span><span class="o">!</span><span class="n">KiArgumentTable</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">ded9a0</span>  <span class="n">fffff1d5</span><span class="err">`</span><span class="mi">938</span><span class="n">cb000</span> <span class="n">win32k</span><span class="o">!</span><span class="n">W32pServiceTable</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">ded9a8</span>  <span class="mo">00000000</span><span class="err">`</span><span class="mo">00000000</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">ded9b0</span>  <span class="mo">00000000</span><span class="err">`</span><span class="mo">000004</span><span class="n">da</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">ded9b8</span>  <span class="n">fffff1d5</span><span class="err">`</span><span class="mi">938</span><span class="n">cc84c</span> <span class="n">win32k</span><span class="o">!</span><span class="n">W32pArgumentTable</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">ded9c0</span>  <span class="mo">00000000</span><span class="err">`</span><span class="mo">00111311</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">ded9c8</span>  <span class="mo">00000000</span><span class="err">`</span><span class="mo">00000000</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">ded9d0</span>  <span class="n">ffffffff</span><span class="err">`</span><span class="mi">80000018</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">ded9d8</span>  <span class="mo">00000000</span><span class="err">`</span><span class="mo">00000000</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">ded9e0</span>  <span class="mo">00000000</span><span class="err">`</span><span class="mo">00000000</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">ded9e8</span>  <span class="mo">00000000</span><span class="err">`</span><span class="mo">00000000</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">ded9f0</span>  <span class="mo">00000000</span><span class="err">`</span><span class="mo">00000000</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">ded9f8</span>  <span class="mo">00000000</span><span class="err">`</span><span class="mo">00000000</span></code></pre></div></p>
+<p>The following figure is a graphic representation of the 2 <code>Service Descriptor Table</code>
+<figure>
+    <img src="/kernel/SDT_SST.png"/> 
+</figure>
+</p>
+<p>After the initialization of <code>r10</code> and <code>r11</code> with SDTs, we can see that a test is performed with the instruction:
+<div class="highlight"><pre class="chroma"><code class="language-nasm" data-lang="nasm"><span class="nf">test</span> <span class="kt">dword</span> <span class="nv">ptr</span> <span class="p">[</span><span class="nb">rbx</span><span class="o">+</span><span class="mh">78h</span><span class="p">],</span> <span class="mh">80h</span></code></pre></div></p>
+<p>Earlier we saw that <code>rbx</code> contains the KTHREAD of the current thread. If we check at the offset <code>78h</code> of the KTHREAD structure we find this :
+<div class="highlight"><pre class="chroma"><code class="language-c" data-lang="c">   <span class="o">+</span><span class="mh">0x078</span> <span class="nl">UserIdealProcessorFixed</span> <span class="p">:</span> <span class="n">Pos</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span> <span class="n">Bit</span>
+   <span class="o">+</span><span class="mh">0x078</span> <span class="nl">ThreadFlagsSpare</span> <span class="p">:</span> <span class="n">Pos</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span> <span class="n">Bit</span>
+   <span class="o">+</span><span class="mh">0x078</span> <span class="nl">AutoAlignment</span>    <span class="p">:</span> <span class="n">Pos</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span> <span class="n">Bit</span>
+   <span class="o">+</span><span class="mh">0x078</span> <span class="nl">DisableBoost</span>     <span class="p">:</span> <span class="n">Pos</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span> <span class="n">Bit</span>
+   <span class="o">+</span><span class="mh">0x078</span> <span class="nl">AlertedByThreadId</span> <span class="p">:</span> <span class="n">Pos</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">1</span> <span class="n">Bit</span>
+   <span class="o">+</span><span class="mh">0x078</span> <span class="nl">QuantumDonation</span>  <span class="p">:</span> <span class="n">Pos</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">1</span> <span class="n">Bit</span>
+   <span class="o">+</span><span class="mh">0x078</span> <span class="nl">EnableStackSwap</span>  <span class="p">:</span> <span class="n">Pos</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">1</span> <span class="n">Bit</span>
+   <span class="o">+</span><span class="mh">0x078</span> <span class="nl">GuiThread</span>        <span class="p">:</span> <span class="n">Pos</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">1</span> <span class="n">Bit</span>
+   <span class="o">+</span><span class="mh">0x078</span> <span class="nl">DisableQuantum</span>   <span class="p">:</span> <span class="n">Pos</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">1</span> <span class="n">Bit</span>
+   <span class="o">+</span><span class="mh">0x078</span> <span class="nl">ChargeOnlySchedulingGroup</span> <span class="p">:</span> <span class="n">Pos</span> <span class="mi">9</span><span class="p">,</span> <span class="mi">1</span> <span class="n">Bit</span>
+   <span class="o">+</span><span class="mh">0x078</span> <span class="nl">DeferPreemption</span>  <span class="p">:</span> <span class="n">Pos</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">1</span> <span class="n">Bit</span>
+   <span class="o">+</span><span class="mh">0x078</span> <span class="nl">QueueDeferPreemption</span> <span class="p">:</span> <span class="n">Pos</span> <span class="mi">11</span><span class="p">,</span> <span class="mi">1</span> <span class="n">Bit</span>
+   <span class="o">+</span><span class="mh">0x078</span> <span class="nl">ForceDeferSchedule</span> <span class="p">:</span> <span class="n">Pos</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">1</span> <span class="n">Bit</span>
+   <span class="o">+</span><span class="mh">0x078</span> <span class="nl">SharedReadyQueueAffinity</span> <span class="p">:</span> <span class="n">Pos</span> <span class="mi">13</span><span class="p">,</span> <span class="mi">1</span> <span class="n">Bit</span>
+   <span class="o">+</span><span class="mh">0x078</span> <span class="nl">FreezeCount</span>      <span class="p">:</span> <span class="n">Pos</span> <span class="mi">14</span><span class="p">,</span> <span class="mi">1</span> <span class="n">Bit</span>
+   <span class="o">+</span><span class="mh">0x078</span> <span class="nl">TerminationApcRequest</span> <span class="p">:</span> <span class="n">Pos</span> <span class="mi">15</span><span class="p">,</span> <span class="mi">1</span> <span class="n">Bit</span>
+   <span class="o">+</span><span class="mh">0x078</span> <span class="nl">AutoBoostEntriesExhausted</span> <span class="p">:</span> <span class="n">Pos</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">1</span> <span class="n">Bit</span>
+   <span class="o">+</span><span class="mh">0x078</span> <span class="nl">KernelStackResident</span> <span class="p">:</span> <span class="n">Pos</span> <span class="mi">17</span><span class="p">,</span> <span class="mi">1</span> <span class="n">Bit</span>
+   <span class="o">+</span><span class="mh">0x078</span> <span class="nl">TerminateRequestReason</span> <span class="p">:</span> <span class="n">Pos</span> <span class="mi">18</span><span class="p">,</span> <span class="mi">2</span> <span class="n">Bits</span>
+   <span class="o">+</span><span class="mh">0x078</span> <span class="nl">ProcessStackCountDecremented</span> <span class="p">:</span> <span class="n">Pos</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">1</span> <span class="n">Bit</span>
+   <span class="o">+</span><span class="mh">0x078</span> <span class="nl">RestrictedGuiThread</span> <span class="p">:</span> <span class="n">Pos</span> <span class="mi">21</span><span class="p">,</span> <span class="mi">1</span> <span class="n">Bit</span>
+   <span class="o">+</span><span class="mh">0x078</span> <span class="nl">VpBackingThread</span>  <span class="p">:</span> <span class="n">Pos</span> <span class="mi">22</span><span class="p">,</span> <span class="mi">1</span> <span class="n">Bit</span>
+   <span class="o">+</span><span class="mh">0x078</span> <span class="nl">EtwStackTraceCrimsonApcDisabled</span> <span class="p">:</span> <span class="n">Pos</span> <span class="mi">23</span><span class="p">,</span> <span class="mi">1</span> <span class="n">Bit</span>
+   <span class="o">+</span><span class="mh">0x078</span> <span class="nl">EtwStackTraceApcInserted</span> <span class="p">:</span> <span class="n">Pos</span> <span class="mi">24</span><span class="p">,</span> <span class="mi">8</span> <span class="n">Bits</span>
+   <span class="o">+</span><span class="mh">0x078</span> <span class="nl">ThreadFlags</span>      <span class="p">:</span> <span class="n">Int4B</span></code></pre></div></p>
+<p>The purpose of this instruction is to check if the <code>GuiThread</code> flag is set. If the flag is set then following instruction will be executed.
+<div class="highlight"><pre class="chroma"><code class="language-nasm" data-lang="nasm"><span class="nf">test</span> <span class="kt">dword</span> <span class="nv">ptr</span> <span class="p">[</span><span class="nb">rbx</span><span class="o">+</span><span class="mh">78h</span><span class="p">],</span> <span class="mh">200000h</span></code></pre></div></p>
+<p>If the flag is not set then it jumps above all this part.</p>
+<figure>
+    <img src="/kernel/00_ServiceRepeatJMP.png"/> 
+</figure>
+
+<p>However, <strong>the first time that the thread will executes this routine the <code>GuiThread</code> flag is not be set</strong>. Why? Because the Kernel doesn&rsquo;t know yet that if the current thread is processing a GUI function or not.</p>
+<p>So for now the flag is not set and we are taking the jump to end up in this code:</p>
+<figure>
+    <img src="/kernel/01_ServiceRepeat.png"/> 
+</figure>
+
+<p>It&rsquo;s checking if the value of <code>eax</code> is above the value at the address <code>[r10+rdi+10h]</code></p>
+<p>Let&rsquo;s take a breath and use what we already know.</p>
+<ul>
+<li><code>eax</code> contains the <code>System Call Index</code> extracted ealier in <code>KiSystemServiceStart()</code></li>
+<li><code>rdi</code> contains the <code>Table Identifier</code> extracted ealier in <code>KiSystemServiceStart()</code>. It&rsquo;s value is <code>20h</code> or <code>00h</code></li>
+<li><code>r10</code> contains the address of <code>KeServiceDescriptorTable</code> (it as been initialized at the beginning of this function)</li>
+<li><code>10h</code> it just 16 in hexadecimal.</li>
+</ul>
+<p>Ok so it looks like our <code>System Call Index</code> is compared with something in the <code>KeServiceDescriptorTable</code>.</p>
+<p>If our syscall is related to a GUI function, we then have <code>[KeServiceDescriptorTable+20h+10h]</code> if not we have <code>[KeServiceDescriptorTable+00h+10h]</code>.</p>
+<p>Ok. Fine.</p>
+<p>Let&rsquo;s come back to what a <code>Service Descriptor Table</code> look like. A <code>Service Descriptor Table</code> contains 4 <code>SYSTEM_SERVICE_TABLE</code> structure and for <code>KeServiceDescriptorTable</code> in memory it look like this:
+<div class="highlight"><pre class="chroma"><code class="language-c" data-lang="c"><span class="n">lkd</span><span class="o">&gt;</span> <span class="n">dps</span> <span class="n">nt</span><span class="o">!</span><span class="n">KeServiceDescriptorTable</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mf">23e04880</span>  <span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">ca8450</span> <span class="n">nt</span><span class="o">!</span><span class="n">KiServiceTable</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mf">23e04888</span>  <span class="mo">00000000</span><span class="err">`</span><span class="mo">00000000</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mf">23e04890</span>  <span class="mo">00000000</span><span class="err">`</span><span class="mo">000001</span><span class="n">cf</span> 
+<span class="n">fffff803</span><span class="err">`</span><span class="mf">23e04898</span>  <span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">ca8b90</span> <span class="n">nt</span><span class="o">!</span><span class="n">KiArgumentTable</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mf">23e048</span><span class="n">a0</span>  <span class="mo">00000000</span><span class="err">`</span><span class="mo">00000000</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mf">23e048</span><span class="n">a8</span>  <span class="mo">00000000</span><span class="err">`</span><span class="mo">00000000</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mf">23e048</span><span class="n">b0</span>  <span class="mo">00000000</span><span class="err">`</span><span class="mo">00000000</span> 
+<span class="n">fffff803</span><span class="err">`</span><span class="mf">23e048</span><span class="n">b8</span>  <span class="mo">00000000</span><span class="err">`</span><span class="mo">00000000</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mf">23e048</span><span class="n">c0</span>  <span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">bd7280</span> <span class="n">nt</span><span class="o">!</span><span class="n">KiBreakpointTrapShadow</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mf">23e048</span><span class="n">c8</span>  <span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">bd7300</span> <span class="n">nt</span><span class="o">!</span><span class="n">KiOverflowTrapShadow</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mf">23e048</span><span class="n">d0</span>  <span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">bd7d00</span> <span class="n">nt</span><span class="o">!</span><span class="n">KiRaiseSecurityCheckFailureShadow</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mf">23e048</span><span class="n">d8</span>  <span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">bd7d80</span> <span class="n">nt</span><span class="o">!</span><span class="n">KiRaiseAssertionShadow</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mf">23e048</span><span class="n">e0</span>  <span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">bd7e00</span> <span class="n">nt</span><span class="o">!</span><span class="n">KiDebugServiceTrapShadow</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mf">23e048</span><span class="n">e8</span>  <span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">bd9140</span> <span class="n">nt</span><span class="o">!</span><span class="n">KiSystemCall64Shadow</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mf">23e048</span><span class="n">f0</span>  <span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">bd8e00</span> <span class="n">nt</span><span class="o">!</span><span class="n">KiSystemCall32Shadow</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mf">23e048</span><span class="n">f8</span>  <span class="mo">00000000</span><span class="err">`</span><span class="mo">00000000</span></code></pre></div></p>
+<p>So for a GUI function (Table Identifier at <code>20h</code>) the formula is <code>[KeServiceDescriptorTable+20h+10h]</code> -&gt; <code>[23e04880+20h+10h]</code> -&gt; <code>[23e048b0]</code>. We can see that at this address the value is <code>0h</code>.</p>
+<div class="highlight"><pre class="chroma"><code class="language-c" data-lang="c"><span class="n">lkd</span><span class="o">&gt;</span> <span class="n">dps</span> <span class="n">nt</span><span class="o">!</span><span class="n">KeServiceDescriptorTable</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mf">23e04880</span>  <span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">ca8450</span> <span class="n">nt</span><span class="o">!</span><span class="n">KiServiceTable</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mf">23e04888</span>  <span class="mo">00000000</span><span class="err">`</span><span class="mo">00000000</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mf">23e04890</span>  <span class="mo">00000000</span><span class="err">`</span><span class="mo">000001</span><span class="n">cf</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mf">23e04898</span>  <span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">ca8b90</span> <span class="n">nt</span><span class="o">!</span><span class="n">KiArgumentTable</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mf">23e048</span><span class="n">a0</span>  <span class="mo">00000000</span><span class="err">`</span><span class="mo">00000000</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mf">23e048</span><span class="n">a8</span>  <span class="mo">00000000</span><span class="err">`</span><span class="mo">00000000</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mf">23e048</span><span class="n">b0</span>  <span class="mo">00000000</span><span class="err">`</span><span class="mo">00000000</span> <span class="o">&lt;-</span> <span class="p">[</span><span class="n">KeServiceDescriptorTable</span><span class="o">+</span><span class="mi">20</span><span class="n">h</span><span class="o">+</span><span class="mi">10</span><span class="n">h</span><span class="p">]</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mf">23e048</span><span class="n">b8</span>  <span class="mo">00000000</span><span class="err">`</span><span class="mo">00000000</span>
+<span class="p">....</span></code></pre></div>
+<p>However, if our syscall is a Native function the Table Identifier will be <code>00h</code> and the formula <code>[KeServiceDescriptorTable+00h+10h]</code> -&gt; <code>[23e04880+00h+10h]</code> -&gt; <code>[23e04890]</code>. We can see that at this address the value is <code>1CFh</code>.</p>
+<div class="highlight"><pre class="chroma"><code class="language-c" data-lang="c"><span class="n">lkd</span><span class="o">&gt;</span> <span class="n">dps</span> <span class="n">nt</span><span class="o">!</span><span class="n">KeServiceDescriptorTable</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mf">23e04880</span>  <span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">ca8450</span> <span class="n">nt</span><span class="o">!</span><span class="n">KiServiceTable</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mf">23e04888</span>  <span class="mo">00000000</span><span class="err">`</span><span class="mo">00000000</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mf">23e04890</span>  <span class="mo">00000000</span><span class="err">`</span><span class="mo">000001</span><span class="n">cf</span> <span class="o">&lt;-</span> <span class="p">[</span><span class="n">KeServiceDescriptorTable</span><span class="o">+</span><span class="mo">00</span><span class="n">h</span><span class="o">+</span><span class="mi">10</span><span class="n">h</span><span class="p">]</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mf">23e04898</span>  <span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">ca8b90</span> <span class="n">nt</span><span class="o">!</span><span class="n">KiArgumentTable</span>
+<span class="p">....</span></code></pre></div>
+<p>So basically the third item of the <code>SYSTEM_SERVICE_TABLE</code> is checked. This item is the <code>ServiceLimit</code> and it indicates the number elements in the <code>ServiceTable</code>.</p>
+<div class="highlight"><pre class="chroma"><code class="language-c" data-lang="c"><span class="k">typedef</span> <span class="k">struct</span> <span class="n">tag_SYSTEM_SERVICE_TABLE</span> <span class="p">{</span>
+    <span class="n">PULONG</span>      <span class="n">ServiceTable</span><span class="p">;</span>
+    <span class="n">PULONG_PTR</span>  <span class="n">CounterTable</span><span class="p">;</span>
+    <span class="n">ULONG_PTR</span>   <span class="n">ServiceLimit</span><span class="p">;</span>
+    <span class="n">PBYTE</span>       <span class="n">ArgumentTable</span><span class="p">;</span>
+<span class="p">}</span> <span class="n">SYSTEM_SERVICE_TABLE</span><span class="p">;</span></code></pre></div>
+<p>The <code>ServiceTable</code> item of the <code>SYSTEM_SERVICE_TABLE</code> is an array of <code>relative value address</code> (RVA). Each element of this array is linked to a kernel routine function.</p>
+<p>So we have our <code>System Call Index</code> in <code>eax</code> checked against the number of RVA in the <code>ServiceTable</code>. What does it mean.</p>
+<p><strong>It checks if the <code>System Call Index</code> is valid (aka in the limit of the <code>ServiceTable</code> array) !</strong></p>
+<h3 id="01-synthesis-break">01 Synthesis break</h3>
+<blockquote>
+<ul>
+<li>the <code>GuiThread</code> flag of the current thread KTHREAD structure is checked. However, Since it&rsquo;s the first time we are executing this routine with this thread it&rsquo;s set to 0.</li>
+<li>the <code>System Call Index</code> is compared to the number of elements in the <code>ServiceTable</code> of the first <code>SYSTEM_SERVICE_TABLE</code> in <code>KeServiceDescriptorTable</code>.</li>
+</ul>
+</blockquote>
+<p>But wait a minute ! If we have a GUI function like <code>NtUserSetMenu()</code>. Its <code>Sytem Call Index</code> is <code>496h</code>! So the check will be <code>496h &gt; 0h</code> and our <code>System Call Index</code> will be considered invalid (aka the jump taken)!</p>
+<p>Yes that&rsquo;s true !</p>
+<p>If we are in the case of <code>NtQueryVirtualMemory()</code>, then it&rsquo;s not a GUI function. So in this case the check will be if <code>23h (the System call Index of the function) &gt; 1CFh</code>. Since <code>23h</code> is below <code>1CFh</code> the jump is not taken and the execution will continue in this function.</p>
+<p>However, in the case of <code>NtUserSetMenu()</code>, <code>496h &gt; 00h</code>. So here the jump to <code>loc_1401C4B65</code> will be taken.</p>
+<p>For the exercise let&rsquo;s imagine that we are in the case of <code>NtUserSetMenu()</code> and that it&rsquo;s the first time that this thread is processing a GUI function.</p>
+<p>In this case the jump to <code>loc_1401C4B65</code> will take us here:
+<figure>
+    <img src="/kernel/02_ServiceRepeat.png"/> 
+</figure>
+</p>
+<p>As we can see the first instruction is to check if <code>edi</code> is <code>20h</code>. But by now we know what this means! It means that it&rsquo;s a check to see if we are processing a GUI function.</p>
+<p>We can see 2 others functions <code>KiConvertGuiThread</code> and <code>KiSystemServiceRepeat</code>.</p>
+<p>So here it will be simple. If <code>edi</code> is indeed <code>20h</code> it means that we are processing a GUI function and we need to convert our current thread in a GUI Thread via the function <code>KiConvertGuiThread</code> and then go back to <code>KiSystemServiceRepeat</code>.</p>
+<p>But if <code>edi</code> is not <code>20h</code>, it means that our syscall is not from a GUI function and that the <code>System Call Index</code> is out of range of the <code>ServiceTable</code>. So in this the last case, the routine it basically exiting the syscall processing workflow.</p>
+<p>So if we are in the case of <code>NtUserSetMenu()</code>, our current thread is convert into a GUI Thread an we come back at the beginning of <code>KiSystemServiceRepeat()</code>.</p>
+<figure>
+    <img src="/kernel/00_ServiceRepeat.png"/> 
+</figure>
+
+<p>This time the <code>GuiThread</code> flag checked with <code>test dword ptr [rbx+78h], 80h</code> will be set, the jump taken and the following instruction executed
+<div class="highlight"><pre class="chroma"><code class="language-nasm" data-lang="nasm"><span class="nf">test</span> <span class="kt">dword</span> <span class="nv">ptr</span> <span class="p">[</span><span class="nb">rbx</span><span class="o">+</span><span class="mh">78h</span><span class="p">],</span> <span class="mh">200000h</span></code></pre></div></p>
+<p>Now another flag in the KTHREAD of the current thread is checked. This time it&rsquo;s the <code>RestrictedGuiThread</code> flag.</p>
+<div class="highlight"><pre class="chroma"><code class="language-c" data-lang="c">   <span class="o">+</span><span class="mh">0x078</span> <span class="nl">UserIdealProcessorFixed</span> <span class="p">:</span> <span class="n">Pos</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span> <span class="n">Bit</span>
+   <span class="o">+</span><span class="mh">0x078</span> <span class="nl">ThreadFlagsSpare</span> <span class="p">:</span> <span class="n">Pos</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span> <span class="n">Bit</span>
+   <span class="o">+</span><span class="mh">0x078</span> <span class="nl">AutoAlignment</span>    <span class="p">:</span> <span class="n">Pos</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span> <span class="n">Bit</span>
+   <span class="o">+</span><span class="mh">0x078</span> <span class="nl">DisableBoost</span>     <span class="p">:</span> <span class="n">Pos</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span> <span class="n">Bit</span>
+   <span class="o">+</span><span class="mh">0x078</span> <span class="nl">AlertedByThreadId</span> <span class="p">:</span> <span class="n">Pos</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">1</span> <span class="n">Bit</span>
+   <span class="o">+</span><span class="mh">0x078</span> <span class="nl">QuantumDonation</span>  <span class="p">:</span> <span class="n">Pos</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">1</span> <span class="n">Bit</span>
+   <span class="o">+</span><span class="mh">0x078</span> <span class="nl">EnableStackSwap</span>  <span class="p">:</span> <span class="n">Pos</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">1</span> <span class="n">Bit</span>
+   <span class="o">+</span><span class="mh">0x078</span> <span class="nl">GuiThread</span>        <span class="p">:</span> <span class="n">Pos</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">1</span> <span class="n">Bit</span>
+   <span class="o">+</span><span class="mh">0x078</span> <span class="nl">DisableQuantum</span>   <span class="p">:</span> <span class="n">Pos</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">1</span> <span class="n">Bit</span>
+   <span class="o">+</span><span class="mh">0x078</span> <span class="nl">ChargeOnlySchedulingGroup</span> <span class="p">:</span> <span class="n">Pos</span> <span class="mi">9</span><span class="p">,</span> <span class="mi">1</span> <span class="n">Bit</span>
+   <span class="o">+</span><span class="mh">0x078</span> <span class="nl">DeferPreemption</span>  <span class="p">:</span> <span class="n">Pos</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">1</span> <span class="n">Bit</span>
+   <span class="o">+</span><span class="mh">0x078</span> <span class="nl">QueueDeferPreemption</span> <span class="p">:</span> <span class="n">Pos</span> <span class="mi">11</span><span class="p">,</span> <span class="mi">1</span> <span class="n">Bit</span>
+   <span class="o">+</span><span class="mh">0x078</span> <span class="nl">ForceDeferSchedule</span> <span class="p">:</span> <span class="n">Pos</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">1</span> <span class="n">Bit</span>
+   <span class="o">+</span><span class="mh">0x078</span> <span class="nl">SharedReadyQueueAffinity</span> <span class="p">:</span> <span class="n">Pos</span> <span class="mi">13</span><span class="p">,</span> <span class="mi">1</span> <span class="n">Bit</span>
+   <span class="o">+</span><span class="mh">0x078</span> <span class="nl">FreezeCount</span>      <span class="p">:</span> <span class="n">Pos</span> <span class="mi">14</span><span class="p">,</span> <span class="mi">1</span> <span class="n">Bit</span>
+   <span class="o">+</span><span class="mh">0x078</span> <span class="nl">TerminationApcRequest</span> <span class="p">:</span> <span class="n">Pos</span> <span class="mi">15</span><span class="p">,</span> <span class="mi">1</span> <span class="n">Bit</span>
+   <span class="o">+</span><span class="mh">0x078</span> <span class="nl">AutoBoostEntriesExhausted</span> <span class="p">:</span> <span class="n">Pos</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">1</span> <span class="n">Bit</span>
+   <span class="o">+</span><span class="mh">0x078</span> <span class="nl">KernelStackResident</span> <span class="p">:</span> <span class="n">Pos</span> <span class="mi">17</span><span class="p">,</span> <span class="mi">1</span> <span class="n">Bit</span>
+   <span class="o">+</span><span class="mh">0x078</span> <span class="nl">TerminateRequestReason</span> <span class="p">:</span> <span class="n">Pos</span> <span class="mi">18</span><span class="p">,</span> <span class="mi">2</span> <span class="n">Bits</span>
+   <span class="o">+</span><span class="mh">0x078</span> <span class="nl">ProcessStackCountDecremented</span> <span class="p">:</span> <span class="n">Pos</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">1</span> <span class="n">Bit</span>
+   <span class="o">+</span><span class="mh">0x078</span> <span class="nl">RestrictedGuiThread</span> <span class="p">:</span> <span class="n">Pos</span> <span class="mi">21</span><span class="p">,</span> <span class="mi">1</span> <span class="n">Bit</span>
+   <span class="o">+</span><span class="mh">0x078</span> <span class="nl">VpBackingThread</span>  <span class="p">:</span> <span class="n">Pos</span> <span class="mi">22</span><span class="p">,</span> <span class="mi">1</span> <span class="n">Bit</span>
+   <span class="o">+</span><span class="mh">0x078</span> <span class="nl">EtwStackTraceCrimsonApcDisabled</span> <span class="p">:</span> <span class="n">Pos</span> <span class="mi">23</span><span class="p">,</span> <span class="mi">1</span> <span class="n">Bit</span>
+   <span class="o">+</span><span class="mh">0x078</span> <span class="nl">EtwStackTraceApcInserted</span> <span class="p">:</span> <span class="n">Pos</span> <span class="mi">24</span><span class="p">,</span> <span class="mi">8</span> <span class="n">Bits</span>
+   <span class="o">+</span><span class="mh">0x078</span> <span class="nl">ThreadFlags</span>      <span class="p">:</span> <span class="n">Int4B</span></code></pre></div>
+<p>If this flag is set the value of <code>r10</code> will be the address of <code>KeServiceDescriptorTableFilter</code> if not it will be <code>KeServiceDescriptorTableShadow</code>.</p>
+<p>So from here it seems that <strong>for Native functions <em>KeServiceDescriptorTable</em> will be used</strong> and <strong>for GUI functions it will be <em>KeServiceDescriptorTableFilter</em> or <em>KeServiceDescriptorTableShadow</em></strong>.</p>
+<p>Before Windows 10 only two <code>Service Descriptor Table</code> existed. <code>KeServiceDescriptorTable</code> and <code>KeServiceDescriptorTableShadow</code>.</p>
+<p>Since Windows 10 the <code>KeServiceDescriptorTableFilter</code> table was introduced.</p>
+<p>Because GUI functions processed by the kernel are often targeted for exploit research, Microsoft decided to introduce this new table to reduce the attack surface. You can find information about it on a very interesting Google Project Zero blog post <a href="https://googleprojectzero.blogspot.com/2016/11/breaking-chain.html" target="_blank" rel="noopener noreffer">here</a></p>
+<p>There is very few information about this table. Here&rsquo;s what we can found about it in the book <code>Windows Internals Part 1</code>.</p>
+<blockquote>
+<p><strong>Filter Win32k System Call</strong>: This filters access to the Win32k kernel-mode subsystem driver only to certain API allowing simple GUI and Direct X access, mitigating many of the possible attacks, without completely disabling availability of the GUI/GDI Services.</p>
+<p>This [filtering] is set through an internal process creation attribute flag, which can define one out of three possible sets of Win32k filters that are enabled. However, because the filter sets are hard-coded, this mitigation is reserved for Microsoft internal usage.</p>
+</blockquote>
+<h3 id="02-synthesis-break">02 Synthesis break</h3>
+<blockquote>
+<ul>
+<li>We followed the case of <code>NtUserSetMenu()</code> executed by a thread that has never executed a GUI function before</li>
+<li>Our thread has been converted into a GUI thread so the flag <code>GuiThread</code> is now set</li>
+<li>According to the value of the flag <code>RestrictedGuiThread</code> the value of <code>r10</code> is now <code>KeServiceDescriptorTableFilter</code> or <code>KeServiceDescriptorTableShadow</code></li>
+<li><code>KeServiceDescriptorTableFilter</code> was introduced in Windows 10 and exist to reduce the attack surface on GUI functions</li>
+<li><code>KeServiceDescriptorTable</code> is used for Native functions</li>
+</ul>
+</blockquote>
+<p>Now let&rsquo;s take a look at the second part of this function
+<figure>
+    <img src="/kernel/01_ServiceRepeat.png"/> 
+</figure>
+</p>
+<p>Last time we were here, we saw that if we were in the case of a GUI function the jmp to <code>loc_1401C4B65</code> was taken.</p>
+<p>But now we have taken this jump and the value of <code>r10</code> is now the address of <code>KeServiceDescriptorTableFilter</code> or <code>KeServiceDescriptorTableShadow</code>.</p>
+<p>To simplify, we will say that in this case, our process is not protected with <code>Win32k filters</code> so the <code>KeServiceDescriptorTableShadow</code> is used.</p>
+<p>Lets take a look at <code>KeServiceDescriptorTableShadow</code> in memory again:
+<div class="highlight"><pre class="chroma"><code class="language-c" data-lang="c"><span class="n">lkd</span><span class="o">&gt;</span> <span class="n">dps</span> <span class="n">nt</span><span class="o">!</span><span class="n">KeServiceDescriptorTableShadow</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">ded980</span>  <span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">ca8450</span> <span class="n">nt</span><span class="o">!</span><span class="n">KiServiceTable</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">ded988</span>  <span class="mo">00000000</span><span class="err">`</span><span class="mo">00000000</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">ded990</span>  <span class="mo">00000000</span><span class="err">`</span><span class="mo">000001</span><span class="n">cf</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">ded998</span>  <span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">ca8b90</span> <span class="n">nt</span><span class="o">!</span><span class="n">KiArgumentTable</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">ded9a0</span>  <span class="n">fffff1d5</span><span class="err">`</span><span class="mi">938</span><span class="n">cb000</span> <span class="n">win32k</span><span class="o">!</span><span class="n">W32pServiceTable</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">ded9a8</span>  <span class="mo">00000000</span><span class="err">`</span><span class="mo">00000000</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">ded9b0</span>  <span class="mo">00000000</span><span class="err">`</span><span class="mo">000004</span><span class="n">da</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">ded9b8</span>  <span class="n">fffff1d5</span><span class="err">`</span><span class="mi">938</span><span class="n">cc84c</span> <span class="n">win32k</span><span class="o">!</span><span class="n">W32pArgumentTable</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">ded9c0</span>  <span class="mo">00000000</span><span class="err">`</span><span class="mo">00111311</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">ded9c8</span>  <span class="mo">00000000</span><span class="err">`</span><span class="mo">00000000</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">ded9d0</span>  <span class="n">ffffffff</span><span class="err">`</span><span class="mi">80000018</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">ded9d8</span>  <span class="mo">00000000</span><span class="err">`</span><span class="mo">00000000</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">ded9e0</span>  <span class="mo">00000000</span><span class="err">`</span><span class="mo">00000000</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">ded9e8</span>  <span class="mo">00000000</span><span class="err">`</span><span class="mo">00000000</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">ded9f0</span>  <span class="mo">00000000</span><span class="err">`</span><span class="mo">00000000</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">ded9f8</span>  <span class="mo">00000000</span><span class="err">`</span><span class="mo">00000000</span></code></pre></div></p>
+<p>So if we calculate our magic formula again -&gt; <code>[r10+rdi+10h]</code> -&gt; <code>[KeServiceDescriptorTableShadow+20h+10h]</code> -&gt; <code>[23ded980+20h+10h]</code> -&gt; <code>[23ded9b0]</code>. We can see that at this address the value is <code>4DAh</code>.</p>
+<div class="highlight"><pre class="chroma"><code class="language-c" data-lang="c"><span class="n">lkd</span><span class="o">&gt;</span> <span class="n">dps</span> <span class="n">nt</span><span class="o">!</span><span class="n">KeServiceDescriptorTableShadow</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">ded980</span>  <span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">ca8450</span> <span class="n">nt</span><span class="o">!</span><span class="n">KiServiceTable</span>
+<span class="p">....</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">ded9a0</span>  <span class="n">fffff1d5</span><span class="err">`</span><span class="mi">938</span><span class="n">cb000</span> <span class="n">win32k</span><span class="o">!</span><span class="n">W32pServiceTable</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">ded9a8</span>  <span class="mo">00000000</span><span class="err">`</span><span class="mo">00000000</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">ded9b0</span>  <span class="mo">00000000</span><span class="err">`</span><span class="mo">000004</span><span class="n">da</span> <span class="o">&lt;-</span> <span class="p">[</span><span class="n">KeServiceDescriptorTableShadow</span><span class="o">+</span><span class="mi">20</span><span class="n">h</span><span class="o">+</span><span class="mi">10</span><span class="n">h</span><span class="p">]</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">ded9b8</span>  <span class="n">fffff1d5</span><span class="err">`</span><span class="mi">938</span><span class="n">cc84c</span> <span class="n">win32k</span><span class="o">!</span><span class="n">W32pArgumentTable</span>
+<span class="p">....</span></code></pre></div>
+<p>And now we are good to go! Because the <code>System Call Index</code> of <code>NtUserSetMenu()</code> is <code>496h</code> and <code>496h &lt; 4DAh</code> the jump is not taken and we can follow the rest of the function workflow. <strong>We are in the range of the <code>W32pServiceTable</code> <code>System Service Table</code>.</strong></p>
+<div class="highlight"><pre class="chroma"><code class="language-nasm" data-lang="nasm"><span class="nf">mov</span>     <span class="nv">r10</span><span class="p">,</span> <span class="p">[</span><span class="nv">r10</span><span class="o">+</span><span class="nb">rdi</span><span class="p">]</span>
+<span class="nf">movsxd</span>  <span class="nv">r11</span><span class="p">,</span> <span class="kt">dword</span> <span class="nv">ptr</span> <span class="p">[</span><span class="nv">r10</span><span class="o">+</span><span class="nb">rax</span><span class="o">*</span><span class="mi">4</span><span class="p">]</span>
+<span class="nf">mov</span>     <span class="nb">rax</span><span class="p">,</span> <span class="nv">r11</span>
+<span class="nf">sar</span>     <span class="nv">r11</span><span class="p">,</span> <span class="mi">4</span>
+<span class="nf">add</span>     <span class="nv">r10</span><span class="p">,</span> <span class="nv">r11</span>
+<span class="nf">cmp</span>     <span class="nb">edi</span><span class="p">,</span> <span class="mh">20h</span> <span class="c1">; &#39; &#39;</span></code></pre></div>
+<p>Let&rsquo;s take a new breathe.</p>
+<p>So what we know:</p>
+<ul>
+<li><code>r10</code> is the address of our <code>System Descriptor Table</code> which in our case will be <code>KeServiceDescriptorTable</code> for <code>NtQueryVirtualMemory()</code> and <code>KeServiceDescriptorTableShadow</code> for <code>NtUserSetMenu()</code></li>
+<li><code>rdi</code> is the <code>Table Identifier</code>. <code>00h</code> for <code>NtQueryVirtualMemory()</code> and <code>20h</code> for <code>NtUserSetMenu()</code></li>
+<li><code>rax</code> is the <code>System Call identifier</code>. <code>23h</code> for <code>NtQueryVirtualMemory()</code>  and <code>496h</code> for <code>NtUserSetMenu()</code></li>
+</ul>
+<p>So. Step by step.</p>
+<div class="highlight"><pre class="chroma"><code class="language-nasm" data-lang="nasm"><span class="nf">mov</span>     <span class="nv">r10</span><span class="p">,</span> <span class="p">[</span><span class="nv">r10</span><span class="o">+</span><span class="nb">rdi</span><span class="p">]</span>
+
+<span class="err">//</span> <span class="nf">For</span> <span class="nv">NtQueryVirtualMemory</span><span class="p">()</span>   <span class="o">-&gt;</span> <span class="p">[</span><span class="nv">KeServiceDescriptorTable</span><span class="o">+</span><span class="mh">00h</span><span class="p">]</span>
+<span class="err">//</span> <span class="nf">For</span> <span class="nv">NtUserSetMenu</span><span class="p">()</span>          <span class="o">-&gt;</span> <span class="p">[</span><span class="nv">KeServiceDescriptorTableShadow</span><span class="o">+</span><span class="mh">20h</span><span class="p">]</span></code></pre></div>
+<p>If we check in memory this values, we found that for <code>NtQueryVirtualMemory()</code> <code>r10</code> will be the address of the <code>KiServiceTable</code>.</p>
+<div class="highlight"><pre class="chroma"><code class="language-c" data-lang="c"><span class="n">lkd</span><span class="o">&gt;</span> <span class="n">dps</span> <span class="n">nt</span><span class="o">!</span><span class="n">KeServiceDescriptorTable</span>
+<span class="mi">803</span><span class="err">`</span><span class="mf">23e04880</span>  <span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">ca8450</span> <span class="n">nt</span><span class="o">!</span><span class="n">KiServiceTable</span> <span class="o">&lt;-</span> <span class="p">[</span><span class="n">KeServiceDescriptorTable</span><span class="o">+</span><span class="mo">00</span><span class="n">h</span><span class="p">]</span>
+<span class="mi">803</span><span class="err">`</span><span class="mf">23e04888</span>  <span class="mo">00000000</span><span class="err">`</span><span class="mo">00000000</span>
+<span class="mi">803</span><span class="err">`</span><span class="mf">23e04890</span>  <span class="mo">00000000</span><span class="err">`</span><span class="mo">000001</span><span class="n">cf</span>
+<span class="mi">803</span><span class="err">`</span><span class="mf">23e04898</span>  <span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">ca8b90</span> <span class="n">nt</span><span class="o">!</span><span class="n">KiArgumentTable</span>
+<span class="p">....</span></code></pre></div>
+<p>And for <code>NtUserSetMenu()</code>, <code>r10</code> will be the address of <code>W32pServiceTable</code>.</p>
+<div class="highlight"><pre class="chroma"><code class="language-c" data-lang="c"><span class="n">lkd</span><span class="o">&gt;</span> <span class="n">dps</span> <span class="n">nt</span><span class="o">!</span><span class="n">KeServiceDescriptorTableShadow</span>
+<span class="mi">803</span><span class="err">`</span><span class="mi">23</span><span class="n">ded980</span>  <span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">ca8450</span> <span class="n">nt</span><span class="o">!</span><span class="n">KiServiceTable</span>
+<span class="mi">803</span><span class="err">`</span><span class="mi">23</span><span class="n">ded988</span>  <span class="mo">00000000</span><span class="err">`</span><span class="mo">00000000</span>
+<span class="mi">803</span><span class="err">`</span><span class="mi">23</span><span class="n">ded990</span>  <span class="mo">00000000</span><span class="err">`</span><span class="mo">000001</span><span class="n">cf</span>
+<span class="mi">803</span><span class="err">`</span><span class="mi">23</span><span class="n">ded998</span>  <span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">ca8b90</span> <span class="n">nt</span><span class="o">!</span><span class="n">KiArgumentTable</span>
+<span class="mi">803</span><span class="err">`</span><span class="mi">23</span><span class="n">ded9a0</span>  <span class="n">fffff1d5</span><span class="err">`</span><span class="mi">938</span><span class="n">cb000</span> <span class="n">win32k</span><span class="o">!</span><span class="n">W32pServiceTable</span> <span class="o">&lt;-</span> <span class="p">[</span><span class="n">KeServiceDescriptorTableShadow</span><span class="o">+</span><span class="mi">20</span><span class="n">h</span><span class="p">]</span>
+<span class="mi">803</span><span class="err">`</span><span class="mi">23</span><span class="n">ded9a8</span>  <span class="mo">00000000</span><span class="err">`</span><span class="mo">00000000</span>
+<span class="mi">803</span><span class="err">`</span><span class="mi">23</span><span class="n">ded9b0</span>  <span class="mo">00000000</span><span class="err">`</span><span class="mo">000004</span><span class="n">da</span>
+<span class="mi">803</span><span class="err">`</span><span class="mi">23</span><span class="n">ded9b8</span>  <span class="n">fffff1d5</span><span class="err">`</span><span class="mi">938</span><span class="n">cc84c</span> <span class="n">win32k</span><span class="o">!</span><span class="n">W32pArgumentTable</span>
+<span class="mi">803</span><span class="err">`</span><span class="mi">23</span><span class="n">ded9c0</span>  <span class="mo">00000000</span><span class="err">`</span><span class="mo">00111311</span>
+<span class="p">....</span></code></pre></div>
+<p>The notation <code>nt!</code> means that the address is in the module <code>ntoskrnl.exe</code>. <code>win32k!</code> means that this address is located in the driver <code>win32k.sys</code>.</p>
+<p>Here we can definitly see that GUI functions and Native functions are not at all in the same part of the kernel.</p>
+<p>The next instruction then</p>
+<div class="highlight"><pre class="chroma"><code class="language-nasm" data-lang="nasm"><span class="nf">movsxd</span>  <span class="nv">r11</span><span class="p">,</span> <span class="kt">dword</span> <span class="nv">ptr</span> <span class="p">[</span><span class="nv">r10</span><span class="o">+</span><span class="nb">rax</span><span class="o">*</span><span class="mi">4</span><span class="p">]</span>
+
+<span class="err">//</span> <span class="nf">For</span> <span class="nv">NtQueryVirtualMemory</span><span class="p">()</span>   <span class="o">-&gt;</span> <span class="p">[</span><span class="nv">nt</span><span class="err">!</span><span class="nv">KiServiceTable</span> <span class="o">+</span> <span class="mh">23h</span><span class="o">*</span><span class="mh">4h</span><span class="p">]</span>
+<span class="err">//</span> <span class="nf">For</span> <span class="nv">NtUserSetMenu</span><span class="p">()</span>          <span class="o">-&gt;</span> <span class="p">[</span><span class="nv">win32k</span><span class="err">!</span><span class="nv">W32pServiceTable</span> <span class="o">+</span> <span class="mh">496h</span><span class="o">*</span><span class="mh">4h</span><span class="p">]</span></code></pre></div>
+<p>Here in <code>r11</code> will store a value from a <code>Service Table</code>. <code>Service Table</code> are also called <code>System Service Dispatch Table</code> (SSDT).</p>
+<blockquote>
+<p><strong>ASM Time</strong></p>
+<p>The <code>movsxd</code> is a <code>mov</code> that allows to preserve the sign extension when a smaller register is copied into a 64-bit register. It is done by filling the extra bits with the sign extension.</p>
+<p>In a word if you are copying a negative number from a 32 bits register like ecx in a 64 bits register like rax <strong>the value will stay negative</strong>.</p>
+</blockquote>
+<p>Remember when earlier we said that <code>Service Table</code> was an array of <code>Relative Virtual Address</code> related to kernel routine? Well it&rsquo;s here that is happening.</p>
+<p><code>rax</code> is our <code>System Call Index</code>, and what is really useful to find stuff in array? And index! So here we are searching in the appropriate <code>Service Table</code> the <code>RVA</code> of our function.</p>
+<p>For <code>NtQueryVirtualMemory()</code>
+<div class="highlight"><pre class="chroma"><code class="language-c" data-lang="c"><span class="n">lkd</span><span class="o">&gt;</span> <span class="n">dd</span> <span class="o">/</span><span class="n">c1</span> <span class="n">nt</span><span class="o">!</span><span class="n">KiServiceTable</span><span class="o">+</span><span class="mi">4</span><span class="o">*</span><span class="mh">0x23</span> <span class="n">L1</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mi">23</span><span class="n">ca84dc</span>  <span class="mo">02</span><span class="mi">953402</span></code></pre></div></p>
+<p>For <code>NtUserSetMenu()</code>
+<div class="highlight"><pre class="chroma"><code class="language-c" data-lang="c"><span class="n">lkd</span><span class="o">&gt;</span> <span class="n">dd</span> <span class="o">/</span><span class="n">c1</span> <span class="n">W32pServiceTable</span><span class="o">+</span><span class="mi">4</span><span class="o">*</span><span class="mh">0x496</span> <span class="n">L1</span>
+<span class="n">fffff1d5</span><span class="err">`</span><span class="mi">938</span><span class="n">cc258</span>  <span class="n">ff9a8ca0</span></code></pre></div></p>
+<p>And the multiplication by 4? Well, it&rsquo;s just that in this array each item is 4 bytes long.</p>
+<figure>
+    <img src="/kernel/SSDT_ntwin32.png"/> 
+</figure>
+
+<p>So let&rsquo;s look at the next instructions.</p>
+<div class="highlight"><pre class="chroma"><code class="language-nasm" data-lang="nasm"><span class="nf">mov</span>     <span class="nb">rax</span><span class="p">,</span> <span class="nv">r11</span>
+<span class="nf">sar</span>     <span class="nv">r11</span><span class="p">,</span> <span class="mi">4</span></code></pre></div>
+<p>It seems that we are saving our <code>RVA</code> in <code>rax</code> and we are performing on it (the <code>RVA</code>) an arithmetic shift of 4 bits to the right.</p>
+<p>For the case of <code>NtQueryVirtualMemory()</code>, an arithmetic shift of 4 bits to the right on the <code>RVA</code> <code>02953402h</code> will result in <code>295340h</code></p>
+<figure>
+    <img src="/kernel/Positive.png"/> 
+</figure>
+
+<p>For the case of <code>NtUserSetMenu()</code> an arithmetic shif of 4 bits to the right on the <code>RVA</code> <code>ff9a8ca0h</code> will result in <code>-65736</code></p>
+<figure>
+    <img src="/kernel/Negative.png"/> 
+</figure>
+
+<blockquote>
+<p><strong>ASM Time</strong></p>
+<p>Arithmetic shift right (<code>sar</code>) are often used for signed integers. Like <code>movsxd</code> it allows to preserve the sign extension.</p>
+<p>For <code>ff9a8ca0h</code> the most significant bit (aka the last bit on the left) is set. So we are dealing with a negative number.</p>
+</blockquote>
+<p>But why the <code>RVA</code> is shifted 4 bits to the right? It&rsquo;s because the data retieved in the <code>SSDT</code> actually contains 2 things.</p>
+<p>The 4 first bits is the number of parameters that are passed using the stack, the rest is our RVA. So by shifting 4 bits to the right, we are retrieving the real value of our <code>RVA</code>.</p>
+<p>Below you can find the representation of the entry associated to <code>NtQueryVirtualMemory()</code> in the <code>SSDT</code>.
+<figure>
+    <img src="/kernel/RVA_binary_queryvirtualmemory.png"
+         alt="Representation of 02953402."/> <figcaption>
+            <p>Representation of <code>02953402</code>.</p>
+        </figcaption>
+</figure>
+</p>
+<p>And here the representation of the entry associated to <code>NtUserSetMenu()</code>.
+<figure>
+    <img src="/kernel/RVA_binary_setmenu.png"
+         alt="Representation of ff9a8ca0."/> <figcaption>
+            <p>Representation of <code>ff9a8ca0</code>.</p>
+        </figcaption>
+</figure>
+</p>
+<p>As we can see, the number of parameters passed using the stack is 2 for <code>NtQueryVirtualMemory()</code> and 0 for <code>NtUserSetMenu()</code>.</p>
+<p>Let&rsquo;s see the prototype of this functions to check the number of parameters used by them.</p>
+<p>For <code>NtUserSetMenu()</code>:
+<div class="highlight"><pre class="chroma"><code class="language-c" data-lang="c"><span class="n">NtUserSetMenu</span><span class="p">(</span>
+ <span class="n">HWND</span> <span class="n">hWnd</span><span class="p">,</span>
+ <span class="n">HMENU</span> <span class="n">hMenu</span><span class="p">,</span>
+ <span class="n">BOOL</span> <span class="n">bRepaint</span><span class="p">);</span></code></pre></div></p>
+<p>For <code>NtQueryVirtualMemory()</code>:
+<div class="highlight"><pre class="chroma"><code class="language-c" data-lang="c"><span class="n">NtQueryVirtualMemory</span><span class="p">(</span>
+ <span class="n">HANDLE</span> <span class="n">ProcessHandle</span><span class="p">,</span>
+ <span class="n">PVOID</span> <span class="n">BaseAddress</span><span class="p">,</span>
+ <span class="n">MEMORY_INFORMATION_CLASS</span> <span class="n">MemoryInformationClass</span><span class="p">,</span>
+ <span class="n">PVOID</span> <span class="n">Buffer</span><span class="p">,</span>
+ <span class="n">ULONG</span> <span class="n">Length</span><span class="p">,</span>
+ <span class="n">PULONG</span> <span class="n">ResultLength</span><span class="p">);</span></code></pre></div></p>
+<p>But Wait a minute! For <code>NtUserSetMenu()</code> there is 3 parameters and for <code>NtQueryVirtualMemory()</code> there is 6!</p>
+<p>Yes. But remember, I said &ldquo;number of parameters <strong>passed using the stack</strong>&rdquo;. What what does this mean?</p>
+<p>Well, unlike in 32 bits where all the parameters of the function are passed using the stack. In Windows 64 bits systems, the first 4 parameters are passed using, in this order, the following registers:</p>
+<ul>
+<li><code>RCX</code>;</li>
+<li><code>RDX</code>;</li>
+<li><code>R8</code>;</li>
+<li><code>R9</code>.</li>
+</ul>
+<p>The rest of the parameters are <strong>passed using the stack</strong>.</p>
+<p>And in our case? Well, <code>NtUserSetMenu()</code> is using 3 parameters, so they will be passed using the <code>RCX</code>, <code>RDX</code> and <code>R8</code> registers. Here the stack will not be involved, hence the 0 parameters passed using the stack in <code>ff9a8ca0</code>.</p>
+<p><code>NtQueryVirtualMemory()</code> is using 6 parameters, the first 4 will be passed using the <code>RCX</code>, <code>RDX</code>,<code>R8</code> and <code>R9</code> registers. And the two last parameters will be passed using the stack, hence the 2 parameters passed using the stack in <code>02953402</code></p>
+<h3 id="03-synthesis-break">03 Synthesis break</h3>
+<blockquote>
+<ul>
+<li>We retrieved the address of the <code>System Service Dispatch Table</code> and stored it in <code>r10</code></li>
+<li>Using the <code>System Service Dispatch Table</code> array we found the <code>RVA</code> related to our functions by using our <code>System Call Index</code></li>
+<li>We performed a arithmetic shift right of 4 bits on our <code>RVA</code> to retrieve the &ldquo;real value&rdquo; of the <code>RVA</code> and remove the part with the number of parameters passed using the stack. Then we stored it in <code>r11</code></li>
+<li>The code uses instruction used for signed integer such as <code>movsxd</code> and <code>sar</code></li>
+<li>For Native functions, we use a <code>System Service Dispatch Table</code> located in <code>ntoskrnl</code>. For GUI functions, we use a <code>System Service Dispatch Table</code> located in the driver <code>win32k.sys</code></li>
+</ul>
+</blockquote>
+<p>Now we add our <code>RVA</code> to the address of our <code>System Service Dispatch Table</code>.
+<div class="highlight"><pre class="chroma"><code class="language-nasm" data-lang="nasm"><span class="nf">add</span>     <span class="nv">r10</span><span class="p">,</span> <span class="nv">r11</span> <span class="o">//</span> <span class="nv">r10</span> <span class="err">=</span> <span class="nb">SS</span><span class="nv">DT</span><span class="p">,</span> <span class="nv">r11</span> <span class="err">=</span> <span class="nv">RVA</span></code></pre></div></p>
+<p>Let&rsquo;s take a look to what&rsquo;s located at this address.</p>
+<p>For the case of <code>NtQueryVirtualMemory()</code>:
+<div class="highlight"><pre class="chroma"><code class="language-c" data-lang="c"><span class="n">lkd</span><span class="o">&gt;</span> <span class="n">u</span> <span class="n">nt</span><span class="o">!</span><span class="n">KiServiceTable</span> <span class="o">+</span> <span class="mo">002</span><span class="mi">95340</span> <span class="n">L1</span>
+<span class="n">nt</span><span class="o">!</span><span class="nl">NtQueryVirtualMemory</span><span class="p">:</span>
+<span class="n">fffff803</span><span class="err">`</span><span class="mf">23f</span><span class="mi">3</span><span class="n">d790</span> <span class="mi">4883</span><span class="n">ec48</span>        <span class="n">sub</span>     <span class="n">rsp</span><span class="p">,</span><span class="mi">48</span><span class="n">h</span></code></pre></div></p>
+<p>For the case of <code>NtUserSetMenu()</code>:
+<div class="highlight"><pre class="chroma"><code class="language-c" data-lang="c"><span class="n">lkd</span><span class="o">&gt;</span> <span class="n">u</span> <span class="n">W32pServiceTable</span> <span class="o">+</span>  <span class="p">(</span><span class="o">-</span><span class="mi">65736</span><span class="p">)</span> <span class="n">L1</span>
+<span class="n">win32k</span><span class="o">!</span><span class="nl">NtUserSetMenu</span><span class="p">:</span>
+<span class="n">fffff1d5</span><span class="err">`</span><span class="mi">938658</span><span class="n">ca</span> <span class="mf">48ff</span><span class="mi">2587730500</span>  <span class="n">jmp</span>     <span class="n">qword</span> <span class="n">ptr</span> <span class="p">[</span><span class="n">win32k</span><span class="o">!</span><span class="n">_imp_NtUserSetMenu</span> <span class="p">(</span><span class="n">fffff1d5</span><span class="err">`</span><span class="mi">938</span><span class="n">bcc58</span><span class="p">)]</span></code></pre></div></p>
+<p>Hourra! It seems that we found the addresses of our functions in the kernel!!!</p>
+<figure>
+    <img src="/kernel/KernelRoutine.png"/> 
+</figure>
+
+<h3 id="what-about-the-filter-table-">What about the Filter Table ?</h3>
+<p>Let&rsquo;s check the function <code>NtUserSetMenu()</code> but this time in the <code>KeServiceDescriptorTableFilter</code> table.</p>
+<div class="highlight"><pre class="chroma"><code class="language-c" data-lang="c"><span class="n">lkd</span><span class="o">&gt;</span> <span class="n">dd</span> <span class="o">/</span><span class="n">c1</span> <span class="n">win32k</span><span class="o">!</span><span class="n">W32pServiceTableFilter</span><span class="o">+</span><span class="mi">4</span><span class="o">*</span><span class="mh">0x496</span> <span class="n">L1</span>
+<span class="n">ffff9487</span><span class="err">`</span><span class="n">c926df88</span>  <span class="n">ffd2b100</span>
+
+<span class="n">lkd</span><span class="o">&gt;</span> <span class="o">?</span> <span class="p">(</span><span class="n">ffd2b100</span><span class="o">&gt;&gt;&gt;</span><span class="mi">4</span><span class="p">)</span>
+<span class="n">Evaluate</span> <span class="nl">expression</span><span class="p">:</span> <span class="mi">268249872</span> <span class="o">=</span> <span class="mo">00000000</span><span class="err">`</span><span class="mf">0ff</span><span class="n">d2b10</span>
+
+<span class="n">lkd</span><span class="o">&gt;</span> <span class="n">dd</span> <span class="o">/</span><span class="n">c1</span> <span class="n">win32k</span><span class="o">!</span><span class="n">W32pServiceTableFilter</span><span class="o">+</span><span class="n">ffffffff</span><span class="err">`</span><span class="n">fffd2b10</span> <span class="n">L1</span>
+<span class="n">ffff9487</span><span class="err">`</span><span class="n">c923f840</span>  <span class="mi">48</span><span class="n">ec8348</span>
+
+<span class="n">lkd</span><span class="o">&gt;</span> <span class="n">u</span> <span class="n">win32k</span><span class="o">!</span><span class="n">W32pServiceTableFilter</span><span class="o">+</span><span class="n">ffffffff</span><span class="err">`</span><span class="n">fffd2b10</span> <span class="n">L1</span>
+<span class="n">win32k</span><span class="o">!</span><span class="nl">stub_UserSetMenu</span><span class="p">:</span>
+<span class="n">ffff9487</span><span class="err">`</span><span class="n">c923f840</span> <span class="mi">4883</span><span class="n">ec48</span>        <span class="n">sub</span>     <span class="n">rsp</span><span class="p">,</span><span class="mi">48</span><span class="n">h</span></code></pre></div>
+<p>The name of the function here is different. The function is called <code>stub_UserSetMenu</code> instead of <code>NtUserSetMenu</code>.</p>
+<p>Why? We can find the answers in the book <code>Windows Internals Part 2</code>.</p>
+<blockquote>
+<p>The only material difference between the Filter entries is that they point to system calls in Win32k.sys <strong>with names like stub_UserGetThreadState, while the real array [SSDT not filtered] points to NtUserGetThreadState</strong>. The former stubs will <strong>check if Win32k.sys filtering enabled for this system call</strong>, based, in part, on the filter set that&rsquo;s been loaded for the process.</p>
+<p>Based on this determination, <strong>they will either fail the call and return STATUS_INVALID_SYSTEM_SERVICE if the filter set prohibits it or end up calling the original function</strong> (such as NtUserGetThreadState), with potential telemetry if auditing is enabled.</p>
+</blockquote>
+<h2 id="the-execution-of-the-kernel-routine-via-kisystemservicecopyend">The execution of the Kernel routine via KiSystemServiceCopyEnd()</h2>
+<p>The next functions executed after <code>KiSystemServiceRepeat()</code> are <code>KiSystemServiceGdiTebAccess()</code> and under certain condition <code>KiSystemServiceCopyStart</code>.
+Then we end up here in <code>KiSystemServiceCopyEnd()</code>, the end of the road.</p>
+<figure>
+    <img src="/kernel/00_CopyEnd.png"/> 
+</figure>
+
+<p>The interesting part for us is</p>
+<div class="highlight"><pre class="chroma"><code class="language-c" data-lang="c"><span class="n">mov</span>   <span class="n">rax</span><span class="p">,</span> <span class="n">r10</span>
+<span class="n">call</span>  <span class="n">rax</span></code></pre></div>
+<p>In the previous chapter, we saw that the address of our Kernel routine was put in <code>r10</code>. Well as we can see it here, <code>r10</code> is moved in <code>rax</code> and <code>rax</code> is executed.</p>
+<p>So that&rsquo;s it. The code of our functions in the Kernel is called here, in <code>KiSystemServiceCopyEnd()</code>!</p>
+<h2 id="wrapping-it-up">Wrapping it up</h2>
+<p>In a nutshell, the workflow we learn in this post:</p>
+<ul>
+<li><code>syscall</code> instruction: Performed in User-Mode. Put the address in the <code>LSTAR</code> register in <code>RIP</code> leading to the execution of the kernel function <code>KiSystemCall64[Shadow]()</code></li>
+<li><code>KiSystemServiceUser()</code>: Retrieve the <code>KTHREAD structure</code> address of the current thread</li>
+<li><code>KiSystemServiceStart()</code>: Extract the <code>Table Identifier</code> and the <code>System call Index</code> from the <code>System Call Number</code> stored in <code>eax</code>.</li>
+<li><code>KiSystemServiceRepeat()</code>: The heart of the System call processing in the kernel. Check if the syscall is related to a GUI function, choose the right <code>System Descriptor Table</code> and finally retrieve the address of the kernel routine related to the <code>System Call Index</code> by using the <code>System Service Dispatch Table</code>.</li>
+<li><code>KiSystemServiceCopyEnd()</code> : Execute the Kernel routine.</li>
+</ul>
+<blockquote>
+<p><strong>Security Note</strong>:</p>
+<p>At this point you may think &ldquo;Ok, so I just have to make a malicious driver and place hooks on the <code>LSTAR</code> register or in the <code>SSDT</code> to hijack the kernel workflow&rdquo;. Well, there was a time when this was possible. Actually, it was a way for EDR or AV to perform analysis (like today with hooks in DLLs).</p>
+<p>However, it&rsquo;s not possible anymore. To prevent this kind of change, Microsoft invented the <code>Kernel Patch Protection</code> (KPP) also known as <code>Patch Guard</code> (PG). With <code>KPP</code>, any attempt to patch the <code>SSDT</code> or <code>LSTAR</code> will lead to a a <code>BSOD</code> (blue screen of death).</p>
+</blockquote>
+<p>I hope, you enjoyed this quick overview on how syscall are processed in the Kernel.</p>
+<h2 id="thanks">Thanks</h2>
+<p>Thanks to Aurélien Denis for the proofreading! And thanks to <a href="https://twitter.com/am0nsec" target="_blank" rel="noopener noreffer">@am0nsec</a> for reminding me the part about the number of arguments passed using the stack stored in the <code>SSDT</code> values.</p>
+<h2 id="sources">Sources</h2>
+<ul>
+<li><a href="https://www.ired.team/miscellaneous-reversing-forensics/windows-kernel-internals/glimpse-into-ssdt-in-windows-x64-kernel" target="_blank" rel="noopener noreffer">System Service Descriptor Table - SSDT</a></li>
+<li><a href="https://www.codeproject.com/Articles/1191465/The-Quest-for-the-SSDTs" target="_blank" rel="noopener noreffer">The Quest for the SSDTs</a></li>
+<li><a href="https://www.microsoftpressstore.com/store/windows-internals-part-1-system-architecture-processes-9780735684188" target="_blank" rel="noopener noreffer">Windows Internals, Part 1, 7th Edition by Pavel Yosifovich, Mark E. Russinovich, Alex Ionescu, David A. Solomon</a></li>
+<li><a href="https://www.microsoftpressstore.com/store/windows-internals-part-2-9780135462331" target="_blank" rel="noopener noreffer">Windows Internals, Part 2, 7th Edition by Andrea Allievi, Alex Ionescu, Mark E. Russinovich, David A. Solomon</a></li>
+<li><a href="https://www.wiley.com/en-us/Practical&#43;Reverse&#43;Engineering:&#43;x86,&#43;x64,&#43;ARM,&#43;Windows&#43;Kernel,&#43;Reversing&#43;Tools,&#43;and&#43;Obfuscation-p-9781118787311" target="_blank" rel="noopener noreffer">Practical Reverse Engineering: x86, x64, ARM, Windows Kernel, Reversing Tools, and Obfuscation by Bruce Dang, Alexandre Gazet, Elias Bachaalany, Sébastien Josse</a></li>
+</ul>
+<section class="footnotes" role="doc-endnotes">
+<hr>
+<ol>
+<li id="fn:1" role="doc-endnote">
+<p><a href="https://www.youtube.com/watch?v=lt-udg9zQSE">https://www.youtube.com/watch?v=lt-udg9zQSE</a> <a href="#fnref:1" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+</ol>
+</section>
+</div><div class="post-footer" id="post-footer">
+    <div class="post-info">
+        <div class="post-info-line">
+            <div class="post-info-mod">
+                <span>Updated on 2022-03-24</span>
+            </div>
+            <div class="post-info-license"></div>
+        </div>
+        <div class="post-info-line">
+            <div class="post-info-md"></div>
+            <div class="post-info-share">
+                <span></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="post-info-more">
+        <section class="post-tags"><i class="fas fa-tags fa-fw"></i>&nbsp;<a href="/tags/kernel/">Kernel</a>,&nbsp;<a href="/tags/system-calls/">System Calls</a>,&nbsp;<a href="/tags/windows-internals/">Windows Internals</a></section>
+        <section>
+            <span><a href="javascript:void(0);" onclick="window.history.back();">Back</a></span>&nbsp;|&nbsp;<span><a href="/">Home</a></span>
+        </section>
+    </div>
+
+    <div class="post-nav"><a href="/posts/direct-syscalls-hells-halos-syswhispers2/" class="prev" rel="prev" title="EDR Bypass : Retrieving Syscall ID with Hell&#39;s Gate, Halo&#39;s Gate, FreshyCalls and Syswhispers2"><i class="fas fa-angle-left fa-fw"></i>EDR Bypass : Retrieving Syscall ID with Hell&#39;s Gate, Halo&#39;s Gate, FreshyCalls and Syswhispers2</a>
+            <a href="/posts/how-and-why-to-unhook-the-import-address-table/" class="next" rel="next" title="EDR Bypass : How and Why to Unhook the Import Address Table">EDR Bypass : How and Why to Unhook the Import Address Table<i class="fas fa-angle-right fa-fw"></i></a></div>
+</div>
+</article></div>
+            </main><footer class="footer">
+        <div class="footer-container"><div class="footer-line">Powered by <a href="https://gohugo.io/" target="_blank" rel="noopener noreffer" title="Hugo 0.80.0">Hugo</a> | Theme - <a href="https://github.com/dillonzq/LoveIt" target="_blank" rel="noopener noreffer" title="LoveIt 0.2.10"><i class="far fa-kiss-wink-heart fa-fw"></i> LoveIt</a>
+                </div><div class="footer-line"><i class="far fa-copyright fa-fw"></i><span itemprop="copyrightYear">2023</span><span class="author" itemprop="copyrightHolder">&nbsp;<a href="/" target="_blank">Alice</a></span></div>
+        </div>
+    </footer></div>
+
+        <div id="fixed-buttons"><a href="#" id="back-to-top" class="fixed-button" title="Back to Top">
+                <i class="fas fa-arrow-up fa-fw"></i>
+            </a><a href="#" id="view-comments" class="fixed-button" title="View Comments">
+                <i class="fas fa-comment fa-fw"></i>
+            </a>
+        </div><script type="text/javascript" src="/lib/smooth-scroll/smooth-scroll.min.js"></script><script type="text/javascript" src="/lib/lazysizes/lazysizes.min.js"></script><script type="text/javascript" src="/lib/clipboard/clipboard.min.js"></script><script type="text/javascript">window.config={"code":{"copyTitle":"Copy to clipboard","maxShownLines":10},"comment":{}};</script><script type="text/javascript" src="/js/theme.min.js"></script></body>
+</html>

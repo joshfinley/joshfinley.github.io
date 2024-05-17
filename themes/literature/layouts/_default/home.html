@@ -1,0 +1,24 @@
+{{ define "main" }}
+
+  <!-- Blog Blurb -->
+  <div class="blog-blurb">
+    <h2 style=>joshfinley.github.io</h2>
+    <p>Hi. This site mostly exists for my own reference notes and to practice my technical writing from time to time. Occassionally, I will show off notable software projects that I'm able to freely share. My particular interests revolve around Windows malware, assembly, and at one point in time, meteorology.</p>
+    <p>The site design is influenced heavily by <a href="gwern.net">gwern.net</a> and, by extension, the "old" world of words-on-paper and plain hypertext. My posts leverage some dynamic content, but the site is still designed such that not much will change if that ever breaks.</p> 
+    <p>The repo backing this site contains some utilities for archiving references and generating citations. The static site tool in use is <a href="https://gohugo.io/">Hugo</a> with some shortcode extensions for making things a bit fancier, including bibliographies, footnotes, figures, and quotes. </p>
+
+    <p>Enjoy!</p>
+  </div>
+
+  <ul class="post-list">
+    {{ range .Site.RegularPages.ByDate.Reverse }}
+      <li>
+        <p>
+          <span class="post-date">{{ .Date.Format "January 2, 2006" }}</span>
+          <span class="post-title"><a href="{{ .RelPermalink }}">{{ .Title }}</a></span>
+        </p>
+      </li>
+    {{ end }}
+  </ul>  
+
+{{ end }}
