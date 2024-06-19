@@ -1,7 +1,7 @@
 +++
 title = 'Works'
 date = 0000-01-01T12:49:56-05:00
-draft = true
+draft = false
 +++
 
 Welcome to my "Works" page, where you'll find a curated collection of my coding projects that span across a few focus areas, primarily in system-level programming, security research, and Windows internals. From extracting system calls in Windows with the NTDLL system call extraction tool to delving into the world of import obfuscation with demonstrations in x64 ASM and C++, these projects showcase my areas of study and research.
