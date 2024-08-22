@@ -1,7 +1,0 @@
-langchain
-pypdf
-chromadb
-openai
-tiktoken
-pydantic
-faiss-gpu

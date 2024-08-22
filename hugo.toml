@@ -1,44 +1,4 @@
-baseURL = 'https://joshfinley.github.io/'
+baseURL = 'https://0.0.0.0:443/'
 languageCode = 'en-us'
-title = 'joshfinley.github.io'
-theme = 'literature'
-
-
-
-[markup]
-  [markup.goldmark]
-    [markup.goldmark.extensions]
-      definitionList = true
-      footnote = true
-      linkify = true
-      linkifyProtocol = 'https'
-      strikethrough = true
-      table = true
-      taskList = true
-      [markup.goldmark.extensions.cjk]
-        eastAsianLineBreaks = false
-        enable = false
-        escapedSpace = false
-      [markup.goldmark.extensions.typographer]
-        apostrophe = '&rsquo;'
-        disable = false
-        ellipsis = '...'
-        emDash = '&mdash;'
-        enDash = '&ndash;'
-        leftAngleQuote = '&laquo;'
-        leftDoubleQuote = '&ldquo;'
-        leftSingleQuote = '&lsquo;'
-        rightAngleQuote = '&raquo;'
-        rightDoubleQuote = '&rdquo;'
-        rightSingleQuote = '&rsquo;'
-    [markup.goldmark.parser]
-      autoHeadingID = true
-      autoHeadingIDType = 'github'
-      wrapStandAloneImageWithinParagraph = true
-      [markup.goldmark.parser.attribute]
-        block = false
-        title = true
-    [markup.goldmark.renderer]
-      hardWraps = false
-      unsafe = false
-      xhtml = false
+title = 'FinleyEx'
+theme = "mono"
