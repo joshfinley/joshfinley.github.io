@@ -43,19 +43,19 @@ Additionally, the `debug.sh` script can be used to run the container while makin
 
 ## Site Customizations
 
-- [ ] Post indexing based on tags & categories
-- [ ] Date sorting for new posts and Index population
-- [ ] Automatic table of contents generation
-- [ ] Automatic heading numbering
-- [ ] Backlinks generation & propagation
-- [ ] Bibliography generation
+- [x] Post indexing based on tags & categories
+- [x] Date sorting for new posts and Index population
+- [x] Automatic table of contents generation
+- [x] Automatic heading numbering
+- [x] Backlinks generation & propagation
+- [x] Bibliography generation
 - [ ] Quotes with bibliography population
 - [ ] Reference archival and reference rewriting
-- [ ] Footnote support & footnote organization
+- [x] Footnote support & footnote organization
 - [ ] Fancy blockquote and nested blockquote support
 - [ ] Content linting, spellchecking
 - [ ] Automatic generation of changelog based on commits
-= [ ] Link mapping
+- [ ] Link mapping
 
 ## Design Customizations
 
