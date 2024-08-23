@@ -1,0 +1,19 @@
+{{/* layouts/changelog/single.html */}}
+{{ define "main" }}
+  <h1>{{ .Title }}</h1>
+  {{ .Content }}
+
+  {{ $githubRepo := "joshfinley/joshfinley.github.io" }}
+  {{ $changelogEntries := 10 }}
+
+  {{ $data := getJSON "https://api.github.com/repos/" $githubRepo "/commits?per_page=" (string $changelogEntries) }}
+  <ul>
+  {{ range $data }}
+    <li>
+      <strong>{{ .commit.author.date | dateFormat "2006-01-02" }}</strong>: 
+      {{ .commit.message | truncate 80 }} 
+      (<a href="{{ .html_url }}">{{ .sha | truncate 7 "" }}</a>)
+    </li>
+  {{ end }}
+  </ul>
+{{ end }}
