@@ -1,10 +1,113 @@
 {{ define "main" }}
+  <!-- Custom numbering logic using scratch -->
+  {{ $numbering := newScratch }}
+  {{ $numbering.Set "level1" 0 }}
+  {{ $numbering.Set "level2" 0 }}
+  {{ $numbering.Set "level3" 0 }}
+  {{ $numbering.Set "level4" 0 }}
+  {{ $numbering.Set "level5" 0 }}
+  {{ $numbering.Set "level6" 0 }}
+  {{ $numbering.Set "currentLevel" 0 }}
+
+  <!-- Article Body -->
   <article>
     <h2>{{ .Title }}</h2>
     <time>{{ .Date.Format "January 2, 2006" }}</time>
-    {{ .Content }}
+
+    <h2>Table of Contents</h2>
+    {{/* Generate TOC */}}
+    {{ $headings := findRE "<h[1-6].*?>(.|\n])+?</h[1-6]>" .Content }}
+    <nav id="TableOfContents">
+      <ol>
+      {{ range $headings }}
+        {{ $level := int (substr . 2 1) }}
+        {{ $currentLevel := $numbering.Get "currentLevel" }}
+        
+        {{ if ne $level $currentLevel }}
+          {{ if gt $level $currentLevel }}
+            {{ range seq (add $currentLevel 1) (add $level 1) }}
+              {{ $numbering.Set (printf "level%d" .) 0 }}
+            {{ end }}
+          {{ else }}
+            {{ range seq (add $level 1) (add $currentLevel 1) }}
+              {{ $numbering.Set (printf "level%d" .) 0 }}
+            {{ end }}
+          {{ end }}
+        {{ end }}
+        
+        {{ $numbering.Add (printf "level%d" $level) 1 }}
+        {{ $numbering.Set "currentLevel" $level }}
+        
+        {{ $number := slice }}
+        {{ range seq 1 (add $level 1) }}
+          {{ $levelValue := $numbering.Get (printf "level%d" .) }}
+          {{ if ne $levelValue 0 }}
+            {{ $number = $number | append $levelValue }}
+          {{ end }}
+        {{ end }}
+        <li>
+          {{ delimit $number "." }}. 
+          <a href="#{{ . | plainify | urlize }}">
+            {{ . | replaceRE "</?h[1-6].*?>" "" | safeHTML }}
+          </a>
+        </li>
+      {{ end }}
+      </ol>
+    </nav>
+
+    {{/* Reset numbering for content */}}
+    {{ $numbering.Set "level1" 0 }}
+    {{ $numbering.Set "level2" 0 }}
+    {{ $numbering.Set "level3" 0 }}
+    {{ $numbering.Set "level4" 0 }}
+    {{ $numbering.Set "level5" 0 }}
+    {{ $numbering.Set "level6" 0 }}
+    {{ $numbering.Set "currentLevel" 0 }}
+
+    {{/* Process content and add numbering to headings */}}
+    {{ $content := .Content }}
+    {{ range $headings }}
+      {{ $level := int (substr . 2 1) }}
+      {{ $currentLevel := $numbering.Get "currentLevel" }}
+      
+      {{ if ne $level $currentLevel }}
+        {{ if gt $level $currentLevel }}
+          {{ range seq (add $currentLevel 1) (add $level 1) }}
+            {{ $numbering.Set (printf "level%d" .) 0 }}
+          {{ end }}
+        {{ else }}
+          {{ range seq (add $level 1) (add $currentLevel 1) }}
+            {{ $numbering.Set (printf "level%d" .) 0 }}
+          {{ end }}
+        {{ end }}
+      {{ end }}
+      
+      {{ $numbering.Add (printf "level%d" $level) 1 }}
+      {{ $numbering.Set "currentLevel" $level }}
+      
+      {{ $number := slice }}
+      {{ range seq 1 (add $level 1) }}
+        {{ $levelValue := $numbering.Get (printf "level%d" .) }}
+        {{ if ne $levelValue 0 }}
+          {{ $number = $number | append $levelValue }}
+        {{ end }}
+      {{ end }}
+      
+      {{ $newHeading := printf "<%s id=%q>%s. %s</%s>" 
+          (printf "h%d" $level) 
+          (. | plainify | urlize) 
+          (delimit $number ".")
+          (. | replaceRE "</?h[1-6].*?>" "") 
+          (printf "h%d" $level) 
+      }}
+      {{ $content = replace $content . $newHeading }}
+    {{ end }}
+
+    {{ $content | safeHTML }}
   </article>
 
+
+  <!-- Footnotes List Generation -->
   {{ $footnotes := .Scratch.Get "footnotes" }}
   {{ if $footnotes }}
     <footer>
@@ -20,6 +123,7 @@
     </footer>
   {{ end }}
 
+  <!-- Citation List Generation -->
   {{ $citations := .Scratch.Get "citations" }}
   {{ if $citations }}
     <footer>
@@ -34,5 +138,27 @@
       </ol>
     </footer>
   {{ end }}
-  
+
+  <!-- Backlinks List Generation -->
+  {{ $currentPage := . }}
+  {{ $currentPageTitle := .Title }}
+  {{ $backlinks := slice }}
+  {{ range .Site.RegularPages }}
+    {{ if and (ne . $currentPage) (findRE (printf "%s|%s" $currentPage.RelPermalink $currentPageTitle) .RawContent) }}
+      {{ $backlinks = $backlinks | append . }}
+    {{ end }}
+  {{ end }}
+
+  {{ if $backlinks }}
+    <footer>
+      <h3>Backlinks</h3>
+      <ul>
+        {{ range $backlinks }}
+          <li>
+            <a href="{{ .RelPermalink }}">{{ .Title }}</a>
+          </li>
+        {{ end }}
+      </ul>
+    </footer>
+  {{ end}}
 {{ end }}
