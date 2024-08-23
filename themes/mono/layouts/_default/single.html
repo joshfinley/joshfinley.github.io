@@ -130,14 +130,19 @@
       <h3>Bibliography</h3>
       <ol>
         {{ range $citations }}
-          <li id="bib-{{ .key }}">
-            {{ .content | markdownify }}
-            <a href="#cite-{{ .key }}" aria-label="Back to citation">↩</a>
+          <li id="bib-{{ or .key .index }}">
+            {{ if .content }}
+              {{ .content | markdownify }}
+            {{ else }}
+              {{ .source }}
+            {{ end }}
+            <a href="#{{ if .key }}cite-{{ .key }}{{ else }}ref-cite-{{ .index }}{{ end }}" aria-label="Back to citation">↩</a>
           </li>
         {{ end }}
       </ol>
     </footer>
   {{ end }}
+
 
   <!-- Backlinks List Generation -->
   {{ $currentPage := . }}

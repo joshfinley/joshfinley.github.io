@@ -1,0 +1,17 @@
+{{ $source := .Get "source" }}
+{{ if not $source }}
+  {{ errorf "Source is required for blockquote shortcode" }}
+{{ end }}
+
+{{ $scratch := .Page.Scratch }}
+{{ $citations := $scratch.Get "citations" | default slice }}
+{{ $index := add (len $citations) 1 }}
+{{ $citations = $citations | append (dict "index" $index "source" $source) }}
+{{ $scratch.Set "citations" $citations }}
+
+<blockquote>
+  <p>"{{ .Inner }}"</p>
+  <footer>
+    {{ $source }} <a href="#cite-{{ $index }}" id="ref-cite-{{ $index }}">[{{ $index }}]</a>
+  </footer>
+</blockquote>
