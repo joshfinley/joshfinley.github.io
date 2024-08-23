@@ -1,0 +1,18 @@
+<!-- layouts/shortcodes/figure.html -->
+{{- $src := .Get "src" -}}
+{{- $caption := .Get "caption" | default "" -}}
+{{- $alt := .Get "alt" | default $caption -}}
+{{- $position := .Get "position" | default "center" -}}
+{{- $width := .Get "width" | default "" -}}
+{{- $class := .Get "class" | default "" -}}
+{{- $id := .Get "id" | default "" -}}
+
+<figure 
+  {{ if $id }}id="{{ $id }}"{{ end }}
+  class="figure figure-{{ $position }} {{ if $width }}figure-width-{{ $width }}{{ end }} {{ $class }}"
+>
+  <img src="{{ $src }}" alt="{{ $alt }}" />
+  {{ with $caption }}
+    <figcaption>{{ . | markdownify }}</figcaption>
+  {{ end }}
+</figure>

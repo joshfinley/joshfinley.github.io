@@ -1,0 +1,21 @@
+<!-- layouts/shortcodes/footnote.html -->
+{{- $display := .Get "display" | default "true" -}}
+{{- if not (or (eq $display "true") (eq $display "false")) -}}
+  {{- errorf "Invalid 'display' parameter in footnote shortcode. Must be 'true' or 'false', got '%s'" $display -}}
+{{- end -}}
+
+{{- $scratch := .Page.Scratch -}}
+{{- $footnotes := $scratch.Get "footnotes" | default slice -}}
+{{- $index := add (len $footnotes) 1 -}}
+
+{{- if not .Inner -}}
+  {{- errorf "Footnote content is empty in footnote shortcode (footnote %d)" $index -}}
+{{- end -}}
+
+{{- $footnotes = $footnotes | append (dict "index" $index "content" .Inner "display" $display) -}}
+{{- $scratch.Set "footnotes" $footnotes -}}
+{{- $scratch.Set "lastFootnoteIndex" $index -}}
+
+{{ if eq $display "true" }}
+  <sup><a href="#fn-{{ $index }}" id="ref-{{ $index }}">{{ $index }}</a></sup>
+{{ end }}

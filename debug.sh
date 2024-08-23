@@ -24,7 +24,7 @@ build_and_run() {
     sudo docker rm hugo-container >/dev/null 2>&1
 
     # Start new container
-    sudo docker run --name hugo-container -d -p 1313:1313 -v $(pwd):/site hugo-image server --bind 0.0.0.0 >/dev/null 2>&1
+    sudo docker run --name hugo-container -d -p 1313:1313 -v $(pwd):/site hugo-image server -D --bind 0.0.0.0 >/dev/null 2>&1
 
     echo "[+] Container redeployed"
 }

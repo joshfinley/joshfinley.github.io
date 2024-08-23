@@ -4,4 +4,35 @@
     <time>{{ .Date.Format "January 2, 2006" }}</time>
     {{ .Content }}
   </article>
+
+  {{ $footnotes := .Scratch.Get "footnotes" }}
+  {{ if $footnotes }}
+    <footer>
+      <h3>Footnotes</h3>
+      <ol>
+        {{ range $footnotes }}
+          <li id="fn-{{ .index }}">
+            {{ .content | markdownify }}
+            <a href="#ref-{{ .index }}" aria-label="Back to content">↩</a>
+          </li>
+        {{ end }}
+      </ol>
+    </footer>
+  {{ end }}
+
+  {{ $citations := .Scratch.Get "citations" }}
+  {{ if $citations }}
+    <footer>
+      <h3>Bibliography</h3>
+      <ol>
+        {{ range $citations }}
+          <li id="bib-{{ .key }}">
+            {{ .content | markdownify }}
+            <a href="#cite-{{ .key }}" aria-label="Back to citation">↩</a>
+          </li>
+        {{ end }}
+      </ol>
+    </footer>
+  {{ end }}
+  
 {{ end }}

@@ -1,4 +1,14 @@
 baseURL = 'https://0.0.0.0:443/'
 languageCode = 'en-us'
-title = 'FinleyEx'
+title = "jfcs.dev"
 theme = "mono"
+
+[menu]
+  [[menu.main]]
+    name = "Home"
+    url = "/"
+    weight = 1
+  [[menu.main]]
+    name = "Blog"
+    url = "/posts/"
+    weight = 2
