@@ -127,7 +127,187 @@ We can scan calls through this chain to arrive at the destination. However, the 
     PVOID pNtProtectVirtualMemory= ScanForCallInstruction(((PBYTE)pRtlpFreeHeapInternal), 0x85000, 1633);
 ```
 
-Unfortunately, `pRtlpFreeHeapInternal` is a mess of a run-on function. The likelihood of following this call chain correctly to `NtProtectVirtualMemory` outside of a lab is very low. The best case wrong answer is finding the wrong function. The worst case is misinterpring an `e8` byte in an operand as a `CALL` and following its target to an invalid memory location, creashing the program
+Unfortunately, `pRtlpFreeHeapInternal` is a mess of a run-on function. The likelihood of following this call chain correctly to `NtProtectVirtualMemory` outside of a lab is very low. The best case wrong answer is finding the wrong function. The worst case is misinterpring an `e8` byte in an operand as a `CALL` and following its target to an invalid memory location, creashing the program. My initial idea was to check if any of these functions were in the CFG bitmap, but it turns out none of them are.
+
+Regardless, the objectives that we want to achieve are twofold:
+
+1. Do not crash the program
+2. Find the right address `NtProtectVirtualMemory`
+
+To this end we can employ some heuristic checks. The most important thing is to avoid a crash. If we fail to find our target, we want to be able to exit gracefully. Some options we have are:
+
+1. Check the 32-bit relative offset we think is a target function, making sure it is not zero or in an unreasonable range.
+2. Make sure the potential call target is in the `.text` section. For NTDLL, `.text` is the first section, meaning we can easily hunt for it starting from the call site. Note that if the guard page extends to section headers, we have to skip this check.
+3. Check if the bytes before and after the potential call are likely to be valid instructions. `nop` and `int3` are some good candidates to check against.
+
+```C
+PBYTE ScanForCallInstruction(_In_reads_bytes_(bufferSize) PBYTE pBuffer, _In_ SIZE_T bufferSize, _In_ UINT callNumber, _Out_ PVOID* callSite);
+
+BOOL IsLikelyNearCall(CONST PBYTE instruction, SIZE_T length) {
+    // Check if we have enough bytes to analyze
+    if (length < 5) {
+        return FALSE;
+    }
+    // Check if the first byte is 0xE8 (opcode for near call)
+    if (instruction[0] != 0xE8) {
+        return FALSE;
+    }
+    // Extract the 32-bit relative offset
+    INT offset = *(INT*)(instruction + 1);
+    // Heuristic checks:
+    // 1. Offset should not be zero (that would be a pointless call)
+    if (offset == 0) {
+        return FALSE;
+    }
+    // 2. Offset should be within a reasonable range
+    // This is highly dependent on the specific use case, but let's assume
+    // most calls are within ±2GB range
+    if (offset < -2147483648LL || offset > 2147483647LL) {
+        return FALSE;
+    }
+
+    PBYTE current_address = (PBYTE)instruction;
+    PBYTE target_address = current_address + 5 + offset;
+
+    // New check: Ensure the call target is within the .text section
+    PIMAGE_SECTION_HEADER textSection = FindTextSectionHeader(current_address);
+    if (textSection == NULL) {
+        return FALSE;  // Failed to find .text section
+    }
+
+    // Calculate the boundaries of the .text section
+
+
+    // Calculate the correct boundaries of the .text section
+    PBYTE functionOffset = (PBYTE)((PBYTE)target_address - (PBYTE)textSection);
+    PBYTE textStart = (PBYTE)((PBYTE)target_address - functionOffset);
+    PBYTE textEnd = textStart + textSection->Misc.VirtualSize;
+
+    // Check if the target address is within the .text section
+    if (target_address < textStart || target_address >= textEnd) {
+        return FALSE;
+    }
+
+
+    // 3. Check if the bytes before the call are likely to be valid instructions
+    if (length >= 10) {  // Ensure we have enough bytes to check
+        // Check for common instruction patterns before a call
+        // This is a simplified check and can be expanded
+        BYTE prevByte = instruction[-1];
+        if (prevByte == 0x90 || prevByte == 0xCC) {  // NOP or INT3
+            return FALSE;
+        }
+    }
+
+    // 4. Check if the bytes after the call are likely to be valid instructions
+    if (length >= 10) {  // Ensure we have enough bytes to check
+        BYTE nextByte = instruction[5];
+        // Check for common instruction beginnings after a call
+        if (nextByte == 0xE8 || nextByte == 0xE9 || nextByte == 0xEB) {  // Another CALL or JMP
+            return FALSE;
+        }
+    }
+
+    // If all checks pass, it's likely a valid near call
+    return TRUE;
+}
+```
+
+With these checks, we can predict with high certainty that a memory access at the target will not trigger a crash. This is good, because we can then check if the instructions at the call looks valid by searching for common prolog bytes.
+
+```C
+BOOL IsLikelyFunctionProlog(BYTE* address)
+{
+    // Check for common function prologue patterns
+    if (address[0] == 0x40 && address[1] == 0x53) // push rbx
+        return TRUE;
+    if (address[0] == 0x48 && address[1] == 0x83 && address[2] == 0xEC) // sub rsp, xx
+        return TRUE;
+    if (address[0] == 0x48 && address[1] == 0x89 && address[2] == 0x5C) // mov [rsp + xx], rbx
+        return TRUE;
+    if (address[0] == 0x48 && address[1] == 0x8B && address[2] == 0xC4) // mov rax, rsp
+        return TRUE;
+    if (address[0] == 0x55) // push rbp
+        return TRUE;
+    if (address[0] == 0x48 && address[1] == 0x89 && address[2] == 0xE5) // mov rbp, rsp
+        return TRUE;
+    if (address[0] == 0x48 && address[1] == 0x81 && address[2] == 0xEC) // sub rsp, large_value
+        return TRUE;
+    if (address[0] == 0x48 && address[1] == 0x8D && address[2] == 0x64 && address[3] == 0x24) // lea rsp, [rsp + disp8]
+        return TRUE;
+    if (address[0] == 0x4C && address[1] == 0x8B && address[2] == 0xDC) // mov r11, rsp
+        return TRUE;
+    if (address[0] == 0x53) // push rbx (32-bit style)
+        return TRUE;
+    if (address[0] == 0x56) // push rsi
+        return TRUE;
+    if (address[0] == 0x57) // push rdi
+        return TRUE;
+    if (address[0] == 0x41 && address[1] == 0x54) // push r12
+        return TRUE;
+    if (address[0] == 0x41 && address[1] == 0x55) // push r13
+        return TRUE;
+    if (address[0] == 0x41 && address[1] == 0x56) // push r14
+        return TRUE;
+    if (address[0] == 0x41 && address[1] == 0x57) // push r15
+        return TRUE;
+    if (address[0] == 0x48 && address[1] == 0x8B && address[2] == 0xEC) // mov rbp, rsp (another variant)
+        return TRUE;
+
+    // Check for multi-byte NOP instructions often used for alignment
+    if (address[0] == 0x66 && address[1] == 0x90) // 2-byte NOP
+        return TRUE;
+    if (address[0] == 0x0F && address[1] == 0x1F && address[2] == 0x00) // 3-byte NOP
+        return TRUE;
+    if (address[0] == 0x0F && address[1] == 0x1F && address[2] == 0x40 && address[3] == 0x00) // 4-byte NOP
+        return TRUE;
+
+    // Check if there is a syscall prolog
+    if (address[0] == 0x4C && address[1] == 0x8B && address[2] == 0xD1) // mov r10, rcx
+        return TRUE;
+
+    return FALSE;
+}
+```
+
+These checks will go a long way to make sure we don't trigger a crash. Putting it together, we can scan reliably down any call tree until we find `NtProtectVirtualMemory`
+
+```C
+PVOID pCallSite = NULL;
+PVOID pRtlExitUserThread = ScanForCallInstruction((PBYTE)pRtlUserThreadStart, 0x50, 3, &pCallSite);
+if (!IsLikelyNearCall((PBYTE)pCallSite, 5) || !IsLikelyFunctionProlog((PBYTE)pRtlExitUserThread)) {
+    return -1;
+}
+PVOID pLdrShutdownThreadCall = ScanForCallInstruction((PBYTE)pRtlExitUserThread, 0x50, 2, &pCallSite);
+if (!IsLikelyNearCall((PBYTE)pCallSite, 5) || !IsLikelyFunctionProlog((PBYTE)pLdrShutdownThreadCall)) {
+    return -1;
+}
+PVOID pRtlpFlsDataCleanup = ScanForCallInstruction((PBYTE)pLdrShutdownThreadCall, 0x50, 1, &pCallSite);
+if (!IsLikelyNearCall((PBYTE)pCallSite, 5) || !IsLikelyFunctionProlog((PBYTE)pRtlpFlsDataCleanup)) {
+    return -1;
+}
+PVOID pRtlFreeHeap = ScanForCallInstruction((PBYTE)pRtlpFlsDataCleanup, 0x200, 7, &pCallSite);
+if (!IsLikelyNearCall((PBYTE)pCallSite, 5) || !IsLikelyFunctionProlog((PBYTE)pRtlFreeHeap)) {
+    return -1;
+}
+PVOID pRtlpFreeHeapInternal = ScanForCallInstruction((PBYTE)pRtlFreeHeap, 0x200, 5, &pCallSite);
+if (!IsLikelyNearCall((PBYTE)pCallSite, 5) || !IsLikelyFunctionProlog((PBYTE)pRtlpFreeHeapInternal)) {
+    return -1;
+}
+PVOID pNtProtectVirtualMemory= ScanForCallInstruction(((PBYTE)pRtlpFreeHeapInternal), 0x85000, 1633, &pCallSite);
+if (!IsLikelyNearCall((PBYTE)pCallSite, 5)) {
+    return -1;
+}
+```
+
+However, we must note two more things:
+
+1. This method is not generic and still depends on the position of the `e8` call in the code.
+2. We are expecting an anti-malware hardened environment, meaning `NtProtectVirtualMemory` may be hooked.
+
+Lets suppose we arrive at `NtProtectVirtualMemory`. The AM product has placed a hook there, meaning our very strange and (now) non-unwindable call stack will access that hook if we attempt to execute it. However, we have a high certainty this hook location is `NtProtectVirtualMemory`.
+
+Conveniently, NTDLL NT API system call functions are neatly organized, and the likelihood that the functions surrounding our target are very unlikely to also be hooked.
 
 ## Moving Beyond NTDLL
 
