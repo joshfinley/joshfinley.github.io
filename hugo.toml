@@ -19,3 +19,4 @@ theme = "mono"
   taxonomy = ["HTML"]
   term = ["HTML", "RSS"]
   page = ["HTML"]
+  
