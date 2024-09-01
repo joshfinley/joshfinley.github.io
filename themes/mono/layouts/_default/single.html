@@ -11,7 +11,7 @@
 
   <!-- Article Body -->
   <article>
-    <h2>{{ .Title }}</h2>
+    <h1>{{ .Title }}</h1>
     <time>{{ .Date.Format "January 2, 2006" }}</time>
 
     <h2>Table of Contents</h2>
@@ -109,37 +109,33 @@
   <!-- Footnotes List Generation -->
   {{ $footnotes := .Scratch.Get "footnotes" }}
   {{ if $footnotes }}
-    <footer>
-      <h3>Footnotes</h3>
-      <ol>
-        {{ range $footnotes }}
-          <li id="fn-{{ .index }}">
-            {{ .content | markdownify }}
-            <a href="#ref-{{ .index }}" aria-label="Back to content">↩</a>
-          </li>
-        {{ end }}
+    <h3>Footnotes</h3>
+    <ol>
+      {{ range $footnotes }}
+        <li id="fn-{{ .index }}">
+          {{ .content | markdownify }}
+          <a href="#ref-{{ .index }}" aria-label="Back to content">↩</a>
+        </li>
+      {{ end }}
       </ol>
-    </footer>
   {{ end }}
 
   <!-- Citation List Generation -->
   {{ $citations := .Scratch.Get "citations" }}
   {{ if $citations }}
-    <footer>
-      <h3>Bibliography</h3>
-      <ol>
-        {{ range $citations }}
-          <li id="bib-{{ or .key .index }}">
-            {{ if .content }}
-              {{ .content | markdownify }}
-            {{ else }}
-              {{ .source }}
-            {{ end }}
-            <a href="#{{ if .key }}cite-{{ .key }}{{ else }}ref-cite-{{ .index }}{{ end }}" aria-label="Back to citation">↩</a>
-          </li>
-        {{ end }}
-      </ol>
-    </footer>
+    <h2>Bibliography</h2>
+    <ol>
+      {{ range $citations }}
+        <li id="bib-{{ or .key .index }}">
+          {{ if .content }}
+            {{ .content | markdownify }}
+          {{ else }}
+            {{ .source }}
+          {{ end }}
+          <a href="#{{ if .key }}cite-{{ .key }}{{ else }}ref-cite-{{ .index }}{{ end }}" aria-label="Back to citation">↩</a>
+        </li>
+      {{ end }}
+    </ol>
   {{ end }}
 
 

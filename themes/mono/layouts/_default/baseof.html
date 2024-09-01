@@ -3,8 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ if .IsHome }}{{ .Site.Title }}{{ else }}{{ .Title }} - {{ .Site.Title }}{{ end }}</title>
-</head>
+    <!-- <title>{{ if .IsHome }}{{ .Site.Title }}{{ else }}{{ .Title }} - {{ .Site.Title }}{{ end }}</title> -->
+
+    {{ $styles := resources.Get "css/main.css" }}
+    {{ if hugo.IsProduction }}
+        {{ $styles = $styles | minify | fingerprint }}
+    {{ end }}
+    <link rel="stylesheet" href="{{ $styles.RelPermalink }}">
 
 <body>
     <nav class="topbar">
@@ -18,9 +23,6 @@
             </ul>
         </div>
     </nav>
-    <header>
-        <h1>{{ .Site.Title }}</h1>
-    </header>
     <main>
         {{ block "main" . }}{{ end }}
     </main>

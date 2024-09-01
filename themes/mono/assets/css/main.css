@@ -1,0 +1,351 @@
+/* Base styles */
+:root {
+  --primary-color: #1a1a1a;
+  --background-color: #fff;
+  --text-color: #1a1a1a;
+  --link-color: #0000EE;
+  --visited-link-color: #551A8B;
+  --border-color: #ddd;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-serif: "Times New Roman", Georgia, Times, serif;
+  --font-mono: Consolas, Monaco, "Andale Mono", "Ubuntu Mono", monospace;
+  --content-width: 800px;
+  --side-padding: 40px;
+  --vertical-spacing: 2.5rem;
+}
+
+body {
+  font-family: var(--font-serif);
+  line-height: 1.6;
+  color: var(--text-color);
+  background-color: var(--background-color);
+  margin: 0;
+  padding: 0;
+  font-size: 18px;
+  overflow-x: hidden;
+}
+
+.container {
+  max-width: var(--content-width);
+  margin: 0 auto;
+  padding: var(--vertical-spacing) var(--side-padding);
+  box-sizing: border-box;
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-serif);
+  margin-top: 1.8em;
+  margin-bottom: 0.8em;
+  line-height: 1.3;
+  word-wrap: break-word;
+  padding-bottom: 0.4em;
+  color: var(--primary-color);
+}
+
+h1 {
+  font-size: 2.5em;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 0.5em;
+}
+
+/* Links */
+a {
+  color: var(--link-color);
+  text-decoration: none;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  border-bottom: 1px dotted var(--link-color); /* Added dotted underline */
+}
+
+a:visited {
+  color: var(--visited-link-color);
+  border-bottom-color: var(--visited-link-color);
+}
+
+a:hover {
+  text-decoration: none;
+  border-bottom: 1px solid currentColor; /* Solid underline on hover */
+}
+
+/* Navigation */
+.topbar {
+  background-color: var(--background-color);
+  padding: 1.2em var(--side-padding);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.topbar .container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  padding-top: 0.7em;
+  padding-bottom: 0.7em;
+}
+
+.site-title {
+  font-family: var(--font-serif);
+  font-size: 1.6em;
+  font-weight: bold;
+  color: var(--text-color);
+}
+
+.nav-links {
+  list-style: none;
+  display: flex;
+  gap: 1.8em;
+  margin: 0;
+  padding: 0;
+  flex-wrap: wrap;
+}
+
+.nav-links a {
+  color: var(--text-color);
+}
+
+/* Main content */
+main {
+  padding: var(--vertical-spacing) var(--side-padding);
+}
+
+/* Article styles */
+article {
+  margin-bottom: calc(var(--vertical-spacing) * 1.5);
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+article time {
+  font-style: italic;
+  color: #666;
+  display: block;
+  margin-bottom: 1.2em;
+}
+
+/* Improved text wrapping and spacing for all content */
+p, blockquote, table, pre, code {
+  max-width: 100%;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  margin-bottom: 1.2em;
+}
+
+li {
+  margin-bottom: 0.3em; /* This will be the only rule for regular list items */
+}
+
+/* Code blocks */
+pre, code {
+  font-family: var(--font-mono);
+  background-color: #f4f4f4;
+  border: 1px solid var(--border-color);
+  border-radius: 3px;
+}
+
+pre {
+  padding: 1.2em;
+  margin: 1.2em 0;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+code {
+  padding: 0.2em 0.4em;
+}
+
+/* Tables */
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1.2em 0;
+  overflow-x: auto;
+  display: block;
+}
+
+th, td {
+  border: 1px solid var(--border-color);
+  padding: 0.8em;
+}
+
+th {
+  background-color: #f4f4f4;
+}
+
+/* Footer */
+footer {
+  border-top: 1px solid var(--border-color);
+  padding: var(--vertical-spacing) var(--side-padding);
+  font-size: 0.9em;
+  color: #666;
+}
+
+
+/* Improved text wrapping and spacing for all content */
+p, blockquote, table, pre, code {
+  max-width: 100%;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  margin-bottom: 1.2em;
+}
+
+li {
+  margin-bottom: 0.3em; /* Reduced from 0.6em to 0.3em */
+}
+
+blockquote {
+  border-left: 3px solid var(--border-color);
+  margin: 1.2em 0;
+  padding: 0.7em 0 0.7em 1.2em;
+  font-style: italic;
+}
+
+hr {
+  border: none;
+  border-top: 1px solid var(--border-color);
+  margin: calc(var(--vertical-spacing) * 1.5) 0;
+}
+
+/* Table of Contents styles */
+#TableOfContents {
+  background-color: #f8f8f8;
+  border: 1px solid var(--border-color);
+  padding: 1.8em;
+  margin: 1.2em 0 var(--vertical-spacing);
+  float: left;
+  max-width: 40%;
+  margin-right: 1.8em;
+}
+
+#TableOfContents ul {
+  list-style-type: none;
+  padding-left: 1.2em;
+}
+
+#TableOfContents > ul {
+  padding-left: 0;
+}
+
+#TableOfContents li {
+  margin-bottom: 0.3em; /* Reduced from 0.7em to 0.3em */
+}
+
+/* Images */
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 1.2em auto;
+  object-fit: contain;
+}
+
+.image-container {
+  max-width: 100%;
+  overflow: hidden;
+}
+
+/* Figcaption styles */
+figcaption {
+  font-style: italic;
+  text-align: center;
+  margin-top: 0.5em;
+  color: #666;
+}
+
+/* Responsive design */
+@media (max-width: 900px) {
+  :root {
+    --side-padding: 30px;
+    --vertical-spacing: 2rem;
+  }
+
+  body {
+    font-size: 17px;
+  }
+
+  .container {
+    width: 100%;
+  }
+
+  #TableOfContents {
+    float: none;
+    max-width: 100%;
+    margin-right: 0;
+  }
+}
+
+@media (max-width: 600px) {
+  :root {
+    --side-padding: 20px;
+    --vertical-spacing: 1.8rem;
+  }
+
+  body {
+    font-size: 16px;
+  }
+
+  h1 {
+    font-size: 2.2em;
+  }
+
+  .topbar {
+    padding: 0.8em var(--side-padding);
+  }
+
+  .site-title {
+    font-size: 1.4em;
+  }
+
+  .topbar .container {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .nav-links {
+    margin-top: 1em;
+    gap: 1.2em;
+  }
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --primary-color: #e0e0e0;
+    --background-color: #1a1a1a;
+    --text-color: #e0e0e0;
+    --link-color: #6495ED;
+    --visited-link-color: #9370DB;
+    --border-color: #444;
+  }
+
+  body {
+    background-color: var(--background-color);
+    color: var(--text-color);
+  }
+
+  .topbar, footer {
+    background-color: #222;
+  }
+
+  pre, code {
+    background-color: #2b2b2b;
+  }
+
+  #TableOfContents {
+    background-color: #222;
+  }
+
+  th {
+    background-color: #2b2b2b;
+  }
+
+  img {
+    opacity: 0.8;
+    transition: opacity 0.3s ease-in-out;
+  }
+
+  img:hover {
+    opacity: 1;
+  }
+}

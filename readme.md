@@ -36,7 +36,7 @@ To build and run the container, make sure you have Docker installed and run the 
 
 ```
 sudo docker build -t hugo-image .
-sudo docker run -p 1313:1313 -v $(pwd):/site hugo-image server --bind 0.0.0.0
+sudo docker run --rm -p 1313:1313 -v $(pwd):/site hugo-image server -D --bind 0.0.0.0
 ```
 
 Additionally, the `debug.sh` script can be used to run the container while making changes, similar to the `--watch` option for Hugo.
