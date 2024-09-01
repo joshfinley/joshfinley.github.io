@@ -12,6 +12,7 @@
   --content-width: 800px;
   --side-padding: 40px;
   --vertical-spacing: 2.5rem;
+  --max-text-width: 80ch;
 }
 
 body {
@@ -41,6 +42,9 @@ h1, h2, h3, h4, h5, h6 {
   word-wrap: break-word;
   padding-bottom: 0.4em;
   color: var(--primary-color);
+  max-width: var(--max-text-width);
+  margin-left: auto;
+  margin-right: auto;
 }
 
 h1 {
@@ -55,7 +59,7 @@ a {
   text-decoration: none;
   word-wrap: break-word;
   overflow-wrap: break-word;
-  border-bottom: 1px dotted var(--link-color); /* Added dotted underline */
+  border-bottom: 1px dotted var(--link-color);
 }
 
 a:visited {
@@ -65,7 +69,7 @@ a:visited {
 
 a:hover {
   text-decoration: none;
-  border-bottom: 1px solid currentColor; /* Solid underline on hover */
+  border-bottom: 1px solid currentColor;
 }
 
 /* Navigation */
@@ -114,6 +118,9 @@ article {
   margin-bottom: calc(var(--vertical-spacing) * 1.5);
   word-wrap: break-word;
   overflow-wrap: break-word;
+  max-width: var(--max-text-width);
+  margin-left: auto;
+  margin-right: auto;
 }
 
 article time {
@@ -124,15 +131,17 @@ article time {
 }
 
 /* Improved text wrapping and spacing for all content */
-p, blockquote, table, pre, code {
-  max-width: 100%;
+p, blockquote, table, pre, code, ul, ol {
+  max-width: var(--max-text-width);
   word-wrap: break-word;
   overflow-wrap: break-word;
   margin-bottom: 1.2em;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 li {
-  margin-bottom: 0.3em; /* This will be the only rule for regular list items */
+  margin-bottom: 0.3em;
 }
 
 /* Code blocks */
@@ -145,7 +154,7 @@ pre, code {
 
 pre {
   padding: 1.2em;
-  margin: 1.2em 0;
+  margin: 1.2em auto;
   overflow-x: auto;
   white-space: pre-wrap;
   word-wrap: break-word;
@@ -159,7 +168,7 @@ code {
 table {
   border-collapse: collapse;
   width: 100%;
-  margin: 1.2em 0;
+  margin: 1.2em auto;
   overflow-x: auto;
   display: block;
 }
@@ -179,24 +188,14 @@ footer {
   padding: var(--vertical-spacing) var(--side-padding);
   font-size: 0.9em;
   color: #666;
-}
-
-
-/* Improved text wrapping and spacing for all content */
-p, blockquote, table, pre, code {
-  max-width: 100%;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-  margin-bottom: 1.2em;
-}
-
-li {
-  margin-bottom: 0.3em; /* Reduced from 0.6em to 0.3em */
+  max-width: var(--max-text-width);
+  margin-left: auto;
+  margin-right: auto;
 }
 
 blockquote {
   border-left: 3px solid var(--border-color);
-  margin: 1.2em 0;
+  margin: 1.2em auto;
   padding: 0.7em 0 0.7em 1.2em;
   font-style: italic;
 }
@@ -204,23 +203,42 @@ blockquote {
 hr {
   border: none;
   border-top: 1px solid var(--border-color);
-  margin: calc(var(--vertical-spacing) * 1.5) 0;
+  margin: calc(var(--vertical-spacing) * 1.5) auto;
+  max-width: var(--max-text-width);
 }
 
 /* Table of Contents styles */
 #TableOfContents {
   background-color: #f8f8f8;
   border: 1px solid var(--border-color);
-  padding: 1.8em;
+  padding: 1em;
   margin: 1.2em 0 var(--vertical-spacing);
-  float: left;
-  max-width: 40%;
-  margin-right: 1.8em;
+  max-width: var(--max-text-width);
+  box-sizing: border-box;
+}
+
+@media (min-width: 1000px) {
+  #TableOfContents {
+    float: left;
+    width: 30%;
+    margin-right: 2em;
+  }
+
+  #TableOfContents::after {
+    content: "";
+    display: table;
+    clear: both;
+  }
+
+  #TableOfContents + * {
+    display: flow-root;
+  }
 }
 
 #TableOfContents ul {
   list-style-type: none;
-  padding-left: 1.2em;
+  padding-left: 1em;
+  margin: 0;
 }
 
 #TableOfContents > ul {
@@ -228,7 +246,7 @@ hr {
 }
 
 #TableOfContents li {
-  margin-bottom: 0.3em; /* Reduced from 0.7em to 0.3em */
+  margin-bottom: 0.2em;
 }
 
 /* Images */
@@ -241,8 +259,10 @@ img {
 }
 
 .image-container {
-  max-width: 100%;
+  max-width: var(--max-text-width);
   overflow: hidden;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 /* Figcaption styles */
@@ -251,9 +271,20 @@ figcaption {
   text-align: center;
   margin-top: 0.5em;
   color: #666;
+  max-width: var(--max-text-width);
+  margin-left: auto;
+  margin-right: auto;
 }
 
 /* Responsive design */
+@media (max-width: 999px) {
+  #TableOfContents {
+    float: none;
+    width: 100%;
+    margin-right: 0;
+  }
+}
+
 @media (max-width: 900px) {
   :root {
     --side-padding: 30px;
@@ -267,18 +298,13 @@ figcaption {
   .container {
     width: 100%;
   }
-
-  #TableOfContents {
-    float: none;
-    max-width: 100%;
-    margin-right: 0;
-  }
 }
 
 @media (max-width: 600px) {
   :root {
     --side-padding: 20px;
     --vertical-spacing: 1.8rem;
+    --max-text-width: 100%;
   }
 
   body {
