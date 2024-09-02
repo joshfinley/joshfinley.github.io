@@ -1,18 +1,18 @@
 <!-- layouts/shortcodes/citation.html -->
 {{- $url := .Get "url" -}}
-{{- $title := .Get "title" -}}
 {{- $content := .Get "content" -}}
+{{- $ref := .Get "ref" -}}
+{{- $id := .Get "id" -}}
 {{- $innerContent := trim (.Inner | plainify) " \n\r\t" -}}
-
 {{- $citationKey := "" -}}
 {{- $citationContent := "" -}}
-
-{{- if $url -}}
-  {{- $citationKey = $url -}}
+{{- if $id -}}
+  {{- $citationKey = $id -}}
+{{- else if $ref -}}
+  {{- $citationKey = $ref -}}
+{{- else if $url -}}
+  {{- $citationKey = md5 $url -}}
   {{- $citationContent = printf "URL: %s" $url -}}
-{{- else if $title -}}
-  {{- $citationKey = $title -}}
-  {{- $citationContent = printf "Title: %s" $title -}}
 {{- else if $content -}}
   {{- $citationKey = md5 $content -}}
   {{- $citationContent = $content -}}
@@ -20,26 +20,29 @@
   {{- $citationKey = md5 $innerContent -}}
   {{- $citationContent = $innerContent -}}
 {{- else -}}
-  {{- errorf "Citation shortcode requires at least one of: url, title, content, or inner content" -}}
+  {{- errorf "Citation shortcode requires at least one of: url, content, inner content, ref, or id" -}}
 {{- end -}}
-
 {{- $page := .Page -}}
 {{- $citations := $page.Scratch.Get "citations" | default slice -}}
 {{- $citationExists := false -}}
 {{- $index := 0 -}}
-
 {{- range $i, $existingCitation := $citations -}}
   {{- if eq $existingCitation.key $citationKey -}}
     {{- $citationExists = true -}}
     {{- $index = add $i 1 -}}
+    {{- if not $existingCitation.content -}}
+      {{- $existingCitation = merge $existingCitation (dict "content" $citationContent "url" $url) -}}
+    {{- end -}}
   {{- end -}}
 {{- end -}}
-
 {{- if not $citationExists -}}
   {{- $index = add (len $citations) 1 -}}
-  {{- $newCitation := dict "key" $citationKey "content" $citationContent "index" $index -}}
+  {{- $newCitation := dict "key" $citationKey "content" $content "citationContent" $citationContent "url" $url "index" $index -}}
   {{- $citations = $citations | append $newCitation -}}
   {{- $page.Scratch.Set "citations" $citations -}}
 {{- end -}}
-
+{{- if and (not $url) (not $content) (not $innerContent) -}}
+<a href="#bib-{{ $citationKey }}" id="cite-{{ $citationKey }}">[{{ $index }}]</a>
+{{- else -}}
 <sup><a href="#bib-{{ $citationKey }}" id="cite-{{ $citationKey }}">[{{ $index }}]</a></sup>
+{{- end -}}

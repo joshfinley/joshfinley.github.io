@@ -2,16 +2,26 @@
 {{ if not $source }}
   {{ errorf "Source is required for blockquote shortcode" }}
 {{ end }}
-
 {{ $scratch := .Page.Scratch }}
 {{ $citations := $scratch.Get "citations" | default slice }}
-{{ $index := add (len $citations) 1 }}
-{{ $citations = $citations | append (dict "index" $index "source" $source) }}
-{{ $scratch.Set "citations" $citations }}
-
+{{ $citationKey := md5 $source }}
+{{ $citationExists := false }}
+{{ $index := 0 }}
+{{ range $i, $existingCitation := $citations }}
+  {{ if eq $existingCitation.key $citationKey }}
+    {{ $citationExists = true }}
+    {{ $index = $existingCitation.index }}
+  {{ end }}
+{{ end }}
+{{ if not $citationExists }}
+  {{ $index = add (len $citations) 1 }}
+  {{ $newCitation := dict "key" $citationKey "content" $source "index" $index }}
+  {{ $citations = $citations | append $newCitation }}
+  {{ $scratch.Set "citations" $citations }}
+{{ end }}
 <blockquote>
-  <p>"{{ .Inner }}"</p>
+  <p>"{{ .Inner | markdownify }}"</p>
   <footer>
-    {{ $source }} <a href="#cite-{{ $index }}" id="ref-cite-{{ $index }}">[{{ $index }}]</a>
+    -- {{ $source }} <a href="#bib-{{ $citationKey }}" id="cite-{{ $citationKey }}">[{{ $index }}]</a>
   </footer>
 </blockquote>

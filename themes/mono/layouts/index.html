@@ -13,7 +13,7 @@
   {{ with .Site.Taxonomies.categories }}
     <h2>Categories</h2>
     {{ range $key, $value := . }}
-      <h3>{{ $key | humanize }}</h3>
+      <h4>{{ $key | humanize }}</h4>
       <ul>
         {{ range $value.Pages }}
           <li><a href="{{ .Permalink }}">{{ .Title }}</a></li>

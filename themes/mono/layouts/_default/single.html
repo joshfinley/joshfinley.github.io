@@ -11,49 +11,121 @@
 
   <!-- Article Body -->
   <article>
-    <h1>{{ .Title }}</h1>
-    <time>{{ .Date.Format "January 2, 2006" }}</time>
+    <table>
+      <tbody>
+        <tr>
+          <td colspan="2" rowspan="2" class="width-auto">
+            <h1 class="title">{{ .Title }}</h1>
+            {{ with .Params.subtitle }}
+              <span class="subtitle">{{ . }}</span>
+            {{ end }}
+          </td>
+          <th>Version</th>
+          <td class="width-min">{{ .Params.version | default "N/A" }}</td>
+        </tr>
+        <tr>
+          <th>Updated</th>
+          <td class="width-min"><time>{{ .Date.Format "2006-01-02" }}</time></td>
+        </tr>
+        <tr>
+          <th class="width-min">Author</th>
+          <td class="width-auto">
+            {{ with .Params.author }}
+              <a href="{{ .url }}">{{ .name }}</a>
+            {{ else }}
+              Joshua Finley
+            {{ end }}
+          </td>
+          <th class="width-min">License</th>
+          <td>{{ .Params.license | default "DBE" }}</td>
+        </tr>
+      </tbody>
+    </table>
 
-    <h2>Table of Contents</h2>
-    {{/* Generate TOC */}}
-    {{ $headings := findRE "<h[1-6].*?>(.|\n])+?</h[1-6]>" .Content }}
-    <nav id="TableOfContents">
-      <ul>
-      {{ range $headings }}
-        {{ $level := int (substr . 2 1) }}
-        {{ $currentLevel := $numbering.Get "currentLevel" }}
+    <!-- Table of contents -->
+    <table class="toc">
+      <thead>
+        <tr>
+          <th colspan="2">Table of Contents</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{/* Generate TOC */}}
+        {{ $headings := findRE "<h[1-6].*?>(.|\n])+?</h[1-6]>" .Content }}
+        {{ $currentH2 := dict "number" "" "content" "" "subEntries" slice }}
         
-        {{ if ne $level $currentLevel }}
-          {{ if gt $level $currentLevel }}
-            {{ range seq (add $currentLevel 1) (add $level 1) }}
-              {{ $numbering.Set (printf "level%d" .) 0 }}
+        {{ range $headings }}
+          {{ $level := int (substr . 2 1) }}
+          {{ $currentLevel := $numbering.Get "currentLevel" }}
+          
+          {{ if ne $level $currentLevel }}
+            {{ if gt $level $currentLevel }}
+              {{ range seq (add $currentLevel 1) (add $level 1) }}
+                {{ $numbering.Set (printf "level%d" .) 0 }}
+              {{ end }}
+            {{ else }}
+              {{ range seq (add $level 1) (add $currentLevel 1) }}
+                {{ $numbering.Set (printf "level%d" .) 0 }}
+              {{ end }}
             {{ end }}
-          {{ else }}
-            {{ range seq (add $level 1) (add $currentLevel 1) }}
-              {{ $numbering.Set (printf "level%d" .) 0 }}
+          {{ end }}
+          
+          {{ $numbering.Add (printf "level%d" $level) 1 }}
+          {{ $numbering.Set "currentLevel" $level }}
+          
+          {{ $number := slice }}
+          {{ range seq 1 (add $level 1) }}
+            {{ $levelValue := $numbering.Get (printf "level%d" .) }}
+            {{ if ne $levelValue 0 }}
+              {{ $number = $number | append $levelValue }}
             {{ end }}
+          {{ end }}
+          
+          {{ $numberString := delimit $number "." }}
+          {{ $content := . | replaceRE "</?h[1-6].*?>" "" | safeHTML }}
+          {{ $link := printf "<a href=\"#%s\">%s</a>" (. | plainify | urlize) $content }}
+          
+          {{ if eq $level 2 }}
+            {{ if ne $currentH2.number "" }}
+              <tr>
+                <td class="toc-number">{{ $currentH2.number }}</td>
+                <td class="toc-content">
+                  {{ $currentH2.content | safeHTML }}
+                  {{ if $currentH2.subEntries }}
+                    <div class="toc-subentries">
+                      {{ range $currentH2.subEntries }}
+                        {{ . | safeHTML }}<br>
+                      {{ end }}
+                    </div>
+                  {{ end }}
+                </td>
+              </tr>
+            {{ end }}
+            {{ $currentH2 = dict "number" $numberString "content" $link "subEntries" slice }}
+          {{ else if gt $level 2 }}
+            {{ $subEntry := printf "%s %s" $numberString $link }}
+            {{ $currentH2 = merge $currentH2 (dict "subEntries" ($currentH2.subEntries | append $subEntry)) }}
           {{ end }}
         {{ end }}
         
-        {{ $numbering.Add (printf "level%d" $level) 1 }}
-        {{ $numbering.Set "currentLevel" $level }}
-        
-        {{ $number := slice }}
-        {{ range seq 1 (add $level 1) }}
-          {{ $levelValue := $numbering.Get (printf "level%d" .) }}
-          {{ if ne $levelValue 0 }}
-            {{ $number = $number | append $levelValue }}
-          {{ end }}
+        <!-- Output the last h2 entry -->
+        {{ if ne $currentH2.number "" }}
+          <tr>
+            <td class="toc-number">{{ $currentH2.number }}</td>
+            <td class="toc-content">
+              {{ $currentH2.content | safeHTML }}
+              {{ if $currentH2.subEntries }}
+                <div class="toc-subentries">
+                  {{ range $currentH2.subEntries }}
+                    {{ . | safeHTML }}<br>
+                  {{ end }}
+                </div>
+              {{ end }}
+            </td>
+          </tr>
         {{ end }}
-        <li>
-          {{ delimit $number "." }}. 
-          <a href="#{{ . | plainify | urlize }}">
-            {{ . | replaceRE "</?h[1-6].*?>" "" | safeHTML }}
-          </a>
-        </li>
-      {{ end }}
-      </ul>
-    </nav>
+      </tbody>
+    </table>
 
     {{/* Reset numbering for content */}}
     {{ $numbering.Set "level1" 0 }}
@@ -104,40 +176,43 @@
     {{ end }}
 
     {{ $content | safeHTML }}
-  </article>
 
-  <!-- Footnotes List Generation -->
-  {{ $footnotes := .Scratch.Get "footnotes" }}
-  {{ if $footnotes }}
-    <h3>Footnotes</h3>
-    <ol>
-      {{ range $footnotes }}
-        <li id="fn-{{ .index }}">
-          {{ .content | markdownify }}
-          <a href="#ref-{{ .index }}" aria-label="Back to content">↩</a>
-        </li>
-      {{ end }}
-      </ol>
-  {{ end }}
-
-  <!-- Citation List Generation -->
-  {{ $citations := .Scratch.Get "citations" }}
-  {{ if $citations }}
-    <h2>Bibliography</h2>
-    <ol>
-      {{ range $citations }}
-        <li id="bib-{{ or .key .index }}">
-          {{ if .content }}
+    <!-- Footnotes List Generation -->
+    {{ $footnotes := .Scratch.Get "footnotes" }}
+    {{ if $footnotes }}
+      <h3>Footnotes</h3>
+      <ol>
+        {{ range $footnotes }}
+          <li id="fn-{{ .index }}">
             {{ .content | markdownify }}
-          {{ else }}
-            {{ .source }}
-          {{ end }}
-          <a href="#{{ if .key }}cite-{{ .key }}{{ else }}ref-cite-{{ .index }}{{ end }}" aria-label="Back to citation">↩</a>
-        </li>
-      {{ end }}
-    </ol>
-  {{ end }}
+            <a href="#ref-{{ .index }}" aria-label="Back to content">↩</a>
+          </li>
+        {{ end }}
+        </ol>
+    {{ end }}
 
+    <!-- Citation List Generation -->
+    {{ $citations := .Scratch.Get "citations" }}
+    {{ if $citations }}
+      <h2>Bibliography</h2>
+      <ol>
+        {{ range $citations }}
+          <li id="bib-{{ .key }}">
+            {{ if .content }}
+              {{ .content | markdownify }}
+            {{ else if .citationContent }}
+              {{ .citationContent | markdownify }}
+            {{ end }}
+            {{ if and .url (not (hasPrefix .citationContent "URL:")) }}
+              {{ if or .content .citationContent }}<br>{{ end }}
+              URL: <a href="{{ .url }}" target="_blank">{{ .url }}</a>
+            {{ end }}
+            <a href="#cite-{{ .key }}" aria-label="Back to citation"> ↩</a>
+          </li>
+        {{ end }}
+      </ol>
+    {{ end }}
+  </article>
 
   <!-- Backlinks List Generation -->
   {{ $currentPage := . }}
