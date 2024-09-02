@@ -195,9 +195,9 @@
     {{ $citations := .Scratch.Get "citations" }}
     {{ if $citations }}
       <h2>Bibliography</h2>
-      <ol>
+      <ol class="bibliography-list">
         {{ range $citations }}
-          <li id="bib-{{ .key }}">
+          <li id="bib-{{ .key }}" class="bibliography-item">
             {{ if .content }}
               {{ .content | markdownify }}
             {{ else if .citationContent }}

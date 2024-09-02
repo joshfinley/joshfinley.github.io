@@ -2,7 +2,7 @@
 
 title = "Dumping Syscall Numbers and Offsets"
 date = 2020-04-17 00:05:28 
-
+version = "v2"
 +++
 
 Source code for this demonstration can be found [here](https://github.com/joshfinley/SyscallDumper/tree/v1.0)

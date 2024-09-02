@@ -1,6 +1,6 @@
 +++
 title = 'Internals of Poylmorphic Engines'
-date = 2020-12-02 00:05:28 
+date = 2024-09-02 00:05:28 
 version = "v2"
 +++
 
@@ -191,7 +191,7 @@ If we take the following instruction as an example, we can decode the meanings o
                      __REX.W  
                     /   ____MOV r/m16/32/64
                    /  /  ______________Mod-Reg-R/M Byte
-                  /  /  /  ,______,____________________Immediate
+                  /  /  / ,__________,_________________Immediate
               a) 48 C7 C3 9A 02 00 00 
               b) 48 29 d9
 
