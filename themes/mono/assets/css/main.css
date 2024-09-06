@@ -515,6 +515,16 @@ article {
   margin: 0 !important;
 }
 
+/* Centered Sections */
+.centered-section {
+  text-align: center;
+}
+
+.centered-section ol {
+  display: inline-block;
+  text-align: left;
+}
+
 /* Base styles for code blocks */
 pre,
 .highlight {

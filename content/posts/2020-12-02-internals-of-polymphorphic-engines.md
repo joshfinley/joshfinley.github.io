@@ -1,22 +1,22 @@
 +++
 title = 'Internals of Poylmorphic Engines'
-date = 2024-09-02 00:05:28 
+date = 2024-09-06 00:05:28 
 version = "v2"
 +++
 
-> This file documents the workings of polymorphic engines in malware, primarily focusing on historical examples implemented in x86 assembly. While modern malware favors detection reduction techniques in memory, viruses from the 1990s and early 2000s had only one main oponent -- static detections. The result of this evolutionary pressure was the development of polymorphic and metamorphic techniques, which are used to mutate the virus's byte sequence, breaking any static detections. Despite the proliferation of in-memory detection techniques, polymorphic malware retains its edge as a useful evasion even now.
+> This file documents the workings of polymorphic engines in malware, primarily focusing on historical examples implemented in x86 assembly. While modern malware favors detection reduction techniques in memory, viruses from the 1990s and early 2000s had only one main oponent -- static signatures. The result of this evolutionary pressure was the development of polymorphic and metamorphic techniques, which are used to mutate the virus's byte sequence, breaking any static signatures. Despite the proliferation of in-memory detection techniques, polymorphic malware retains its edge as a useful evasion even now.
 
 ## Introduction 
 
-To understand the concept of poylmorphic code (not to be confused with the programming concept of polymorhpism), we must understand the demands and constraints of the code that it was developed for: viruses.
+To understand the concept of poylmorphic code (not to be confused with the programming concept of polymorhpism), we must understand the demands and constraints of computer viruses.
 
-The goal of viral code is simple - popagate. This code mimics an organism in that it uses resources available in the environment to reproduce. An extremely simple virus might just outright replace other programs on the host machine with itself, causing destructive damage to infected machines. Instead of the original program, the viral. More commonly, viral code would exploit methods to run the original program it infected like normal, before executing the viral payload.
+The goal of viral code is simple - propagate. This code mimics an organism in that it uses resources available in the environment to reproduce. An extremely simple virus might just outright replace other programs on the host machine with itself, causing destructive damage to infected machines. More commonly, viral code would exploit methods to run the original program it infected like normal, before executing the viral payload.
 
 Antivirus tools cropped up to contend with this threat. Given the technical and technological constraints of the time, these tools would simply scan files for byte patterns of known malware, and if a match was found, delete the infected file. 
 
-Virus developers worked around this threat by first developing code to encrypt their paloads at rest and decrypt them at runtime. They would swap out these routines with new ones as variants became detected. In this way, the precious viral infection code did not need to be replaced as signatures were released for antivirus tools. Instead, the encryption and execution routine would be replaced as needed. This type of virus was dubbed *oligomorphic*.
+Virus developers worked around this threat by first developing code to encrypt their payloads at rest and decrypt them at runtime. They would swap out these routines with new ones as variants became detected. In this way, the precious viral infection code did not need to be replaced as signatures were released for antivirus tools. Once decryptors for these viruses started being detected, the author could just swap the decryptor with a new one an release the virus again. Some viruses did this automatically, choosing between one of several available, pre-written decryption routines. These viruses were dubbed *oligomorphic* {{< citation url="https://en.wikipedia.org/wiki/Oligomorphic_code" content="Wikipedia contributors. (n.d.). Oligomorphic code. Wikipedia." />}}.
 
-Shortly after, or perhaps concurrently with the first oligomorphic viruses, virus writers were already improving their tradecraft. Since the encoding stubs would quickly become detected, the next solution would be to generate a new stub automatically. This could be done for every release of the virus (creation time polymorhpishm) or on each infection and execution (execution time polymorphism). Creative programming techniques could be used to generate a new varianet of the encryption and execution code rather than require manual development. Authors of these viruses and virus development toolchains would leverage understanding of the target machine instruction set to permutate the machine code of the virus decryption and loading routines.
+Shortly after, or perhaps concurrently with the first oligomorphic viruses, virus writers were already improving their trade craft. Since the decryption stubs would quickly become detected, the next solution would be to generate new stubs automatically. This could be done for every release of the virus (creation time polymorhpishm) or on each infection and execution (execution time polymorphism). Creative programming techniques could be used to generate a new variant of the encryption and execution code rather than require manual development. Authors of these viruses and virus development toolchains would leverage understanding of the target machine instruction set to permute the machine code of the virus decryption and loading routines.
 
 A few took this to the extreme, permutating the entire virus body payload on each infection, requiring no encryption (called metamorphic viruses).
 
@@ -34,7 +34,7 @@ This article looks at runtime polymorphism. In the simplest terms, a polymorphic
 
 Reviewing different works on polymorphic viruses will reveal a myriad of strategies virus authors would use to fool defense products. These authors were truly creative in their exploration of ways to write their viruses and make them survive in hardened environments.
 
-According to one 1998 work from *The Black Baron*, a polymorphic engine can be distilled into three components {{< citation id="blackbaron1998" url="https://web.archive.org/web/20210227235004/https://vx-underground.org/archive/VxHeaven/lib/vbb01.html" content="The Black Baron. (1998). A general description of the methods behind a polymorph engine. VX Underground archived version." />}}:
+According to one 1998 work from *The Black Baron*, a polymorphic engine can be distilled into three components {{< citation id="blackbaron1998" url="https://web.archive.org/web/20210227235004/https://vx-underground.org/archive/VxHeaven/lib/vbb01.html" content="The Black Baron. (1998). A general description of the methods behind a polymorph engine. VX Underground. Archived version." />}}:
 
 1. Random number generator
 2. Junk code generator
@@ -44,15 +44,15 @@ Focusing on the last of the three first -- the decryptor generator --
 According to {{< citation id="blackbaron1998" />}} the algorithm is as follows:
 
 1. Select a random set of registers
-2. Choose a compressed pre-coded decryptor 
+2. Choose a compressed pre-written decryptor 
 3. Enter a loop where junk code is added to the real decryptor
-   (potentially unnecessary {{< citation id="vts01" url="https://vx-underground.org/archive/VxHeaven/lib/vts01.html" content="The Slammer. (n.d.). Polymorphic Engines. VX Underground (Archived version)." />}})
+   (which has been argued as unnecessary at worst and unhelpful at best, unless done intelligently {{< citation id="vts01" url="https://vx-underground.org/archive/VxHeaven/lib/vts01.html" content="The Slammer. (n.d.). Polymorphic Engines. VX Underground" />}}, {{< citation id="smarttrash" url="https://web.archive.org/web/20130819080018/http://vxheaven.org/lib/vpo01.html" content="Pr0mix. 2011. Smart trash: building of logic. VxHeaven." />}})
 
-Compared to this sort of hacker definition, academic formalizations of polymorphic engines also exist {{< citation id="jacob2008" content="Jacob, Fillion, and Debar. Functional polymorphic engines: formalisation, implementation and use cases. Journal of Computer Virology and Hacking Techniques" />}}. These formalizations attempt to understand polymorphic malware in a scientific context.
+Compared to this sort of hacker definition, academic formalizations of polymorphic engines also exist {{< citation id="jacob2008" content="Jacob, Fillion, and Debar. (2008). Functional polymorphic engines: Formalisation, implementation and use cases. Journal of Computer Virology and Hacking Techniques." />}}. These formalizations attempt to understand polymorphic malware in a scientific context.
 
-Commercial defitions for polymorphic viruses in general have also been submitted over the years, like this Example from *Symantec*:
+Commercial definitions for polymorphic viruses in general have also been submitted over the years, like this Example from *Symantec*:
 
-{{< blockquote source="Symantec. Understanding and Managing Polymorphic Viruses. VxHeven archived version." >}}
+{{< blockquote source="Symantec. Understanding and Managing Polymorphic Viruses. VxHeaven archived version." >}}
 In retaliation, virus authors developed the polymorphic virus. Like an encrypted virus, a polymorphic virus includes a scrambled virus body and a decryption routine that first gains control of the computer, then decrypts the virus body. 
 
 However, a polymorphic virus adds to these two components a third — a mutation engine that generates randomized decryption routines that change each time a virus infects a new program.
@@ -101,7 +101,7 @@ If we accept this as a concise definition of a polymorphic virus, then the polym
 
 Before the poly engine comes the encryption primitives. 
 
-In {{< citation id="vmn04" url="https://vx-underground.org/archive/VxHeaven/lib/vmn04.html" content="MidNyte. (n.d.). Polymorphic Encryption Algorithms Part I. VX Underground (Archived version)." />}}, {{< citation id="vmn05" url="https://vx-underground.org/archive/VxHeaven/lib/vmn05.html" content="MidNyte. (n.d.). Polymorphic Encryption Algorithms Part II. VX Underground (Archived version)." />}}, and {{< citation id="vmn06" url="https://vx-underground.org/archive/VxHeaven/lib/vmn06.html" content="MidNyte. (n.d.). Polymorphic Encryption Algorithms Part III. VX Underground (Archived version)." />}}, the author 'MidNyte' discusses the fundamentals of 
+In {{< citation id="vmn04" url="https://vx-underground.org/archive/VxHeaven/lib/vmn04.html" content="MidNyte. (n.d.). Polymorphic Encryption Algorithms Part I. VX Underground (Archived version)." />}},{{< citation id="vmn05" url="https://vx-underground.org/archive/VxHeaven/lib/vmn05.html" content="MidNyte. (n.d.). Polymorphic Encryption Algorithms Part II. VX Underground (Archived version)." />}}, and {{< citation id="vmn06" url="https://vx-underground.org/archive/VxHeaven/lib/vmn06.html" content="MidNyte. (n.d.). Polymorphic Encryption Algorithms Part III. VX Underground (Archived version)." />}}, the author 'MidNyte' discusses the fundamentals of 
 encryption/enciphering in the context of the virus or poly engine.
 In Part I, four x86 assembly techniques are presented. In Part II, they then present
 four methods of 'armouring' the encryption. These articles seem
@@ -133,7 +133,7 @@ The code polymorphism mechanisms used in polymorphic engines are fourfold:
 Different viruses may choose any combination of these techniques. For example, many polymorphic viruses opt not to include garbage instruction generation {{< footnote >}}
 Garbage code generation is still code generation. At that, the quality of the garbage matters {{< citation id="vts01" />}}. It is even suggested that it is more worthwhile to use stronger and more complicated encryption than to add junk code at all {{< citation id="vts01" />}}.
 
-One contesting idea regarding this however is the benefits of the sheer simplicity of XOR, ADD, and SUB ciphers. For example, in {{< citation id="solarwinds" url="https://vxug.fakedoma.in/samples/Exotic/UNC2452/SolarWinds%20Breach/" content="SolarWinds Breach Analysis" />}} one of the most advanced cyber attacks in history, a sliding XOR cipher was employed to success. {{< /footnote >}}.
+One contesting idea regarding this however is the benefits of the sheer simplicity of XOR, ADD, and SUB ciphers. For example, in {{< citation id="solarwinds" url="https://vxug.fakedoma.in/samples/Exotic/UNC2452/SolarWinds%20Breach/" content="SolarWinds Breach Analysis." />}} one of the most advanced cyber attacks in history, a sliding XOR cipher was employed to success. {{< /footnote >}}.
 
 The first three techniques are more than enough to generate semantically equivalent but signature unique ciphers. The following sections dive into how each works.
 
@@ -143,7 +143,7 @@ The mechanisms of a polymorphic engine rely on understanding of instruction enco
 
 #### Opcodes
 
-For example, most instructions in  x86_64 have different encodings for different addressing modes. Take the XOR instruction for example {{< citation id="x86asm" url="http://ref.x86asm.net/coder64.html" content="x86 Opcode and Instruction Reference" />}}:
+For example, most instructions in  x86_64 have different encodings for different addressing modes. Take the XOR instruction for example {{< citation id="x86asm" url="http://ref.x86asm.net/coder64.html" content="x86 Opcode and Instruction Reference." />}}:
 
      hex      bin       mode operand 1   mode operand 2
      0x30     110000    r/m8             r8
@@ -175,7 +175,7 @@ These 10 base instructions can thus produce 82 permutations only based on the op
 
 #### Modifiers
 
-If we look at the encoding of real instructions from an assembled encryption loop, we can quickly see that theres much more going on than the just addressing mode variations between each instruction:
+If we look at the encoding of real instructions from an assembled encryption loop, we can quickly see that there is much more going on than the just addressing mode variations between each instruction:
 
 ```
     a) 48 C7 C3 9A 02 00 00    // mov rbx, 29Ah  
@@ -258,7 +258,7 @@ main_loop
 decrypt endp                                                  
 ```
 
-#### Cipher Algoritm Order of Operations
+#### Cipher Algorithm Order of Operations
 
 1) permutable, can be placed anywhere
 2) permutable, can be placed anywhere

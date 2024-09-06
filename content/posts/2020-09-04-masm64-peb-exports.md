@@ -7,7 +7,7 @@ date = 2020-09-04 00:05:29
 
 Using the PEB as a position-independent means of finding exports is not new. As early as the late 90's, malware authors have been accessing and using the PEB for a variety of purposes [1]. Using it to resolve exports from ntdll.dll, kernel32.dll, etc. has also been documented elsewhere repeatedly [2]. Still, most of the existing examples are in 32-bit assembly, and there are fewer examples in 64-bit. But the world has mostly moved on to 64-bit. Am0nsec [3] demonstrates the most readable and comprehensive approach I have yet found for MASM64, but it is designed specifically for populating tables of function addresses and syscall numbers (the 'Hells Gate' tecnique). This article simply descibes a general adaptation of part of [3] - almost all of the code is the exact same, but parts have been changed to make a general-purpose function for iterating over a module's exports to find a target function's address.
 
-## GetExport prototype
+# GetExport prototype
 
 We can declare the prototype for this function to be:
 
@@ -149,8 +149,10 @@ _djb2_epilog:
 
 The sum of these parts is a general-purpose function for finding functions from a module's export directory, without string reliance. Of course, credit for nearly all of these implementation details goes to am0nsec.
 
-# References
+## References
 
- [1] https://modexp.wordpress.com/2017/01/15/shellcode-resolving-api-addresses/<br>
- [2] https://idafchev.github.io/exploit/2017/09/26/writing_windows_shellcode.html<br>
- [3] https://github.com/am0nsec/vx/blob/master/Injector.Win64.HellsGate/HELLSGATE.ASM<br>
+[1] https://modexp.wordpress.com/2017/01/15/shellcode-resolving-api-addresses/
+
+[2] https://idafchev.github.io/exploit/2017/09/26/writing_windows_shellcode.html
+
+[3] https://github.com/am0nsec/vx/blob/master/Injector.Win64.HellsGate/HELLSGATE.ASM

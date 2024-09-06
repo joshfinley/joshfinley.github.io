@@ -177,20 +177,6 @@
 
     {{ $content | safeHTML }}
 
-    <!-- Footnotes List Generation -->
-    {{ $footnotes := .Scratch.Get "footnotes" }}
-    {{ if $footnotes }}
-      <h3>Footnotes</h3>
-      <ol>
-        {{ range $footnotes }}
-          <li id="fn-{{ .index }}">
-            {{ .content | markdownify }}
-            <a href="#ref-{{ .index }}" aria-label="Back to content">↩</a>
-          </li>
-        {{ end }}
-        </ol>
-    {{ end }}
-
     <!-- Citation List Generation -->
     {{ $citations := .Scratch.Get "citations" }}
     {{ if $citations }}
@@ -212,6 +198,21 @@
         {{ end }}
       </ol>
     {{ end }}
+
+    <!-- Footnotes List Generation -->
+    {{ $footnotes := .Scratch.Get "footnotes" }}
+    {{ if $footnotes }}
+      <h2>Footnotes</h2>
+      <ol>
+        {{ range $footnotes }}
+          <li id="fn-{{ .index }}">
+            {{ .content | markdownify }}
+            <a href="#ref-{{ .index }}" aria-label="Back to content">↩</a>
+          </li>
+        {{ end }}
+        </ol>
+    {{ end }}
+  
   </article>
 
   <!-- Backlinks List Generation -->
