@@ -1,14 +1,19 @@
 {{ define "main" }}
   <h1>{{ .Title }}</h1>
+  
+  <!-- Display the content of _index.md -->
+  <div class="about-section">
+    {{ .Content }}
+  </div>
 
-<!-- Display top 5 most recent posts -->
+  <!-- Display top 5 most recent posts -->
   <h2>New Posts</h2>
   <ul>
     {{ range first 5 .Site.RegularPages.ByDate.Reverse }}
       <li><a href="{{ .Permalink }}">{{ .Title }}</a></li>
     {{ end }}
   </ul>
-
+  
   <!-- Display only categories -->
   {{ with .Site.Taxonomies.categories }}
     <h2>Categories</h2>
@@ -21,8 +26,7 @@
       </ul>
     {{ end }}
   {{ end }}
-
-
+  
   <!-- Display all posts -->
   <h2>All Posts</h2>
   <ul>
@@ -31,3 +35,4 @@
     {{ end }}
   </ul>
 {{ end }}
+
