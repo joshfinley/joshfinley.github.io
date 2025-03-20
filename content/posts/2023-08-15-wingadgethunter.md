@@ -80,7 +80,7 @@ With established tools like ROPgadget, Ropper, and even Yara available, you migh
 3. **Integration potential**: The compact codebase makes it easy to incorporate into other tools or workflows
 4. **Windows-specific**: By focusing exclusively on Windows DLLs, the tool avoids compromises needed for cross-platform support
 
-That said, as the tongue-in-cheek "Contributing" section of the README suggests ("Just use Yara instead"), this isn't meant to replace more comprehensive tools for every scenario. 
+That said, as the tongue-in-cheek "Contributing" section of the README suggests ("Just use Yara instead"), this isn't meant to replace more comprehensive tools for every scenario.
 
 ## Practical Applications
 
