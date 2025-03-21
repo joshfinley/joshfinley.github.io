@@ -37,7 +37,7 @@ jobs:
           HUGO_ENVIRONMENT: production
           HUGO_ENV: production
         run: |
-          hugo --gc --minify -b ${{ github.event.repository.html_url }}/
+          hugo --gc --minify -b https://joshfinley.github.io/
      
       - name: Create .nojekyll
         run: echo "" > ./public/.nojekyll
