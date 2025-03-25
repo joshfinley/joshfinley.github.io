@@ -1,6 +1,6 @@
 +++
 
-title = "Threat Intelligence Update: Evolutions in EDR Evasion Techniques 2024"
+title = "Review: Elastic 2024 Global Threat Report"
 date = 2025-03-25 00:05:28
 
 +++
@@ -40,7 +40,7 @@ The report discloses less dramatic trends in Linux and Mac OS, which are consist
 
 While Elastic's report does well to hold off on spurious correlation, there are clear interpretation risks based on the facts presented. 
 
-At worst, a less careful reader may take Elastic's data as representing definitive trends in the *actual behavior* of adversaries in the malware space. Alternatively, a similar bias may exist that would entice some slightly more attentive readers to assume the results are directly related to increases in defense technology. While both these interpretations are assuredly valid to some extent, we should be carefully about making hasty assumptions about what adversaries are doing in reality.
+At worst, a less careful reader may take Elastic's data as representing definitive trends in the *actual behavior* of adversaries in the malware space. Alternatively, a similar bias may exist that would entice some slightly more attentive readers to assume the results are directly related to increases in defense technology, which is probably much more accurate, but still glosses over details. While both these interpretations are assuredly valid to some extent, we should be carefully about making hasty assumptions about what adversaries are doing in reality.
 
 Threat reporting -- like all other hard problems -- must contest with the implicit unknowns in adversary behavior. Elastic's leading efforts reflect a global gain in traction on understanding threats, but there are still significant issues that remain.
 
