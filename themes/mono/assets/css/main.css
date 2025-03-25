@@ -44,7 +44,7 @@ html {
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --text-color: #fff;
+    --text-color: #ddd;
     --text-color-alt: #aaa;
     --background-color: #1b1b1b;
     --background-color-alt: #2e2e2e;
