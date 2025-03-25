@@ -1,18 +1,35 @@
 {{ define "main" }}
   <h1>{{ .Title }}</h1>
-  
+ 
   <!-- Display the content of _index.md -->
   <div class="about-section">
     {{ .Content }}
   </div>
 
   <!-- Display top 5 most recent posts -->
-  <h2>New Posts</h2>
+  <h2>Recent Posts</h2>
   <ul>
     {{ range first 5 .Site.RegularPages.ByDate.Reverse }}
       <li><a href="{{ .Permalink }}">{{ .Title }}</a></li>
     {{ end }}
   </ul>
+
+  <!-- Display most recent post with full content -->
+  {{ $latestPost := index (where .Site.RegularPages "Section" "posts") 0 }}
+  {{ with $latestPost }}
+  <div class="latest-post">
+    <h2>Latest Post: {{ .Title }}</h2>
+    <div class="post-meta">
+      <time datetime="{{ .Date.Format "2006-01-02T15:04:05Z07:00" }}">
+        {{ .Date.Format "January 2, 2006" }}
+      </time>
+    </div>
+    <div class="post-content">
+      {{ .Content }}
+    </div>
+    <a href="{{ .Permalink }}">Read more</a>
+  </div>
+  {{ end }}
   
   <!-- Display only categories -->
   {{ with .Site.Taxonomies.categories }}
@@ -26,7 +43,7 @@
       </ul>
     {{ end }}
   {{ end }}
-  
+ 
   <!-- Display all posts -->
   <h2>All Posts</h2>
   <ul>
@@ -35,4 +52,3 @@
     {{ end }}
   </ul>
 {{ end }}
-
