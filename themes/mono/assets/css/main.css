@@ -46,8 +46,8 @@ html {
   :root {
     --text-color: #fff;
     --text-color-alt: #aaa;
-    --background-color: #000;
-    --background-color-alt: #111;
+    --background-color: #1b1b1b;
+    --background-color-alt: #2e2e2e;
   }
 }
 

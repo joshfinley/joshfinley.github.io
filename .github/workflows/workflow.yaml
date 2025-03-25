@@ -3,7 +3,7 @@ name: Deploy
 on:
   push:
     branches:
-      - master  # Adjust to your default branch if different
+      - master  
   workflow_dispatch:
 permissions:
   contents: read
