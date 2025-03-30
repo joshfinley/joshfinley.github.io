@@ -9,7 +9,7 @@
   <!-- Display top 5 most recent posts -->
   <h2>Recent Posts</h2>
   <ul>
-    {{ range first 5 .Site.RegularPages.ByDate.Reverse }}
+    {{ range first 12 .Site.RegularPages.ByDate.Reverse }}
       <li><a href="{{ .Permalink }}">{{ .Title }}</a></li>
     {{ end }}
   </ul>
