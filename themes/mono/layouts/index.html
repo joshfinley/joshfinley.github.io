@@ -14,23 +14,28 @@
     {{ end }}
   </ul>
 
-  <!-- Display most recent post with full content -->
-  {{ $latestPost := index (where .Site.RegularPages "Section" "posts") 0 }}
-  {{ with $latestPost }}
+  <!-- Display TWO most recent posts with preview content -->
+  {{ $latestPosts := first 2 (where .Site.RegularPages "Section" "posts").ByDate.Reverse }}
+  {{ range $index, $post := $latestPosts }}
   <div class="latest-post">
-    <h2>Latest Post: {{ .Title }}</h2>
+    <h2>{{ if eq $index 0 }}Latest Post:{{ else }}Previous Post:{{ end }} {{ $post.Title }}</h2>
     <div class="post-meta">
-      <time datetime="{{ .Date.Format "2006-01-02T15:04:05Z07:00" }}">
-        {{ .Date.Format "January 2, 2006" }}
+      <time datetime="{{ $post.Date.Format "2006-01-02T15:04:05Z07:00" }}">
+        {{ $post.Date.Format "January 2, 2006" }}
       </time>
     </div>
-    <div class="post-content">
-      {{ .Content }}
+    <div class="post-preview">
+      {{ $content := $post.Content }}
+      {{ $contentLines := split $content "\n" }}
+      {{ $previewLines := first 30 $contentLines }}
+      {{ $preview := delimit $previewLines "\n" }}
+      {{ $preview | safeHTML }}
+      <p>...</p>
     </div>
-    <a href="{{ .Permalink }}">Read more</a>
+    <a href="{{ $post.Permalink }}">Read more</a>
   </div>
   {{ end }}
-  
+
   <!-- Display only categories -->
   {{ with .Site.Taxonomies.categories }}
     <h2>Categories</h2>
