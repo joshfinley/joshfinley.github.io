@@ -8,13 +8,14 @@ Brief post.
 
 Just sharing here a script I've been using to assist in Windows 11 kernel driver testing.
 
-Requirements:
+The script provides quick and easy deployment of kernel drivers to accessible Hyper-V virtual machines.
 
+Requirements:
 - Hyper-V
 - Available Windows VM with enabled guest integrations
 
 Features:
-- Automated deployments, service starts/restarts to target VM completely through PowerShell
+- Automated copy and start of driver on target VM 
 - Default inclusion of available PDB to the target and local symbols cache
 - Suitable for quick experiments.
 
