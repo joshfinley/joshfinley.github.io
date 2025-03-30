@@ -48,4 +48,4 @@ Most prominently in the report is the *huge* increase in process injection detec
 
 To that end, I have anecdotally observed a slowdown in the pace at which developments in malware techniques match advancements in defensive technology. Although I don't have concrete data to support it, there seems to be a drawdown in published offensive research in recent years, coinciding interestingly with the rise and advancement of EDR/XDR technology. To borrow language from other spaces, we may be *finally* entering a convergence / Nash Equilibrium between threats and defenders (at least those which have the privilege of robust defensive programs). 
 
-Coincidentally, own efforts in the offensive security space have shifted towards *tailored* approaches to assessment execution. Increasingly often, *obscurity surpasses cleverness in achieving compromise.* But that's just anecdote.
+Coincidentally, my own efforts in the offensive security space have shifted towards *tailored* approaches to assessment execution. Increasingly often, *obscurity surpasses cleverness in achieving compromise.* But that's just anecdote.
