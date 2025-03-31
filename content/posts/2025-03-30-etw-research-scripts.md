@@ -146,7 +146,7 @@ foreach ($file in $files) {
             Write-Host "$guid " -ForegroundColor $etwColor -NoNewline
             Write-Host "at offset $offsetHex" -ForegroundColor $etwColor
         } else {
-            Write-Host "
+            Write-Host "  [UNK] " -ForegroundColor $unknownColor -NoNewline
             Write-Host "$guid " -ForegroundColor $defaultColor -NoNewline
             Write-Host "at offset $offsetHex" -ForegroundColor $defaultColor
         }
