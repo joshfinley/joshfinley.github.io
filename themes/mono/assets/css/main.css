@@ -257,16 +257,6 @@ pre, code {
   font-family: var(--font-family);
 }
 
-/* Override the font weight for code inside pre elements */
-pre code {
-  font-weight: var(--font-weight-normal);
-}
-
-/* Ensure highlighted code blocks use normal weight */
-.highlight code {
-  font-weight: var(--font-weight-normal);
-}
-
 figure {
   margin: calc(var(--line-height) * 2) 3ch;
   overflow-x: auto;
@@ -555,33 +545,20 @@ pre code,
 .highlight code {
   display: block;
   font-family: var(--font-family) !important;
-  font-size: 0.9em !important;
   white-space: pre;
 }
 
 /* Adjust line height for non-highlighted code */
-pre code {
-  line-height: var(--line-height) !important;
-}
 
 /* Remove any potential responsiveness issues */
 @media screen and (max-width: 480px) {
   pre code, .highlight code {
     font-size: 0.9em !important; /* Force consistent font size on mobile */
-    line-height: var(--line-height) !important;
   }
 }
-
-/* Corrected line height and padding for highlighted code */
-.highlight code {
-  line-height: .75 !important; /* Reduced from 1.5 to 1.2 */
-  padding: 0.25rem 0 !important; /* Reduced vertical padding */
-}
-
 /* Add a wrapper div for better control */
 .highlight-wrapper {
   position: relative;
-  margin: var(--line-height) 0;
 }
 
 /* Style the pre element inside the wrapper */
