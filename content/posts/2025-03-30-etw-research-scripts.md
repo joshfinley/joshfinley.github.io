@@ -13,6 +13,8 @@ The scripts are:
 
 Both of these scripts are quick experiments but have proved useful in my testing. Improvements could be made to increase accuracy and performance. Additionally, for `Get-PossibleEtwRefs.ps1`, it would likely not be so difficult to leverage SDKs for IDA/Ghidra/Binja to compute cross-references to the identified GUIDs and see if any are near any relevant ETW functions, allowing us to easily associate the reference with Provider / Controller / Consumer code (similar to what is demonstrated manually in *Evading EDR* ch. 8), or do similar analysis.
 
+Note: The versions here won't see any updates. I will do that on the respective GitHub gists.
+
 ### Get-PossibleEtwRefs
 ```PowerShell
 # Get-PossibleEtwRefs.ps1
