@@ -164,6 +164,8 @@ try {
 
 I've also created a utility to automate the test-ELAM signing stage in ELAM driver development tasks. While not directly related to ETW, this script may prove useful to someone else, as it is suitable for integration with Visual Studio test signing builds.
 
+Updates to this script can be found on [GitHub](https://gist.github.com/joshfinley/50d30bfb5e547c1f5fa891ec603e90b3).
+
 ```bat
 @echo off
 REM ============================================================
