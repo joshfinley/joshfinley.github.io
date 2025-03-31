@@ -660,3 +660,86 @@ pre code,
 :root[data-color-scheme="dark"]  .highlight .vg { color: #f8f8f2 } /* Name.Variable.Global */
 :root[data-color-scheme="dark"]  .highlight .vi { color: #f8f8f2 } /* Name.Variable.Instance */
 :root[data-color-scheme="dark"]  .highlight .il { color: #ae81ff } /* Literal.Number.Integer.Long */
+
+/* Fix for code blocks with language identifiers */
+
+/* Target the problem: code blocks with language identifiers */
+pre[class*="language-"],
+code[class*="language-"],
+.language-powershell,
+.language-bash,
+.language-javascript,
+.language-python,
+.language-css,
+.language-html,
+.language-csharp,
+.language-java,
+/* Add other languages you commonly use */
+[class*="language-"] {
+  font-family: var(--font-family) !important;
+  /* Use the same font size as the document */
+  font-size: inherit !important;
+  font-weight: var(--font-weight-normal) !important; 
+  line-height: var(--line-height) !important; /* Force document line height */
+  font-variant-ligatures: none !important; /* Prevent ligatures from affecting display */
+}
+
+/* Normalize all spans inside code blocks (including $ and special characters) */
+pre code span,
+.highlight span,
+pre[class*="language-"] span,
+code[class*="language-"] span {
+  font-family: inherit !important;
+  font-size: inherit !important;
+  font-weight: inherit !important;
+  line-height: inherit !important;
+  vertical-align: baseline !important;
+}
+
+/* Override any potential syntax highlighter's line height settings */
+.chroma .line,
+.highlight .line,
+pre .line,
+[class*="language-"] .line {
+  line-height: var(--line-height) !important;
+  height: var(--line-height) !important;
+}
+
+/* Ensure all code block elements maintain consistent spacing */
+pre, pre code, code span {
+  padding: 0 !important; 
+  margin: 0 !important;
+  vertical-align: baseline !important;
+}
+
+/* Additional fixes specifically for PowerShell code blocks */
+.language-powershell .token,
+.language-powershell .variable,
+.language-powershell .operator,
+.language-powershell .special,
+.language-powershell .punctuation {
+  font-family: var(--font-family) !important;
+  font-size: inherit !important; 
+  font-weight: var(--font-weight-normal) !important;
+  line-height: var(--line-height) !important;
+}
+
+/* Critical fix: Override any potential tokenizers that might affect $ characters */
+[class*="language-"] .token.variable,
+[class*="language-"] .token.function,
+[class*="language-"] .token.operator {
+  font-weight: var(--font-weight-normal) !important;
+  font-size: inherit !important;
+}
+
+/* Ensure display: inline-block doesn't break line height */
+pre code, pre span, code span {
+  display: inline !important;
+}
+
+/* Fix for tokens with $ and other special characters */
+[class*="language-"] .token {
+  display: inline !important;
+  height: auto !important;
+  font-size: inherit !important;
+}
