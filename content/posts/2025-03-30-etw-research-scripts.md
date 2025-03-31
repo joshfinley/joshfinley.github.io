@@ -34,32 +34,84 @@ param (
 
 function Get-GUIDsFromFile($filePath) {
     $regex = '[{(]?[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}[)}]?'
-    $bytes = [System.IO.File]::ReadAllBytes($filePath)
-    $ascii = -join ($bytes | ForEach-Object {
-        if ($_ -ge 32 -and $_ -le 126) { [char]$_ } else { ' ' }
-    })
+    $foundGuids = @{}
     
-    $matches = [regex]::Matches($ascii, $regex)
+    # Process file in chunks
+    $stream = [System.IO.File]::OpenRead($filePath)
+    $buffer = New-Object byte[] 4MB
+    $totalBytesRead = 0
+    
+    try {
+        $overlap = 36  # GUID can be up to 36 chars, need to keep this overlap between chunks
+        $carryover = ""
+        
+        while ($true) {
+            $bytesRead = $stream.Read($buffer, 0, $buffer.Length)
+            if ($bytesRead -eq 0) { break }
+            
+            # Convert bytes to ASCII replacing non-printable chars with spaces
+            $text = -join ($buffer[0..($bytesRead-1)] | ForEach-Object {
+                if ($_ -ge 32 -and $_ -le 126) { [char]$_ } else { ' ' }
+            })
+            
+            # Combine with carryover from previous chunk
+            $textToSearch = $carryover + $text
+            
+            # Find GUIDs
+            $matches = [regex]::Matches($textToSearch, $regex)
+            foreach ($match in $matches) {
+                $matchOffset = $totalBytesRead - $carryover.Length + $match.Index
+                # Only add if we haven't seen this GUID before
+                if (-not $foundGuids.ContainsKey($match.Value)) {
+                    $foundGuids[$match.Value] = $matchOffset
+                }
+            }
+            
+            # Save overlap for next chunk
+            $carryover = $text.Substring([Math]::Max(0, $text.Length - $overlap))
+            $totalBytesRead += $bytesRead
+            
+            # Force garbage collection periodically
+            [System.GC]::Collect()
+        }
+    }
+    finally {
+        $stream.Close()
+        $stream.Dispose()
+    }
+    
+    # Return results as objects
     $results = @()
-    
-    foreach ($match in $matches) {
-        # Calculate the file offset by finding the byte position of the GUID
-        $offset = $match.Index
+    foreach ($guid in $foundGuids.Keys | Sort-Object) {
         $results += [PSCustomObject]@{
-            GUID = $match.Value
-            Offset = $offset
+            GUID = $guid
+            Offset = $foundGuids[$guid]
         }
     }
     
-    return $results | Sort-Object GUID -Unique
+    return $results
 }
 
 function Is-ETWProviderGUID($guid) {
-    $providers = logman query providers | Select-String -Pattern $guid
-    return $providers -ne $null
+    # Cache ETW provider GUIDs to avoid repeated lookups
+    if (-not (Test-Path variable:global:ETWProviderCache)) {
+        $global:ETWProviderCache = @{}
+        
+        # Pre-populate cache with all ETW providers - do this only once
+        Write-Host "Caching ETW providers..." -ForegroundColor Yellow
+        $providers = logman query providers
+        foreach ($provider in $providers) {
+            if ($provider -match '(?:\{|\()([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})(?:\}|\))') {
+                $global:ETWProviderCache[$Matches[1].ToLower()] = $true
+            }
+        }
+    }
+    
+    $cleanedGuid = $guid.Trim('{}()').ToLower()
+    return $global:ETWProviderCache.ContainsKey($cleanedGuid)
 }
 
-# Check if the path exists
+# Main script
 if (-not (Test-Path $Path)) {
     Write-Error "Path not found: $Path"
     exit 1
@@ -78,6 +130,8 @@ $defaultColor = (Get-Host).UI.RawUI.ForegroundColor
 
 foreach ($file in $files) {
     Write-Host "`nScanning: $($file.FullName)" -ForegroundColor Cyan
+    
+    # Process each file individually and clean up after
     $guidResults = Get-GUIDsFromFile $file.FullName
     
     foreach ($result in $guidResults) {
@@ -92,13 +146,47 @@ foreach ($file in $files) {
             Write-Host "$guid " -ForegroundColor $etwColor -NoNewline
             Write-Host "at offset $offsetHex" -ForegroundColor $etwColor
         } else {
-            Write-Host "  [UNK] " -ForegroundColor $unknownColor -NoNewline
+            Write-Host "
             Write-Host "$guid " -ForegroundColor $defaultColor -NoNewline
             Write-Host "at offset $offsetHex" -ForegroundColor $defaultColor
         }
     }
+    
+    # Force cleanup after each file
+    Remove-Variable guidResults -ErrorAction SilentlyContinue
+    [System.GC]::Collect()
 }
+
+# Clean up the cache at the end
+Remove-Variable -Name ETWProviderCache -Scope Global -ErrorAction SilentlyContinue
 ```
+
+An example run through System32 shows some successful matches:
+```
+...
+Scanning: C:\Windows\System32\windowsperformancerecordercontrol.dll
+  [ETW] {36b6f488-aad7-48c2-afe3-d4ec2c8b46fa} at offset 0x00133A87
+  [ETW] 0a002690-3839-4e3a-b3b6-96d8df868d99 at offset 0x0010B2FD
+  [ETW] 0CC157B3-CF07-4FC2-91EE-31AC92E05FE1 at offset 0x000FFC97
+  [ETW] 245f975d-909d-49ed-b8f9-9a75691d6b6b at offset 0x0010BC4D
+  [ETW] 315a8872-923e-4ea2-9889-33cd4754bf64 at offset 0x00105CB4
+  [ETW] 36b6f488-aad7-48c2-afe3-d4ec2c8b46fa at offset 0x000FE24B
+  [ETW] 486A5C7C-11CC-46C5-9DE7-43DFE0BB57C1 at offset 0x0010C7D5
+  [ETW] 48D445A8-2F64-4D49-B093-A5774D8DC531 at offset 0x00101902
+  [ETW] 4bd2826e-54a1-4ba9-bf63-92b73ea1ac4a at offset 0x00108FE4
+  [ETW] 531a35ab-63ce-4bcf-aa98-f88c7a89e455 at offset 0x0010BA6B
+  [ETW] 5412704e-b2e1-4624-8ffd-55777b8f7373 at offset 0x0010551B
+  [ETW] 57277741-3638-4A4B-BDBA-0AC6E45DA56C at offset 0x000FE80C
+  [ETW] 59819d0a-adaf-46b2-8d7c-990bc39c7c15 at offset 0x00105727
+  [ETW] 5c8bb950-959e-4309-8908-67961a1205d5 at offset 0x00108D24
+  [ETW] 7426a56b-e2d5-4b30-bdef-b31815c1a74a at offset 0x0010593F
+  [ETW] 751ef305-6c6e-4fed-b847-02ef79d26aef at offset 0x0010B38C
+  [ETW] 7E7D3382-023C-43cb-95D2-6F0CA6D70381 at offset 0x0010B1A7
+  ... And many more
+...
+```
+
+Just based on this DLL name, it makes sense that we would see some ETW provider GUIDs inside it.
 
 ### Get-EtwProviderAces
 ```PowerShell
