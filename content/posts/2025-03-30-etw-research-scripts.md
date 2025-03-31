@@ -11,7 +11,7 @@ The scripts are:
 - [`Get-PossibleEtwRefs.ps1`](https://gist.github.com/joshfinley/2c6f9b2d0b81580b292dabadd6ccb622): A dumbed-down version of [FindETWProviderImage](https://github.com/matterpreter/FindETWProviderImage), useful for hunting potential ETW provider GUID references in files and directories.
 - [`Get-EtwProviderAces.ps1`](https://gist.github.com/joshfinley/566f6a3e9d3989880a2ae9894185bc35): Attempt to obtain ACE's associated with a provider.
 
-Both of these scripts are quick experiments but have proved useful in my testing. Improvements could be made to increase accuracy and performance. Additionally, for `Get-PossibleEtwRefs.ps1`, it would likely not be so difficult to leverage SDKs for IDA/Ghidra/Binja to compute cross-references to the identified GUIDs and see if any are near any relevant ETW functions, allowing us to easily associate the reference with Provider / Controller / Consumer code (similar to what is demonstrated in *Evading EDR* ch. 8) or do similar analysis.
+Both of these scripts are quick experiments but have proved useful in my testing. Improvements could be made to increase accuracy and performance. Additionally, for `Get-PossibleEtwRefs.ps1`, it would likely not be so difficult to leverage SDKs for IDA/Ghidra/Binja to compute cross-references to the identified GUIDs and see if any are near any relevant ETW functions, allowing us to easily associate the reference with Provider / Controller / Consumer code (similar to what is demonstrated manually in *Evading EDR* ch. 8), or do similar analysis.
 
 ### Get-PossibleEtwRefs
 ```PowerShell
