@@ -35,7 +35,7 @@ On my Windows 11 26100 reversing machine, this query identified 47 records. Near
 
 While I haven't gone into depth to verify that no form of security instrumentation exists for these system calls in the kernel, the graph analysis results are promising. With this in mind, I set out with the purpose of at least determining if some sort of inter-process communication could be implemented using KTM. If true, it may merit a closer look and potentially some utility in same-host offensive scenarios. As a side note, I haven't extensively surveyed the previous work in the area of KTM, so it's possible that someone has stumbled upon this before, but it still seems quite niche and potentially under-explored.
 
-While reviewing the documentation, my first aim was to determine how one would work with the transaction manager in the first place. Fortunately, it is relatively straightforward and decently documented.
+While reviewing the documentation, an initial objective was to determine how one would work with the transaction manager in the first place. Fortunately, it is relatively straightforward and decently documented.
 
 The first step is to simply create a transaction object with `NtCreateTransaction`. This can be done from unprivileged user-mode contexts. While reading the [function documentation](https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-ntcreatetransaction), I noticed that it takes a parameter of type `PUNICODE_STRING`, potentially allowing for the storage of a decently large amount of information inside the kernel. If there is a way to recover this, it could be used as an odd form of generic inter-process communication.
 
