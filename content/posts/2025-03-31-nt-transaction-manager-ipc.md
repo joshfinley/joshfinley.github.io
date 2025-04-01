@@ -115,7 +115,7 @@ While far from an operational example, this evening endeavor into KTM highlights
 
 Further research might include the following:
 
-- Validate the presumed lack of observability of KTM operations (although I am reasonably confident in this).
+- Validate the presumed lack of observability of KTM operations.
 - Operationalize the mechanism, which would require a more thorough understanding of how subsequent operations on the object would be performed.
 - Identify other useful attack surface in KTM - there has been at least [one](https://www.exploit-db.com/exploits/42233) interesting example of this.
 - Test the concept on a system with robust monitoring.
