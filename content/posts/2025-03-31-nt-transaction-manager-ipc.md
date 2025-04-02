@@ -8,7 +8,7 @@ draft = false
 
 ## Overview
 
-While re-reading Matt Hand's [*"Evading EDR"*](https://nostarch.com/evading-edr), I was following along with the methodology he described involving graph analysis of function call trees. The premise is to [convert](https://gist.githubusercontent.com/matterpreter/3d9239179372dd179801e996288c983e/raw/5dfcdaaf924e4cb3cd822fa5d00fc306004e3b71/CallTreeToJSON.py) a Ghidra analysis of call graphs in a binary to a JSON format suitable for use in [Neo4j](https://neo4j.com/), allowing for robust querying.
+While re-reading Matt Hand's [*"Evading EDR"*](https://nostarch.com/evading-edr), I was following along with the methodology described involving graph analysis of function call trees. The premise is to [convert](https://gist.githubusercontent.com/matterpreter/3d9239179372dd179801e996288c983e/raw/5dfcdaaf924e4cb3cd822fa5d00fc306004e3b71/CallTreeToJSON.py) a Ghidra analysis of call graphs in a binary to a JSON format suitable for use in [Neo4j](https://neo4j.com/), allowing for robust querying.
 
 The example provided in Chapter 12 demonstrates identifying `Nt` family functions with edges to known `EtwTi` functions. Reading this gave me the idea to write a query that does something slightly different: Identify system call functions *without* known calls to `Etw` functions.
 
