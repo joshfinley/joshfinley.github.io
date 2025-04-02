@@ -1,6 +1,6 @@
 # About This Blog
 
-This blog serves as a repository for articles and short posts on my projects in cybersecurity. The content ranges from breakdowns of malware obfuscation techniques to custom implementations of security tools, analyses of CVEs, and low-level programming experiments. I believe in understanding systems from first principles - whether that's tracing through assembly code, unpacking obfuscated malware, or building tools that interact with cloud APIs in novel ways.
+This blog serves as a repository for articles and short posts on my projects in cybersecurity. The content ranges from breakdowns of malware obfuscation techniques to custom implementations of security tools, analyses of CVEs, and low-level programming experiments. 
 
 Some recurring themes you'll find here:
 
