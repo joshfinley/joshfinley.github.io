@@ -13,7 +13,7 @@ A quick google search didn't reveal any cheat-sheet-like guides on how to resolv
 - Identify the function offset and section base address for the targets in both programs.
 - Open the Memory Map (`View -> Memory Map`) and re-base the block/section of the comparison target to match the target function based on the offset.
 
-A simplistic example is to just re-base the section whose function is at a higher offset to `0x0` and re-base the target at the difference in the offsets. Then the Program Differences tool can be used like normal.
+A simplistic example is to just re-base the section to `0x0` (whose function is at a higher offset) and re-base the target at the difference in the offsets. Then the Program Differences tool can be used like normal.
 
 {{< figure src="/ghidra-program-differences-rebase.png" alt="Example Rebase for Program Differences" >}}
 
