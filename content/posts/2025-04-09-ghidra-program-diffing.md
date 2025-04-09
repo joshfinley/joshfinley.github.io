@@ -19,9 +19,13 @@ A simplistic example is to just re-base the section whose function is at a highe
 
 This approach isn't ideal as it will have effects on the Code Browser overall (as whole sections have just been moved) but might be useful as a quick hack to get the built-in Program Differences tool to work when image bases, sections, and functions don't align nicely.
 
-In my use-case of `hvax64.exe`, and `hvix64.exe`, this approach allowed me to quickly see a large amount of the shared code between the binaries. This is of course expected, but allows one to key in on the model-specific differences in the implementations, which is pretty neat!
+In my use-case of `hvax64.exe`, and `hvix64.exe`, this approach allowed me to quickly see (without using a different tool) a large amount of the shared code between the binaries. This is of course expected, but allows one to key in on some of the model-specific differences (and similarities) in the implementations, which is pretty neat!
 
 {{< figure src="/ghidra-program-diff-window.png" alt="Diff View for Intel/AMD Hypervisor Binaries" >}}
+
+{{< figure src="/vmcall-opcode-diff.png" alt="Snippet of VMCALL Opcode Differences" >}}
+
+
 
 
 If there's an obviously better way to do this natively in Ghidra that I'm not aware of, please let me know!
