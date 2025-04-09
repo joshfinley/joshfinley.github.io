@@ -6,7 +6,7 @@ draft = false
 
 Brief post.
 
-While working in Ghidra recently, I noticed that there is a good amount of shared code between the AMD and Intel provider executables for the Windows Hypervisor (`hvax64.exe`, `hvix64.exe`). Accordingly, I wanted to compare disassembly on certain functions, but noticed that the built-in Program Differences tool in Ghidra does not support custom address mappings (or if it exists, its buried in menus). This means that if two programs expect different memory locations in memory, the Program Differences tool will not produce immediately useful results. Additionally, I did not see an obvious way to do highly specific function or block level diffing.
+While working in Ghidra recently, I noticed that there is a good amount of shared code between the AMD and Intel provider executables for the Windows Hypervisor (`hvax64.exe`, `hvix64.exe`). Accordingly, I wanted to compare disassembly on certain functions, but noticed that the built-in Program Differences tool in Ghidra does not support custom address mappings (or if it exists, its buried in menus). This means that if two programs expect different memory locations, the Program Differences tool will not produce immediately useful results. Additionally, I did not see an obvious way to do highly specific function or block level diffing.
 
 A quick google search didn't reveal any cheat-sheet-like guides on how to resolve this without going to an external tool, so I'm writing here to discuss a hack-ish approach to selectively diff when addresses don't line up. The approach is a bit sketchy but can be done natively in Ghidra with no special tooling:
 
